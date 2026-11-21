@@ -11,6 +11,8 @@ const USERS = [
   { username: "linh", name: "Linh Trần", country: "VN", bio: "Phở first, films second. Tết box office is my Olympics.", points: 330, avatar: "av_pho", frame: "fr_jade", banner: null, title: "ti_setia", owns: ["av_pho", "fr_jade", "ti_setia"] },
   { username: "weijie", name: "Wei Jie", country: "SG", bio: "NS survivor. Anthony Chen stan. Sub-titles always on.", points: 720, avatar: "av_boba", frame: null, banner: "bn_lantern", title: "ti_ninja", owns: ["av_boba", "bn_lantern", "ti_ninja"] },
   { username: "kurator", name: "KisahKisah Team", country: "MY", bio: "The people behind the Kedai. Demo staff account.", points: 0, avatar: "av_clapper", frame: null, banner: null, title: null, owns: [] },
+  { username: "studio", name: "Kenyalang Pictures", country: "MY", bio: "Demo partner account: a fictional studio.", points: 0, avatar: "av_clapper", frame: null, banner: null, title: null, owns: [] },
+  { username: "nadia", name: "Nadia Rahman", country: "MY", bio: "Demo artist account. Stickers, kawaii hantu and batik patterns.", points: 0, avatar: "av_lotus", frame: null, banner: null, title: null, owns: [] },
   { username: "camille", name: "Camille", country: "FR", bio: "Parisienne who fell for Southeast Asian cinema at Cannes. Apichatpong forever.", points: 380, avatar: "av_lotus", frame: null, banner: "bn_sunset", title: "ti_subtitle", owns: ["av_lotus", "bn_sunset", "ti_subtitle"] },
   { username: "tunde", name: "Tunde", country: "NG", bio: "Lagos. Nollywood, K-dramas and anything with a heist.", points: 290, avatar: "av_tuktuk", frame: null, banner: null, title: null, owns: ["av_tuktuk"] },
   { username: "jiwoo", name: "Ji-woo", country: "KR", bio: "Visiting from Seoul. Will defend Park Chan-wook in any court.", points: 950, avatar: "av_lantern", frame: "fr_songket", banner: null, title: null, owns: ["av_lantern", "fr_songket"] },
@@ -154,6 +156,18 @@ export function seed(d: DatabaseSync) {
   });
 
   d.prepare("UPDATE users SET role = 'admin' WHERE username = 'kurator'").run();
+
+  // Demo partner team with a campaign at the brief stage, and a demo approved artist with open briefs.
+  const org = Number(d.prepare("INSERT INTO orgs (name) VALUES (?)").run("Kenyalang Pictures (demo)").lastInsertRowid);
+  d.prepare("INSERT INTO org_members (org_id, user_id) VALUES (?,?)").run(org, uid.studio);
+  d.prepare(
+    "INSERT INTO campaigns (org_id, title, package, markets, tagline, synopsis, release_date, motif, country, color1, color2) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+  ).run(org, "Pulau Hantu", "trailer", "MY,SG,ID", "Some islands should stay uninhabited.", "Five friends on a cheap island getaway find out why the boatman wouldn't stay the night. (Fictional demo campaign.)", null, "🏝️", "MY", "#0f766e", "#111827");
+  d.prepare("INSERT INTO artist_profiles (user_id, portfolio_url, bio, specialities, payout_details, status, reviewed_at) VALUES (?,?,?,?,?, 'approved', datetime('now'))")
+    .run(uid.nadia, "https://example.com/nadia-portfolio", "Illustrator from Ipoh. Cute-scary is my thing.", "sticker,frame", "DuitNow: demo");
+  const brief = d.prepare("INSERT INTO briefs (title, description, item_type, quantity, fee_amount, fee_currency, due_on, event, created_by) VALUES (?,?,?,?,?,?,?,?,?)");
+  brief.run("Hantu Week 2027 sticker pack", "Four cute-but-creepy Southeast Asian ghosts: pontianak, pocong, toyol, penanggal. Readable at 24px, bold outlines, transparent background.", "sticker", 4, 40000, "USD", null, "halloween", uid.kurator);
+  brief.run("Lunar New Year avatar decorations", "Two decorations: lanterns and mandarin oranges orbiting, red and gold. Keep the centre clear for the avatar.", "frame", 2, 120000, "MYR", null, "lunar-new-year", uid.kurator);
 
   // Nitro/Steam-style customisation for the demo community
   const COSMETICS: Record<string, { frame: string; effect?: string; namestyle?: string; a1: string; a2: string; showcases: string[]; board?: [string, number, number, number][] }> = {

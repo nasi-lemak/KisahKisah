@@ -4,8 +4,8 @@ import { toShopItem, type CustomItemRow } from "@/lib/custom-items";
 import { ItemPreview } from "@/components/ItemPreview";
 import { RARITY_STYLE } from "@/lib/shop";
 
-const STATUS = ["all", "draft", "approved", "live", "retired"] as const;
-const STYLE: Record<string, string> = { draft: "bg-raised text-muted", approved: "bg-sky-500/20 text-sky-300", live: "bg-jade/20 text-jade", retired: "bg-chili/15 text-red-300" };
+const STATUS = ["all", "submitted", "draft", "approved", "live", "retired"] as const;
+const STYLE: Record<string, string> = { submitted: "bg-saffron/20 text-saffron", draft: "bg-raised text-muted", approved: "bg-sky-500/20 text-sky-300", live: "bg-jade/20 text-jade", retired: "bg-chili/15 text-red-300" };
 
 export default async function AdminItems({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const { status = "all" } = await searchParams;
@@ -22,7 +22,7 @@ export default async function AdminItems({ searchParams }: { searchParams: Promi
       </div>
       <div className="flex flex-wrap gap-1.5">
         {STATUS.map((s) => (
-          <Link key={s} href={s === "all" ? "/admin/items" : `/admin/items?status=${s}`} className={`chip capitalize ${filter === s ? "border-saffron text-saffron" : ""}`}>{s}</Link>
+          <Link key={s} href={s === "all" ? "/admin/items" : `/admin/items?status=${s}`} className={`chip capitalize ${filter === s ? "border-saffron text-saffron" : ""}`}>{s === "submitted" ? "needs review" : s}</Link>
         ))}
       </div>
       {rows.length === 0 ? (
@@ -42,7 +42,7 @@ export default async function AdminItems({ searchParams }: { searchParams: Promi
                   <div className="text-xs text-muted">
                     <span style={{ color: RARITY_STYLE[r.rarity].color }}>{RARITY_STYLE[r.rarity].label}</span> {r.type} · {r.event ? `event: ${r.event}` : r.price ? `🪙 ${r.price}` : "no price"}
                   </div>
-                  <div className="text-xs text-muted">{owners[r.id] ?? 0} owners{r.artist ? ` · 🎨 ${r.artist}` : ""}</div>
+                  <div className="text-xs text-muted">{owners[r.id] ?? 0} owners{r.artist ? ` · 🎨 ${r.artist}` : ""} · {r.source === "staff" ? "team" : r.source}</div>
                 </div>
               </Link>
             );

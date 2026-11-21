@@ -9,23 +9,23 @@ export function ItemPreview({ item, avatar, displayName = "Your Name", compact =
     case "avatar":
       return (
         <span className="inline-flex items-center justify-center rounded-full shadow-lg" style={{ width: 84 * s, height: 84 * s, background: item.bg }}>
-          <AvatarGlyph value={item.value} px={84 * s} />
+          <AvatarGlyph value={item.value} px={84 * s} fill />
         </span>
       );
     case "frame":
-      return <Avatar item={avatar ?? "av_popcorn"} frame={item.id} size={64 * s} />;
+      return <Avatar item={avatar ?? "av_popcorn"} frameItem={item} size={64 * s} />;
     case "banner":
       return <div className={`banner w-full rounded-md ${item.value}`} style={{ height: 80 * s, ...(item.image ? { backgroundImage: `url(${item.image})`, backgroundSize: "cover", backgroundPosition: "center" } : {}) }} />;
     case "title":
       return <span className="rounded-md bg-black/30 px-2.5 py-1 text-sm font-semibold italic text-lotus">{item.value}</span>;
     case "sticker":
-      return <Sticker id={item.id} size={52 * s} />;
+      return <Sticker id={item.id} item={item} size={52 * s} />;
     case "namestyle":
       return <span className={`${item.value} font-display font-extrabold`} style={{ fontSize: 22 * s }}>{displayName}</span>;
     case "effect":
       return (
         <div className="relative w-full overflow-hidden rounded-md bg-gradient-to-b from-black/40 to-black/10" style={{ height: 84 * s }}>
-          <ProfileEffect effect={item.id} count={10} />
+          <ProfileEffect effect={item.id} item={item} count={10} />
           <div className="absolute inset-0 flex items-center justify-center">
             <Avatar item={avatar ?? "av_popcorn"} size={44 * s} />
           </div>

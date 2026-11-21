@@ -4,13 +4,15 @@ import { run } from "@/lib/db";
 import { analyzeUpload } from "@/lib/analyze";
 import { putAsset, mediaUrl } from "@/lib/storage";
 import { SPECS, type UploadType } from "@/lib/asset-spec";
+import { isContributor } from "@/lib/portal";
 
 const MAX_UPLOAD = 4_000_000;
 
-/** Staff upload: runs the automatic checks and stores a clean WebP if they pass. */
+/** Upload: runs the automatic checks and stores a clean WebP if they pass. */
 export async function POST(req: Request) {
   const user = await currentUser();
-  if (!user || (user.role !== "staff" && user.role !== "admin")) return NextResponse.json({ error: "Staff only" }, { status: 403 });
+  // Staff, partner team members and approved artists can upload.
+  if (!user || !isContributor(user)) return NextResponse.json({ error: "Only staff, partners and approved artists can upload" }, { status: 403 });
   const form = await req.formData();
   const type = String(form.get("type") ?? "") as UploadType;
   const file = form.get("file");

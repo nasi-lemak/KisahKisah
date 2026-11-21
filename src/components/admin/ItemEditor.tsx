@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { saveCustomItem, setItemStatus, type SaveInput } from "@/app/admin/actions";
+import { contributorSaveItem, submitItem, withdrawItem } from "@/app/contribute/actions";
 import { mediaUrl, readiness, toShopItem, type CustomData } from "@/lib/custom-item-map";
 import { SPECS, THEME_TOKENS, THEME_TOKEN_LABELS, validateGradient, validateTheme, type CheckResult, type UploadType } from "@/lib/asset-spec";
 import { RARITY_STYLE, registerItems, type ItemType, type Rarity, type ShopItem } from "@/lib/shop";
@@ -25,7 +26,7 @@ const TYPES: { id: ItemType; label: string; icon: string }[] = [
 ];
 const UPLOADS = new Set<ItemType>(["sticker", "frame", "avatar", "banner", "effect"]);
 const SLOT: Partial<Record<ItemType, keyof CardData>> = { avatar: "avatar_item", frame: "frame_item", banner: "banner_item", effect: "effect_item", namestyle: "namestyle_item", title: "title_item" };
-const STATUS_STYLE: Record<string, string> = { draft: "bg-raised text-muted", approved: "bg-sky-500/20 text-sky-300", live: "bg-jade/20 text-jade", retired: "bg-chili/15 text-red-300" };
+const STATUS_STYLE: Record<string, string> = { draft: "bg-raised text-muted", submitted: "bg-saffron/20 text-saffron", approved: "bg-sky-500/20 text-sky-300", live: "bg-jade/20 text-jade", retired: "bg-chili/15 text-red-300" };
 const DEFAULT_THEME: Record<string, string> = { ink: "#0e1014", surface: "#171a21", raised: "#1f232c", line: "#2a2f3a", text: "#ece8e1", muted: "#9aa1ad", saffron: "#f5a524", jade: "#19b38a", lotus: "#ec6fa5" };
 const PREVIEW_ID = "__preview__";
 
@@ -52,8 +53,16 @@ function Checks({ result, title }: { result: CheckResult; title: string }) {
   );
 }
 
-export function ItemEditor({ initial, events, card }: { initial: EditorInitial | null; events: { id: string; name: string; icon: string }[]; card: CardData }) {
+export function ItemEditor({ initial, events, card, mode = "staff", context }: {
+  initial: EditorInitial | null; events: { id: string; name: string; icon: string }[]; card: CardData;
+  /** "contributor" = partner or artist: no pricing, rarity or publishing. */
+  mode?: "staff" | "contributor";
+  context?: string;
+}) {
   const router = useRouter();
+  const contributor = mode === "contributor";
+  const readOnly = contributor && initial?.status !== "draft";
+  const [changeNote, setChangeNote] = useState("");
   const [type, setType] = useState<ItemType>(initial?.type ?? "sticker");
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -91,7 +100,8 @@ export function ItemEditor({ initial, events, card }: { initial: EditorInitial |
     { type, name, description, price: price ? Number(price) : null, event: event || null, event_price: Number(eventPrice), asset_key: assetKey, assetOk: !!checks?.ok, data: effData },
     colourResult?.ok ?? true,
   );
-  const allReady = ready.every((r) => r.pass);
+  const shownReady = contributor ? ready.filter((r) => !r.label.startsWith("Sold for")) : ready;
+  const allReady = shownReady.every((r) => r.pass);
   const preview: CardData = { ...card, ...(SLOT[type] ? { [SLOT[type]!]: PREVIEW_ID } : {}) };
 
   const upload = async (file: File) => {
@@ -117,6 +127,12 @@ export function ItemEditor({ initial, events, card }: { initial: EditorInitial |
 
   const save = () =>
     start(async () => {
+      if (contributor) {
+        const r = await contributorSaveItem({ id: initial!.id, name, description, asset_key: UPLOADS.has(type) ? assetKey : null, data: effData });
+        if (r.error) return toast({ icon: "⚠️", title: r.error });
+        toast({ icon: "💾", title: "Saved" });
+        return router.refresh();
+      }
       const input: SaveInput = {
         id: initial?.id, type, name, description, rarity, price: price ? Number(price) : null, event: event || null,
         event_price: event ? Number(eventPrice) : null, asset_key: UPLOADS.has(type) ? assetKey : null, artist, notes, data: effData,
@@ -128,9 +144,21 @@ export function ItemEditor({ initial, events, card }: { initial: EditorInitial |
       else router.refresh();
     });
 
+  const contribute = (what: "submit" | "withdraw") =>
+    start(async () => {
+      if (what === "submit") {
+        const saved = await contributorSaveItem({ id: initial!.id, name, description, asset_key: UPLOADS.has(type) ? assetKey : null, data: effData });
+        if (saved.error) return toast({ icon: "⚠️", title: saved.error });
+      }
+      const r = what === "submit" ? await submitItem(initial!.id) : await withdrawItem(initial!.id);
+      if (r.error) return toast({ icon: "⚠️", title: r.error });
+      toast({ icon: what === "submit" ? "📤" : "↩", title: what === "submit" ? "Submitted for review" : "Withdrawn: you can edit again" });
+      router.refresh();
+    });
+
   const status = (s: "draft" | "approved" | "live" | "retired") =>
     start(async () => {
-      const r = await setItemStatus(initial!.id, s);
+      const r = await setItemStatus(initial!.id, s, changeNote);
       if (r.error) return toast({ icon: "⚠️", title: r.error });
       toast({ icon: s === "live" ? "🚀" : "✓", title: s === "live" ? "Live in the Kedai!" : `Marked ${s}` });
       router.refresh();
@@ -145,11 +173,18 @@ export function ItemEditor({ initial, events, card }: { initial: EditorInitial |
           <div className="flex flex-wrap items-center gap-2">
             <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-widest ${STATUS_STYLE[initial.status]}`}>{initial.status}</span>
             <span className="text-xs text-muted">ID {initial.id}</span>
+            {context && <span className="text-xs text-muted">· {context}</span>}
           </div>
         )}
+        {readOnly && (
+          <p className="rounded-xl border border-saffron/40 bg-saffron/10 p-3 text-sm">
+            {initial?.status === "submitted" ? "Submitted: the KisahKisah team is reviewing it. Withdraw it if you need to change something." : `This item is ${initial?.status}. Comment below if something needs changing.`}
+          </p>
+        )}
 
+        <fieldset disabled={readOnly || pending} className="space-y-5">
         <section className="glass space-y-4 p-5">
-          <div>
+          {!contributor && <div>
             <span className="label">Type</span>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {TYPES.map((t) => (
@@ -164,7 +199,7 @@ export function ItemEditor({ initial, events, card }: { initial: EditorInitial |
                 </button>
               ))}
             </div>
-          </div>
+          </div>}
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="label" htmlFor="ie-name">Name</label>
@@ -172,14 +207,14 @@ export function ItemEditor({ initial, events, card }: { initial: EditorInitial |
             </div>
             <div>
               <label className="label" htmlFor="ie-artist">Artist credit</label>
-              <input id="ie-artist" className="input" value={artist} onChange={(e) => setArtist(e.target.value)} placeholder="e.g. Nadia Rahman / Studio partner" maxLength={80} />
+              <input id="ie-artist" className="input" value={artist} onChange={(e) => setArtist(e.target.value)} placeholder="e.g. Nadia Rahman / Studio partner" maxLength={80} readOnly={contributor} />
             </div>
           </div>
           <div>
             <label className="label" htmlFor="ie-desc">Shop description</label>
             <input id="ie-desc" className="input" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={240} />
           </div>
-          <div className="grid gap-3 sm:grid-cols-3">
+          {!contributor && <div className="grid gap-3 sm:grid-cols-3">
             <div>
               <label className="label" htmlFor="ie-rarity">Rarity</label>
               <select id="ie-rarity" className="input" value={rarity} onChange={(e) => setRarity(e.target.value as Rarity)}>
@@ -205,7 +240,7 @@ export function ItemEditor({ initial, events, card }: { initial: EditorInitial |
                 <input id="ie-price" className="input" type="number" min={1} value={price} onChange={(e) => setPrice(e.target.value)} placeholder="e.g. 300" />
               )}
             </div>
-          </div>
+          </div>}
         </section>
 
         {spec && (
@@ -308,10 +343,13 @@ export function ItemEditor({ initial, events, card }: { initial: EditorInitial |
           </section>
         )}
 
-        <section className="glass space-y-2 p-5">
-          <label className="label" htmlFor="ie-notes">Review notes (internal)</label>
-          <textarea id="ie-notes" className="input min-h-20" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Licence confirmed, artist invoice #…, changes requested…" />
-        </section>
+        {!contributor && (
+          <section className="glass space-y-2 p-5">
+            <label className="label" htmlFor="ie-notes">Internal notes (staff only)</label>
+            <textarea id="ie-notes" className="input min-h-20" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Licence confirmed, artist invoice #…" />
+          </section>
+        )}
+        </fieldset>
       </div>
 
       <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
@@ -346,19 +384,34 @@ export function ItemEditor({ initial, events, card }: { initial: EditorInitial |
         <div className="glass p-4">
           <div className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">Ready to publish?</div>
           <ul className="space-y-1 text-sm">
-            {ready.map((r) => (
+            {shownReady.map((r) => (
               <li key={r.label}>{r.pass ? "✅" : "⬜"} {r.label}</li>
             ))}
           </ul>
         </div>
 
+        {contributor ? (
+          <div className="flex flex-wrap gap-2">
+            {initial?.status === "draft" && <button className="btn btn-ghost" onClick={save} disabled={pending}>💾 Save</button>}
+            {initial?.status === "draft" && <button className="btn btn-primary" onClick={() => contribute("submit")} disabled={pending || !allReady}>📤 Submit for review</button>}
+            {initial?.status === "submitted" && <button className="btn btn-ghost" onClick={() => contribute("withdraw")} disabled={pending}>↩ Withdraw to edit</button>}
+          </div>
+        ) : (
+        <>
+        {(initial?.status === "submitted" || initial?.status === "approved") && (
+          <input className="input" placeholder="What needs changing? (sent to the contributor)" value={changeNote} onChange={(e) => setChangeNote(e.target.value)} aria-label="Change request note" />
+        )}
         <div className="flex flex-wrap gap-2">
           <button className="btn btn-ghost" onClick={save} disabled={pending}>💾 {initial ? "Save changes" : "Save draft"}</button>
+          {initial?.status === "submitted" && <button className="btn btn-ghost" onClick={() => status("approved")} disabled={pending || !allReady}>✓ Approve</button>}
+          {initial?.status === "submitted" && <button className="btn btn-ghost" onClick={() => status("draft")} disabled={pending}>✏️ Request changes</button>}
           {initial?.status === "draft" && <button className="btn btn-ghost" onClick={() => status("approved")} disabled={pending || !allReady}>✓ Approve</button>}
           {(initial?.status === "approved" || initial?.status === "retired") && <button className="btn btn-primary" onClick={() => status("live")} disabled={pending}>🚀 Publish</button>}
           {initial?.status === "approved" && <button className="btn btn-ghost" onClick={() => status("draft")} disabled={pending}>↩ Request changes</button>}
           {initial?.status === "live" && <button className="btn btn-ghost" onClick={() => status("retired")} disabled={pending}>🔐 Retire (vault)</button>}
         </div>
+        </>
+        )}
         {initial?.status === "live" && <p className="text-xs text-muted">Saving changes to a live item sends it back to draft for review.</p>}
       </aside>
     </div>

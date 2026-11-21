@@ -5,6 +5,7 @@ export default function AdminHome() {
   const counts = Object.fromEntries(all<{ status: string; n: number }>("SELECT status, COUNT(*) n FROM custom_items GROUP BY status").map((r) => [r.status, r.n]));
   const inquiries = all<{ n: number }>("SELECT COUNT(*) n FROM ad_inquiries WHERE created_at >= datetime('now', '-30 days')")[0]?.n ?? 0;
   const tiles: [string, number, string, string][] = [
+    ["Needs review", counts.submitted ?? 0, "/admin/items?status=submitted", "Submitted by partners and artists"],
     ["Drafts", counts.draft ?? 0, "/admin/items?status=draft", "Being made or waiting for changes"],
     ["Awaiting publish", counts.approved ?? 0, "/admin/items?status=approved", "Approved, ready to go live"],
     ["Live", counts.live ?? 0, "/admin/items?status=live", "In the Kedai or an event now"],
@@ -13,7 +14,7 @@ export default function AdminHome() {
   return (
     <div className="space-y-6">
       <h1 className="font-display text-3xl font-extrabold">Overview</h1>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {tiles.map(([label, n, href, hint]) => (
           <Link key={label} href={href} className="glass p-5 transition hover:ring-1 hover:ring-saffron/50">
             <div className="font-display text-4xl font-extrabold">{n}</div>

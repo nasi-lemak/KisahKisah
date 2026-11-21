@@ -311,3 +311,40 @@ test("readiness: what must be true before publishing", () => {
   assert.ok(!readiness({ ...d, type: "theme", asset_key: null }, false).every((r) => r.pass), "themes need passing colour checks");
   assert.ok(readiness({ ...d, type: "effect", asset_key: null, data: { particles: ["✨"] } }, true).every((r) => r.pass), "particle effects need no upload");
 });
+
+// ── v6: partner & artist workflow ──────────────────────────────────
+import { campaignReadiness, campaignToEvent, canTransition, contributorCanEdit, formatFee, slotsFor } from "../src/lib/workflow.ts";
+import { activeOccurrence as occ } from "../src/lib/events.ts";
+
+test("workflow: contributors submit and withdraw; only staff approve and publish", () => {
+  assert.equal(canTransition("draft", "submitted", "contributor"), true);
+  assert.equal(canTransition("submitted", "draft", "contributor"), true);
+  assert.equal(canTransition("submitted", "approved", "contributor"), false);
+  assert.equal(canTransition("approved", "live", "contributor"), false);
+  assert.equal(canTransition("submitted", "approved", "staff"), true);
+  assert.equal(canTransition("submitted", "live", "staff"), false, "must be approved before going live");
+  assert.equal(canTransition("live", "retired", "staff"), true);
+  assert.equal(canTransition("retired", "live", "staff"), true);
+  assert.equal(contributorCanEdit("draft"), true);
+  assert.equal(contributorCanEdit("submitted"), false);
+  assert.equal(contributorCanEdit("live"), false);
+});
+
+test("campaigns: package slots, readiness, and becoming a sponsored event", () => {
+  assert.equal(slotsFor("indie").length, 3);
+  assert.equal(slotsFor("premiere").filter((s) => s.type === "sticker").length, 4);
+  assert.equal(slotsFor("unknown").length, slotsFor("premiere").length);
+  const c = { title: "Pulau Hantu", tagline: "Stay away.", starts_on: "2027-03-01", ends_on: "2027-03-14", licence_confirmed: 1 };
+  const ok = Array.from({ length: 3 }, () => ({ status: "approved" as const }));
+  assert.ok(campaignReadiness(c, ok, 3).every((r) => r.pass));
+  assert.ok(!campaignReadiness({ ...c, licence_confirmed: 0 }, ok, 3).every((r) => r.pass), "licence required");
+  assert.ok(!campaignReadiness(c, [...ok.slice(0, 2), { status: "submitted" as const }], 3).every((r) => r.pass), "all items approved");
+  assert.ok(!campaignReadiness({ ...c, ends_on: "2027-02-01" }, ok, 3).every((r) => r.pass), "end after start");
+  const ev = campaignToEvent({ id: 7, title: "Pulau Hantu", tagline: "Stay away.", synopsis: "…", release_date: null, motif: "🏝️", country: "MY", starts_on: "2027-03-01", ends_on: "2027-03-14", color1: "#000000", color2: "#ffffff", org_name: "Kenyalang", featured: "ola-bola-2016" });
+  assert.equal(ev.id, "cmp-7");
+  assert.equal(ev.kind, "sponsored");
+  assert.match(ev.sponsor!.disclosure, /Sponsored/);
+  assert.ok(occ(ev, "2027-03-05"));
+  assert.equal(occ(ev, "2027-03-15"), null);
+  assert.equal(formatFee(40000, "USD"), "USD 400");
+});

@@ -3,12 +3,16 @@
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { requireStaff } from "@/lib/auth";
-import { one, run } from "@/lib/db";
+import { all, one, run } from "@/lib/db";
 import { readiness, type CustomData, type Draft } from "@/lib/custom-item-map";
 import { syncCustomItems, type CustomItemRow } from "@/lib/custom-items";
 import { validateGradient, validateTheme } from "@/lib/asset-spec";
 import { eventById } from "@/lib/events";
 import type { ItemType, Rarity } from "@/lib/shop";
+import { canTransition, campaignReadiness, campaignEventId, slotsFor, type ItemStatus } from "@/lib/workflow";
+import { addItemComment, campaignById, campaignItems, notifyContributors, orgMembers, snapshotVersion } from "@/lib/portal";
+import { notify } from "@/lib/rewards";
+import { redirect } from "next/navigation";
 
 const TYPES: ItemType[] = ["avatar", "frame", "effect", "namestyle", "banner", "sticker", "theme", "title"];
 const RARITIES: Rarity[] = ["common", "rare", "epic", "legendary"];
@@ -63,7 +67,8 @@ export async function saveCustomItem(input: SaveInput): Promise<{ id?: string; e
   if (!TYPES.includes(type)) return { error: "Pick an item type." };
   const rarity = RARITIES.includes(input.rarity as Rarity) ? input.rarity : "rare";
   if (!input.name.trim()) return { error: "Give the item a name." };
-  if (input.event && !eventById(input.event)) return { error: "Unknown event." };
+  const campaignEvent = input.event?.startsWith("cmp-") && one("SELECT 1 x FROM campaigns WHERE id = ?", Number(input.event.slice(4)));
+  if (input.event && !eventById(input.event) && !campaignEvent) return { error: "Unknown event." };
   if (input.asset_key && !one("SELECT 1 x FROM assets WHERE key = ?", input.asset_key)) return { error: "That upload wasn't found. Upload again." };
   const price = input.price !== null && Number.isFinite(input.price) && input.price > 0 ? Math.round(Math.min(input.price, 100_000)) : null;
   const eventPrice = input.event ? Math.max(0, Math.round(Math.min(input.event_price ?? 0, 100_000))) : null;
@@ -75,6 +80,7 @@ export async function saveCustomItem(input: SaveInput): Promise<{ id?: string; e
     if (!existing) return { error: "Item not found." };
     // Editing a live item takes it back to review, so nothing unchecked reaches the shop.
     const status = existing.status === "live" || existing.status === "approved" ? "draft" : existing.status;
+    snapshotVersion(input.id, user.id);
     run(
       "UPDATE custom_items SET type=?, name=?, description=?, rarity=?, price=?, event=?, event_price=?, asset_key=?, data=?, artist=?, notes=?, status=?, updated_at=datetime('now') WHERE id = ?",
       ...fields, status, input.id,
@@ -91,22 +97,137 @@ export async function saveCustomItem(input: SaveInput): Promise<{ id?: string; e
   return { id };
 }
 
-export async function setItemStatus(id: string, status: "draft" | "approved" | "live" | "retired"): Promise<{ ok?: boolean; error?: string }> {
-  await requireStaff();
+export async function setItemStatus(id: string, status: ItemStatus, note = ""): Promise<{ ok?: boolean; error?: string }> {
+  const user = await requireStaff();
   const r = one<CustomItemRow>("SELECT * FROM custom_items WHERE id = ?", id);
   if (!r) return { error: "Item not found." };
+  if (!canTransition(r.status, status, "staff")) return { error: `Can't go from ${r.status} to ${status}.` };
   if (status === "approved" || status === "live") {
     const data = JSON.parse(r.data) as CustomData;
     const d: Draft = { type: r.type, name: r.name, description: r.description, price: r.price, event: r.event, event_price: r.event_price, asset_key: r.asset_key, assetOk: assetOk(r.asset_key), data };
     const failing = readiness(d, colourOk(r.type, data)).filter((c) => !c.pass);
     if (failing.length) return { error: `Not ready: ${failing.map((f) => f.label.toLowerCase()).join("; ")}.` };
   }
-  if (status === "live" && r.status !== "approved" && r.status !== "retired") return { error: "Approve it first (a second pair of eyes)." };
+  if (status === "draft" && r.status === "submitted" && !note.trim()) return { error: "Say what needs changing, so the contributor knows what to fix." };
   run(
     `UPDATE custom_items SET status = ?, updated_at = datetime('now')${status === "live" ? ", published_at = COALESCE(published_at, datetime('now'))" : ""} WHERE id = ?`,
     status, id,
   );
+  const msg = { approved: "Approved", live: "Published: it's live", retired: "Retired to the vault", draft: "Changes requested", submitted: "Submitted" }[status];
+  addItemComment(id, user.id, status === "draft" ? "changes" : status, note.trim() ? `${msg}: ${note.trim()}` : msg);
+  if (r.source !== "staff") notifyContributors(r, status === "draft" ? "✏️" : status === "live" ? "🚀" : "✅", `${r.name}: ${msg.toLowerCase()}`, note.slice(0, 100));
   syncCustomItems();
   revalidatePath("/", "layout");
   return { ok: true };
+}
+
+// ── Partner campaigns ────────────────────────────────────────────────
+
+/** Turn an Advertise inquiry into a partner org, a campaign and an invite link. */
+export async function createPartnerFromInquiry(inquiryId: number) {
+  const user = await requireStaff();
+  const q = one<{ company: string; title: string; package: string; markets: string; release_date: string | null }>("SELECT * FROM ad_inquiries WHERE id = ?", inquiryId);
+  if (!q) return;
+  const existing = one<{ id: number }>("SELECT id FROM campaigns WHERE inquiry_id = ?", inquiryId);
+  if (existing) redirect(`/admin/campaigns/${existing.id}`);
+  const org = one<{ id: number }>("SELECT id FROM orgs WHERE name = ?", q.company) ?? { id: Number(run("INSERT INTO orgs (name) VALUES (?)", q.company).lastInsertRowid) };
+  const pkg = ["indie", "trailer", "premiere", "blockbuster"].includes(q.package) ? q.package : "premiere";
+  const cid = Number(
+    run("INSERT INTO campaigns (org_id, inquiry_id, title, package, markets, release_date) VALUES (?,?,?,?,?,?)", org.id, inquiryId, q.title, pkg, q.markets, q.release_date).lastInsertRowid,
+  );
+  run("INSERT INTO org_invites (token, org_id, created_by) VALUES (?,?,?)", randomBytes(12).toString("base64url"), org.id, user.id);
+  redirect(`/admin/campaigns/${cid}`);
+}
+
+export async function createInvite(orgId: number) {
+  const user = await requireStaff();
+  run("INSERT INTO org_invites (token, org_id, created_by) VALUES (?,?,?)", randomBytes(12).toString("base64url"), orgId, user.id);
+  revalidatePath("/admin/campaigns");
+}
+
+/** Publish every item and run the campaign as a sponsored event between the dates. */
+export async function scheduleCampaign(_: { error?: string; ok?: string } | undefined, form: FormData): Promise<{ error?: string; ok?: string }> {
+  await requireStaff();
+  const id = Number(form.get("campaign_id"));
+  const c = campaignById(id);
+  if (!c) return { error: "Campaign not found." };
+  const starts = String(form.get("starts_on") ?? "");
+  const ends = String(form.get("ends_on") ?? "");
+  const featured = String(form.get("featured") ?? "").split(/[\s,]+/).filter((s) => /^[a-z0-9-]+$/.test(s)).slice(0, 6).join(",");
+  run("UPDATE campaigns SET starts_on = ?, ends_on = ?, featured = ?, updated_at = datetime('now') WHERE id = ?", starts || null, ends || null, featured, id);
+  const items = campaignItems(id);
+  const fresh = campaignById(id)!;
+  const failing = campaignReadiness(fresh, items, slotsFor(c.package).length).filter((x) => !x.pass);
+  if (failing.length) return { error: `Not ready: ${failing.map((f) => f.label.toLowerCase()).join("; ")}.` };
+  run("UPDATE custom_items SET status = 'live', event = ?, published_at = COALESCE(published_at, datetime('now')) WHERE campaign_id = ? AND status = 'approved'", campaignEventId(id), id);
+  run("UPDATE campaigns SET status = 'scheduled', updated_at = datetime('now') WHERE id = ?", id);
+  for (const m of orgMembers(c.org_id)) notify(m.id, "campaign", "📅", `${c.title} is scheduled`, `Live from ${starts} to ${ends}.`);
+  syncCustomItems();
+  revalidatePath("/", "layout");
+  return { ok: `Scheduled: live ${starts} → ${ends}.` };
+}
+
+export async function returnCampaign(id: number, note: string) {
+  await requireStaff();
+  const c = campaignById(id);
+  if (!c) return;
+  run("UPDATE campaigns SET status = 'brief', licence_confirmed = 0, updated_at = datetime('now') WHERE id = ?", id);
+  for (const m of orgMembers(c.org_id)) notify(m.id, "campaign", "✏️", `${c.title}: changes requested`, note.slice(0, 120));
+  revalidatePath(`/admin/campaigns/${id}`);
+}
+
+// ── Artists & briefs ─────────────────────────────────────────────────
+
+export async function reviewArtist(userId: number, decision: "approved" | "rejected") {
+  const staff = await requireStaff();
+  run("UPDATE artist_profiles SET status = ?, reviewed_by = ?, reviewed_at = datetime('now') WHERE user_id = ?", decision, staff.id, userId);
+  notify(userId, "artist", decision === "approved" ? "🎨" : "📭", decision === "approved" ? "You're in! Welcome to the KisahKisah artist programme" : "Your artist application wasn't accepted this time", decision === "approved" ? "Open briefs are waiting for you." : "");
+  revalidatePath("/admin/artists");
+}
+
+export async function createBrief(_: { error?: string; ok?: string } | undefined, form: FormData): Promise<{ error?: string; ok?: string }> {
+  const staff = await requireStaff();
+  const title = String(form.get("title") ?? "").trim().slice(0, 120);
+  const type = String(form.get("item_type") ?? "");
+  const fee = Math.round(Number(form.get("fee")) * 100);
+  const currency = String(form.get("currency") ?? "USD").toUpperCase().slice(0, 3);
+  const quantity = Math.max(1, Math.min(12, Number(form.get("quantity")) || 1));
+  const event = String(form.get("event") ?? "") || null;
+  if (!title) return { error: "Give the brief a title." };
+  if (!TYPES.includes(type as ItemType)) return { error: "Pick an item type." };
+  if (!Number.isFinite(fee) || fee <= 0) return { error: "Set a fee." };
+  if (event && !eventById(event)) return { error: "Unknown event." };
+  run(
+    "INSERT INTO briefs (title, description, item_type, quantity, fee_amount, fee_currency, due_on, event, created_by) VALUES (?,?,?,?,?,?,?,?,?)",
+    title, String(form.get("description") ?? "").slice(0, 3000), type, quantity, fee, currency, String(form.get("due_on") ?? "") || null, event, staff.id,
+  );
+  for (const a of all<{ user_id: number }>("SELECT user_id FROM artist_profiles WHERE status = 'approved'")) notify(a.user_id, "brief", "🖌️", `New brief: ${title}`, `${quantity} × ${type}`);
+  revalidatePath("/admin/briefs");
+  return { ok: "Brief posted. Approved artists have been notified." };
+}
+
+/** Accept the work: brief done, fee owed. */
+export async function completeBrief(id: number) {
+  await requireStaff();
+  const b = one<{ assigned_to: number | null; fee_amount: number; fee_currency: string; title: string; status: string }>("SELECT * FROM briefs WHERE id = ?", id);
+  if (!b?.assigned_to || b.status === "done") return;
+  run("UPDATE briefs SET status = 'done', completed_at = datetime('now') WHERE id = ?", id);
+  run("INSERT OR IGNORE INTO payouts (brief_id, user_id, amount, currency) VALUES (?,?,?,?)", id, b.assigned_to, b.fee_amount, b.fee_currency);
+  notify(b.assigned_to, "brief", "💸", `Brief accepted: ${b.title}`, "Your fee is queued for payment.");
+  revalidatePath("/admin/briefs");
+}
+
+export async function cancelBrief(id: number) {
+  await requireStaff();
+  run("UPDATE briefs SET status = 'cancelled' WHERE id = ? AND status IN ('open', 'assigned')", id);
+  revalidatePath("/admin/briefs");
+}
+
+export async function markPayoutPaid(id: number, reference: string) {
+  await requireStaff();
+  const p = one<{ user_id: number; amount: number; currency: string }>("SELECT * FROM payouts WHERE id = ? AND status = 'pending'", id);
+  if (!p) return;
+  run("UPDATE payouts SET status = 'paid', paid_at = datetime('now'), reference = ? WHERE id = ?", reference.slice(0, 80), id);
+  notify(p.user_id, "brief", "✅", "Payment sent", `${p.currency} ${(p.amount / 100).toFixed(2)}${reference ? ` · ref ${reference}` : ""}`);
+  revalidatePath("/admin/artists");
 }

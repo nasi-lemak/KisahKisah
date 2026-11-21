@@ -6,8 +6,9 @@ export const mediaUrl = (key: string) => `/media/${key}`;
 
 export type CustomItemRow = {
   id: string; type: ItemType; name: string; description: string; rarity: Rarity; price: number | null;
-  event: string | null; event_price: number | null; status: "draft" | "approved" | "live" | "retired";
+  event: string | null; event_price: number | null; status: "draft" | "submitted" | "approved" | "live" | "retired";
   asset_key: string | null; data: string; artist: string; notes: string; created_at: string; updated_at: string; published_at: string | null;
+  source: "staff" | "partner" | "artist"; campaign_id: number | null; brief_id: number | null; submitted_by: number | null; slot: string | null;
 };
 
 export type CustomData = {

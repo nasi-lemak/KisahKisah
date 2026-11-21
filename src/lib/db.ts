@@ -2,7 +2,7 @@ import "server-only";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { SCHEMA, SCHEMA_NOTIFICATIONS, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5 } from "./schema";
+import { SCHEMA, SCHEMA_NOTIFICATIONS, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6 } from "./schema";
 import { syncCustomItems } from "./custom-items";
 import { CATALOG } from "./catalog";
 import { STARTER_ITEMS } from "./shop";
@@ -25,6 +25,7 @@ export function db(): DatabaseSync {
   d.exec(SCHEMA_V3);
   d.exec(SCHEMA_V4);
   d.exec(SCHEMA_V5);
+  d.exec(SCHEMA_V6);
   // Seed exactly once, even if several build workers open the file together.
   let seeded = false;
   d.exec("BEGIN IMMEDIATE");
@@ -76,6 +77,11 @@ function migrate(d: DatabaseSync) {
   addColumn(d, "list_items", "added_at", "TEXT");
   d.exec("CREATE UNIQUE INDEX IF NOT EXISTS lists_share_token ON lists(share_token)");
   addColumn(d, "users", "role", "TEXT NOT NULL DEFAULT 'member'");
+  addColumn(d, "custom_items", "source", "TEXT NOT NULL DEFAULT 'staff'");
+  addColumn(d, "custom_items", "campaign_id", "INTEGER");
+  addColumn(d, "custom_items", "brief_id", "INTEGER");
+  addColumn(d, "custom_items", "submitted_by", "INTEGER");
+  addColumn(d, "custom_items", "slot", "TEXT");
   // Staff accounts come from config, e.g. ADMIN_USERNAMES=alice,bob
   const admins = (process.env.ADMIN_USERNAMES ?? "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
   for (const a of admins) d.prepare("UPDATE users SET role = 'admin' WHERE username = ? AND role = 'member'").run(a);

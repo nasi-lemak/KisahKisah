@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ITEM_BY_ID, DEFAULT_AVATAR } from "@/lib/shop";
+import { ITEM_BY_ID, DEFAULT_AVATAR, type ShopItem } from "@/lib/shop";
 import { country } from "@/lib/regions";
 import { levelStyle } from "@/lib/levels";
 import { ProfileHover } from "./ProfileHover";
@@ -86,9 +86,13 @@ export function themeStyle(id?: string | null): React.CSSProperties | undefined 
   return it?.themeVars ? (it.themeVars as React.CSSProperties) : undefined;
 }
 
-export function Avatar({ item, frame, size = 40 }: { item?: string | null; frame?: string | null; size?: number }) {
-  const av = ITEM_BY_ID[item ?? ""] ?? ITEM_BY_ID[DEFAULT_AVATAR];
-  const fr = frame ? ITEM_BY_ID[frame] : null;
+export function Avatar({ item, frame, size = 40, avatarItem, frameItem }: {
+  item?: string | null; frame?: string | null; size?: number;
+  /** Pass item objects directly (previews of unpublished items). */
+  avatarItem?: ShopItem; frameItem?: ShopItem;
+}) {
+  const av = avatarItem ?? ITEM_BY_ID[item ?? ""] ?? ITEM_BY_ID[DEFAULT_AVATAR];
+  const fr = frameItem ?? (frame ? ITEM_BY_ID[frame] : null);
   const face = (
     <span
       className="face inline-flex items-center justify-center rounded-full"
@@ -160,8 +164,8 @@ export function StyledName({ name, style, className = "" }: { name: string; styl
 }
 
 /** A die-cut sticker, optionally animated. */
-export function Sticker({ id, size = 40, animate = true, className = "" }: { id: string; size?: number; animate?: boolean; className?: string }) {
-  const it = ITEM_BY_ID[id];
+export function Sticker({ id, size = 40, animate = true, className = "", item }: { id: string; size?: number; animate?: boolean; className?: string; item?: ShopItem }) {
+  const it = item ?? ITEM_BY_ID[id];
   if (!it) return null;
   return (
     <span className={`sticker ${className}`} title={it.name}>
@@ -179,8 +183,8 @@ function prand(i: number, salt: number) {
 }
 
 /** Discord-style profile effect: particles drifting over a card. */
-export function ProfileEffect({ effect, count = 14 }: { effect?: string | null; count?: number }) {
-  const it = effect ? ITEM_BY_ID[effect] : null;
+export function ProfileEffect({ effect, count = 14, item }: { effect?: string | null; count?: number; item?: ShopItem }) {
+  const it = item ?? (effect ? ITEM_BY_ID[effect] : null);
   if (it?.overlay) {
     return (
       <div className="fx-profile" aria-hidden>

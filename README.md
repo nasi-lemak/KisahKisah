@@ -77,7 +77,26 @@ Staff (`role = admin`, set with `ADMIN_USERNAMES`; the demo seed includes **kura
 
 Partners and artists follow the public spec page at `/specs`. Partner inquiries from `/advertise` appear in **Admin → Partner inquiries**.
 
-For production, swap `src/lib/storage.ts` for S3/R2. Partner and artist self-service portals are the next steps (see `docs/PROMOTIONS.md`).
+For production, swap `src/lib/storage.ts` for S3/R2.
+
+## Partner & artist portals
+
+Everyone contributes through the same pipeline: upload → automatic checks → live preview → submit → staff review (comments and version history on every item) → approve → publish.
+
+**Partners (studios, distributors, streamers)** at `/partner`
+1. An inquiry arrives from `/advertise`. In **Admin → Inquiries**, *Set up partner & campaign* creates the partner team, a campaign with the right package, and an invite link.
+2. The partner joins via the link, fills in the brief (title, tagline, synopsis, colours, preferred dates), and fills each upload slot their package includes (e.g. 4 stickers + theme + decoration for Premiere). They never set prices or publish.
+3. They submit each item, then the campaign, confirming they hold the licence and accept the "Sponsored" label.
+4. Staff review each item: approve, or request changes with a note the partner sees. When everything's approved, *Publish items & schedule* turns the campaign into a **sponsored event** with its own page, banner and limited drops for those dates. No code needed.
+5. Both sides see a report: fans who claimed, items claimed, equipped right now, sticker uses, KP spent.
+
+**Artists** at `/artists`
+1. Apply with a portfolio link; staff approve in **Admin → Artists & payouts**.
+2. Staff post paid **briefs** (type, quantity, fee, due date, optional event) and approved artists are notified.
+3. Artists claim a brief (up to 3 at a time), make each piece with the same editor (credit filled in automatically), and submit.
+4. Staff approve the pieces, then *Accept & queue payment*; mark the payout paid with a transfer reference. Artists see status and payment history.
+
+Demo accounts: **studio** (partner, with the *Pulau Hantu* campaign waiting for its brief), **nadia** (approved artist), **kurator** (staff). Password `kisah123`.
 
 ## Cinema partner API
 

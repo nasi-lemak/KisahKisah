@@ -137,7 +137,7 @@ function demoWindow(): { start: string; end: string } {
 }
 
 export function allEvents(): SiteEvent[] {
-  return withExtras(baseEvents());
+  return withExtras([...baseEvents(), ...EXTRA_EVENTS]);
 }
 
 function baseEvents(): SiteEvent[] {
@@ -253,6 +253,13 @@ function baseEvents(): SiteEvent[] {
 
 /** Offers added from the admin (custom items attached to an event). */
 const EXTRA_OFFERS: Record<string, Offer[]> = Object.create(null);
+
+/** Events created outside code (scheduled partner campaigns). */
+const EXTRA_EVENTS: SiteEvent[] = [];
+
+export function registerExtraEvents(list: SiteEvent[]) {
+  EXTRA_EVENTS.splice(0, EXTRA_EVENTS.length, ...list);
+}
 
 export function registerExtraOffers(map: Record<string, Offer[]>) {
   for (const k of Object.keys(EXTRA_OFFERS)) delete EXTRA_OFFERS[k];

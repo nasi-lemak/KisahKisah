@@ -1,11 +1,12 @@
 import { all } from "@/lib/db";
 import { PACKAGES } from "@/lib/packages";
 import { country } from "@/lib/regions";
+import { createPartnerFromInquiry } from "@/app/admin/actions";
 
 type Inquiry = { id: number; company: string; contact_name: string; email: string; title: string; release_date: string | null; markets: string; package: string; message: string; created_at: string };
 
 export default function Inquiries() {
-  const rows = all<Inquiry>("SELECT * FROM ad_inquiries ORDER BY id DESC LIMIT 200");
+  const rows = all<Inquiry & { campaign_id: number | null }>("SELECT q.*, (SELECT id FROM campaigns WHERE inquiry_id = q.id) campaign_id FROM ad_inquiries q ORDER BY q.id DESC LIMIT 200");
   return (
     <div className="space-y-4">
       <h1 className="font-display text-3xl font-extrabold">Partner inquiries</h1>
@@ -26,6 +27,9 @@ export default function Inquiries() {
                 {r.release_date && <> · releases {r.release_date}</>} · {r.markets.split(",").map((m) => (m === "GLOBAL" ? "🌏" : country(m)?.flag ?? m)).join(" ")}
               </div>
               {r.message && <p className="mt-2 whitespace-pre-line">{r.message}</p>}
+              <form action={createPartnerFromInquiry.bind(null, r.id)} className="mt-3">
+                <button className="btn btn-ghost py-1.5 text-sm">{r.campaign_id ? "Open campaign →" : "🤝 Set up partner & campaign"}</button>
+              </form>
             </article>
           ))}
         </div>

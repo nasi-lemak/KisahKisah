@@ -14,6 +14,7 @@ import { activeEvents } from "@/lib/events";
 import { EventBanner } from "@/components/EventBanner";
 import { ItemRegistry } from "@/components/ItemRegistry";
 import { syncCustomItems } from "@/lib/custom-items";
+import { artistProfile, orgsForUser } from "@/lib/portal";
 import { themeStyle } from "@/components/ui";
 
 export const metadata: Metadata = {
@@ -86,6 +87,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                       ["/achievements", "Achievements"],
                       ["/studio", "🎨 Profile Studio"],
                       ...(user.role === "admin" || user.role === "staff" ? [["/admin", "🛠️ Admin"]] : []),
+                      ...(orgsForUser(user.id).length ? [["/partner", "🤝 Partner portal"]] : []),
+                      ...(artistProfile(user.id)?.status === "approved" ? [["/artists", "🖌️ Artist briefs"]] : []),
                       ["/settings", "Settings"],
                     ].map(([href, label]) => (
                       <Link key={href} href={href} className="block rounded-md px-3 py-1.5 hover:bg-raised">
@@ -136,6 +139,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Link href="/rewind" className="hover:text-text">Kisah Rewind</Link>
               <Link href="/about" className="hover:text-text">How points work</Link>
               <Link href="/advertise" className="hover:text-text">Advertise</Link>
+              <Link href="/artists" className="hover:text-text">Artist programme</Link>
+              <Link href="/partner" className="hover:text-text">Partner portal</Link>
             </div>
             <div>
               <p>Ratings live everywhere: Douban, Watcha, Filmarks, Letterboxd, IMDb. We link you to all of them.</p>

@@ -138,13 +138,16 @@ Tracked per campaign, reported mid-flight and at wrap:
 
 **Next, in priority order**
 
-1. ~~Admin CMS for items with asset upload~~ **Built**: upload with automatic checks, live preview, approve → publish, event drops, retire (`/admin`, spec at `/specs`). Still to do: campaigns themselves (event windows, banners) created in the admin rather than in `events.ts`
-2. Geo-targeting by viewer country (today `spotlight` is display-only; everyone sees every campaign)
-3. Impression and click tracking plus a sponsor reporting dashboard
-4. Release-day watchlist reminders and the "notify me" button
-5. Partner-cinema ticket bonus wired to a campaign
-6. Official campaign Kuiz on event pages
-7. Contracts, invoicing, and confirming festival dates per market each year
+1. ~~Admin CMS for items with asset upload~~ **Built**: upload with automatic checks, live preview, approve → publish, event drops, retire (`/admin`, spec at `/specs`).
+2. ~~Partner portal~~ **Built**: inquiry → partner team + invite → brief → upload slots → submit with licence confirmation → staff review → schedule as a sponsored event → report (`/partner`). Scheduled campaigns become events without code.
+3. ~~Artist portal~~ **Built**: apply → briefs → claim → submit → feedback → accept → payout tracking (`/artists`).
+4. Geo-targeting by viewer country (today `spotlight` is display-only; everyone sees every campaign)
+5. Impression and click tracking (the campaign report already covers claims, equips, sticker use and KP spent)
+6. Release-day watchlist reminders and the "notify me" button
+7. Partner-cinema ticket bonus wired to a campaign
+8. Official campaign Kuiz on event pages
+9. House events (not just partner campaigns) created in the admin, instead of in `events.ts`
+10. Contracts, invoicing, and confirming festival dates per market each year
 
 ## 11. Risks
 

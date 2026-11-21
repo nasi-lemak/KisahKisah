@@ -1,7 +1,8 @@
 import "server-only";
 import { all } from "./db";
 import { ITEM_BY_ID, registerItems, type ShopItem } from "./shop";
-import { registerExtraOffers, type Offer } from "./events";
+import { registerExtraEvents, registerExtraOffers, type Offer } from "./events";
+import { campaignToEvent } from "./workflow";
 import { toShopItem, type CustomItemRow } from "./custom-item-map";
 
 export { toShopItem, parseData, type CustomItemRow, type CustomData } from "./custom-item-map";
@@ -22,5 +23,12 @@ export function syncCustomItems(): ShopItem[] {
     (offers[r.event!] ??= []).push({ item: r.id, price: r.event_price ?? 0 });
   }
   registerExtraOffers(offers);
+  // Scheduled partner campaigns run as sponsored events.
+  registerExtraEvents(
+    all<Parameters<typeof campaignToEvent>[0]>(
+      `SELECT c.id, c.title, c.tagline, c.synopsis, c.release_date, c.motif, c.country, c.starts_on, c.ends_on, c.color1, c.color2, c.featured, o.name org_name
+       FROM campaigns c JOIN orgs o ON o.id = c.org_id WHERE c.status = 'scheduled' AND c.starts_on IS NOT NULL AND c.ends_on IS NOT NULL`,
+    ).map(campaignToEvent),
+  );
   return items;
 }

@@ -323,3 +323,110 @@ CREATE TABLE IF NOT EXISTS custom_items (
   published_at TEXT
 );
 `;
+
+export const SCHEMA_V6 = /* sql */ `
+-- Partners (studios, distributors, streamers) and their people
+CREATE TABLE IF NOT EXISTS orgs (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS org_members (
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (org_id, user_id)
+);
+CREATE TABLE IF NOT EXISTS org_invites (
+  token TEXT PRIMARY KEY,
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  used_by INTEGER REFERENCES users(id),
+  used_at TEXT
+);
+-- A sponsored launch. status: brief → submitted → approved → scheduled (→ ended by date)
+CREATE TABLE IF NOT EXISTS campaigns (
+  id INTEGER PRIMARY KEY,
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  inquiry_id INTEGER REFERENCES ad_inquiries(id),
+  title TEXT NOT NULL,
+  package TEXT NOT NULL DEFAULT 'premiere',
+  markets TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'brief',
+  tagline TEXT NOT NULL DEFAULT '',
+  synopsis TEXT NOT NULL DEFAULT '',
+  release_date TEXT,
+  motif TEXT NOT NULL DEFAULT '🎬',
+  country TEXT NOT NULL DEFAULT 'MY',
+  color1 TEXT NOT NULL DEFAULT '#f5a524',
+  color2 TEXT NOT NULL DEFAULT '#1f232c',
+  starts_on TEXT,
+  ends_on TEXT,
+  featured TEXT NOT NULL DEFAULT '',
+  licence_confirmed INTEGER NOT NULL DEFAULT 0,
+  licence_by INTEGER REFERENCES users(id),
+  licence_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Artists
+CREATE TABLE IF NOT EXISTS artist_profiles (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  portfolio_url TEXT NOT NULL,
+  bio TEXT NOT NULL DEFAULT '',
+  specialities TEXT NOT NULL DEFAULT '',
+  payout_details TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'applied',
+  reviewed_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  reviewed_at TEXT
+);
+-- Paid commissions. status: open → assigned → in_review → done (or cancelled)
+CREATE TABLE IF NOT EXISTS briefs (
+  id INTEGER PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  item_type TEXT NOT NULL,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  fee_amount INTEGER NOT NULL,
+  fee_currency TEXT NOT NULL DEFAULT 'USD',
+  due_on TEXT,
+  event TEXT,
+  status TEXT NOT NULL DEFAULT 'open',
+  assigned_to INTEGER REFERENCES users(id),
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  claimed_at TEXT,
+  completed_at TEXT
+);
+CREATE TABLE IF NOT EXISTS payouts (
+  id INTEGER PRIMARY KEY,
+  brief_id INTEGER NOT NULL UNIQUE REFERENCES briefs(id),
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  amount INTEGER NOT NULL,
+  currency TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  reference TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  paid_at TEXT
+);
+
+-- Feedback thread and version history on every item
+CREATE TABLE IF NOT EXISTS item_comments (
+  id INTEGER PRIMARY KEY,
+  item_id TEXT NOT NULL REFERENCES custom_items(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  kind TEXT NOT NULL DEFAULT 'comment',
+  body TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS item_versions (
+  id INTEGER PRIMARY KEY,
+  item_id TEXT NOT NULL REFERENCES custom_items(id) ON DELETE CASCADE,
+  asset_key TEXT,
+  data TEXT NOT NULL,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+`;
