@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { currentUser, userByUsername } from "@/lib/auth";
 import { countryBreakdown, diary, favorites, inventory, lifetimePoints, reviewById, reviewsByUser } from "@/lib/queries";
-import { COUNTRIES, country, regionOf } from "@/lib/regions";
+import { COUNTRIES, REGIONS, country, regionOf } from "@/lib/regions";
 import { ITEM_BY_ID, RARITY_STYLE } from "@/lib/shop";
 import { SHOWCASES, collectionCount, collectionHighlights, parseShowcases, rarestAchievements, stickerBoard, type ShowcaseId } from "@/lib/profile";
 import { EST_HOURS } from "@/lib/rewind";
@@ -182,15 +182,15 @@ export default async function ProfilePage({ params }: { params: Params }) {
             <h2 className="font-display font-bold">🛂 Film Passport</h2>
             <span className="text-xs text-muted">Open →</span>
           </div>
-          <p className="mt-1 text-xs text-muted">Every country {isMe ? "you watch" : "they watch"} a title from gets stamped.</p>
+          <p className="mt-1 text-xs text-muted">One stamp for every country {isMe ? "you've" : "they've"} watched a title from, worldwide.</p>
           <div className="mt-3 grid grid-cols-2 gap-2 text-center">
             <div className="rounded-lg bg-black/20 py-2">
-              <div className="font-display text-xl font-extrabold">{COUNTRIES.filter((c) => c.region === "sea" && visited.has(c.code)).length}<span className="text-sm text-muted">/{COUNTRIES.filter((c) => c.region === "sea").length}</span></div>
-              <div className="text-[0.6rem] font-bold uppercase tracking-widest text-muted">Southeast Asia</div>
+              <div className="font-display text-xl font-extrabold">{visited.size}<span className="text-sm text-muted">/{COUNTRIES.length}</span></div>
+              <div className="text-[0.6rem] font-bold uppercase tracking-widest text-muted">Countries</div>
             </div>
             <div className="rounded-lg bg-black/20 py-2">
-              <div className="font-display text-xl font-extrabold">{visited.size}<span className="text-sm text-muted">/{COUNTRIES.length}</span></div>
-              <div className="text-[0.6rem] font-bold uppercase tracking-widest text-muted">World</div>
+              <div className="font-display text-xl font-extrabold">{regionsVisited.size}<span className="text-sm text-muted">/{Object.keys(REGIONS).length}</span></div>
+              <div className="text-[0.6rem] font-bold uppercase tracking-widest text-muted">Regions</div>
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-1.5">

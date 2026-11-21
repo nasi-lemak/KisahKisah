@@ -27,15 +27,41 @@ export default async function PassportPage({ params }: { params: Promise<{ usern
   const available = countryCounts();
   const sea = COUNTRIES.filter((c) => c.region === "sea");
   const seaDone = sea.filter((c) => stamps.has(c.code)).length;
-  const regionsDone = new Set([...stamps.keys()].map((c) => COUNTRIES.find((x) => x.code === c)?.region)).size;
+  const regionOf = (code: string) => COUNTRIES.find((x) => x.code === code)?.region;
+  const regionsDone = new Set([...stamps.keys()].map(regionOf)).size;
+  const regionIds = Object.keys(REGIONS) as RegionId[];
+  // The passport is global. Your home region (from your home country) comes first.
+  const home = regionOf(u.home_country) ?? "sea";
+  const order = [home, ...regionIds.filter((r) => r !== home)];
+  const inRegion = (r: RegionId) => COUNTRIES.filter((c) => c.region === r);
+  const stampedIn = (r: RegionId) => inRegion(r).filter((c) => stamps.has(c.code)).length;
 
-  const goals = [
-    { name: "ASEAN Explorer", need: "5 Southeast Asian stamps", have: seaDone, goal: 5, reward: "+120 KP" },
-    { name: "One Vision, One Identity", need: "8 Southeast Asian stamps", have: seaDone, goal: 8, reward: "+300 KP · Batik" },
-    { name: "Jalan-Jalan", need: "5 stamps anywhere", have: stamps.size, goal: 5, reward: "+60 KP" },
-    { name: "Globetrotter", need: "Stamps from 4 world regions", have: regionsDone, goal: 4, reward: "+100 KP" },
-    { name: "Around the World in 80 Films", need: "20 stamps anywhere", have: stamps.size, goal: 20, reward: "+400 KP" },
+  type Goal = { name: string; need: string; have: number; goal: number; reward: string };
+  const goals: Goal[] = [
+    { name: "Jalan-Jalan", need: "5 countries", have: stamps.size, goal: 5, reward: "+60 KP" },
+    { name: "Globetrotter", need: "4 of the 7 regions", have: regionsDone, goal: 4, reward: "+100 KP" },
+    { name: "Around the World in 80 Films", need: "20 countries", have: stamps.size, goal: 20, reward: "+400 KP" },
   ];
+  const bonus: Goal[] = [
+    { name: "ASEAN Explorer", need: "5 Southeast Asian countries", have: seaDone, goal: 5, reward: "+120 KP" },
+    { name: "One Vision, One Identity", need: "8 Southeast Asian countries", have: seaDone, goal: 8, reward: "+300 KP · Batik" },
+  ];
+  const GoalCard = ({ g }: { g: Goal }) => {
+    const done = g.have >= g.goal;
+    return (
+      <div className={`rounded-xl p-3 ${done ? "bg-jade/15 ring-1 ring-jade/50" : "bg-black/25"}`}>
+        <div className="text-sm font-bold">{done ? "✓ " : ""}{g.name}</div>
+        <div className="text-xs text-[#9fb0d6]">{g.need}</div>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/40">
+          <div className="h-full rounded-full bg-saffron" style={{ width: `${Math.min(100, (g.have / g.goal) * 100)}%` }} />
+        </div>
+        <div className="mt-1 flex justify-between gap-2 text-[0.7rem] text-[#9fb0d6]">
+          <span>{Math.min(g.have, g.goal)}/{g.goal}</span>
+          <span>{g.reward}</span>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -44,10 +70,10 @@ export default async function PassportPage({ params }: { params: Promise<{ usern
           <div className="flex-1 space-y-2">
             <div className="text-xs font-bold uppercase tracking-[0.3em] text-[#9fb0d6]">KisahKisah · Film Passport</div>
             <h2 className="font-display text-3xl font-extrabold">
-              {stamps.size} {stamps.size === 1 ? "stamp" : "stamps"} · {seaDone} of {sea.length} Southeast Asian
+              {stamps.size} of {COUNTRIES.length} countries · {regionsDone} of {regionIds.length} regions
             </h2>
             <p className="max-w-xl text-[#c4cde3]">
-              {isMe ? "Your" : `${u.display_name}'s`} passport fills up as you watch. The first time you log a film or series from a new country, that country stamps the passport with the date and the title that got you there.
+              One passport for the whole world. {isMe ? "Yours" : `${u.display_name}'s`} fills up as {isMe ? "you watch" : "they watch"}: the first time a film or series from a new country gets logged, that country stamps the passport with the date and the title that got {isMe ? "you" : "them"} there. Pages are grouped by region, with {isMe ? "your" : "their"} home region first.
             </p>
           </div>
           <ol className="grid gap-2 text-sm text-[#c4cde3] sm:w-72">
@@ -60,35 +86,51 @@ export default async function PassportPage({ params }: { params: Promise<{ usern
           </ol>
         </div>
 
-        <div className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-          {goals.map((g) => {
-            const done = g.have >= g.goal;
+        {/* Region index: the passport's "contents page" */}
+        <nav className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7" aria-label="Regions">
+          {order.map((r) => {
+            const got = stampedIn(r);
+            const total = inRegion(r).length;
             return (
-              <div key={g.name} className={`rounded-xl p-3 ${done ? "bg-jade/15 ring-1 ring-jade/50" : "bg-black/25"}`}>
-                <div className="text-sm font-bold">{done ? "✓ " : ""}{g.name}</div>
-                <div className="text-xs text-[#9fb0d6]">{g.need}</div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/40">
-                  <div className="h-full rounded-full bg-saffron" style={{ width: `${Math.min(100, (g.have / g.goal) * 100)}%` }} />
+              <a key={r} href={`#region-${r}`} className={`rounded-xl p-3 transition hover:bg-black/40 ${r === home ? "bg-saffron/15 ring-1 ring-saffron/60" : "bg-black/25"}`}>
+                <div className="text-xl">{REGIONS[r].icon}</div>
+                <div className="text-xs font-bold leading-tight">{REGIONS[r].name}</div>
+                <div className="text-[0.7rem] text-[#9fb0d6]">{got}/{total}{r === home ? " · home" : ""}</div>
+                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-black/40">
+                  <div className="h-full rounded-full bg-saffron" style={{ width: `${(got / total) * 100}%` }} />
                 </div>
-                <div className="mt-1 flex justify-between text-[0.7rem] text-[#9fb0d6]">
-                  <span>{Math.min(g.have, g.goal)}/{g.goal}</span>
-                  <span>{g.reward}</span>
-                </div>
-              </div>
+              </a>
             );
           })}
+        </nav>
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-[3fr_2fr]">
+          <div>
+            <div className="mb-2 text-xs font-bold uppercase tracking-widest text-[#9fb0d6]">Passport goals · anywhere in the world</div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {goals.map((g) => <GoalCard key={g.name} g={g} />)}
+            </div>
+          </div>
+          <div>
+            <div className="mb-2 text-xs font-bold uppercase tracking-widest text-[#9fb0d6]">Spotlight bonus · Southeast Asia</div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {bonus.map((g) => <GoalCard key={g.name} g={g} />)}
+            </div>
+            <p className="mt-2 text-[0.7rem] text-[#9fb0d6]">KisahKisah puts Southeast Asian cinema in the spotlight, so these stamps earn extra rewards on top. Everyone can earn them, wherever they live.</p>
+          </div>
         </div>
       </section>
 
-      {(Object.keys(REGIONS) as RegionId[]).map((r) => {
-        const countries = COUNTRIES.filter((c) => c.region === r);
-        const got = countries.filter((c) => stamps.has(c.code)).length;
+      {order.map((r) => {
+        const countries = inRegion(r);
+        const got = stampedIn(r);
         return (
-          <section key={r} className="passport-book p-5 sm:p-6">
+          <section key={r} id={`region-${r}`} className="passport-book scroll-mt-24 p-5 sm:p-6">
             <div className="mb-4 flex flex-wrap items-baseline gap-3">
               <h3 className="font-display text-xl font-extrabold">{REGIONS[r].icon} {REGIONS[r].name}</h3>
               <span className="text-sm text-[#9fb0d6]">{got} of {countries.length} stamped</span>
-              {r === "sea" && <span className="rounded bg-saffron/20 px-1.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-saffron">Home region</span>}
+              {r === home && <span className="rounded bg-saffron/20 px-1.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-saffron">Home region</span>}
+              {r === "sea" && r !== home && <span className="rounded bg-jade/20 px-1.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-jade">Spotlight bonus</span>}
             </div>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6">
               {countries.map((c, i) => {
