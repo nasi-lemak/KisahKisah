@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { claimEventItem } from "@/app/actions";
+import { buyBundle, claimEventItem } from "@/app/actions";
 import { toast } from "./Toaster";
 import { rain } from "./EasterEggs";
 
@@ -28,6 +28,30 @@ export function ClaimButton({ eventId, itemId, price, owned, affordable, live, s
       }
     >
       {pending ? "…" : price === 0 ? "🎁 Claim free" : `🪙 ${price.toLocaleString()}`}
+    </button>
+  );
+}
+
+export function BundleButton({ bundleId, price, owned, affordable, signedIn }: { bundleId: string; price: number; owned: boolean; affordable: boolean; signedIn: boolean }) {
+  const [pending, start] = useTransition();
+  if (owned) return <span className="block rounded-lg bg-jade/20 py-2 text-center text-sm font-bold text-jade">✓ You own this bundle</span>;
+  if (!signedIn) return <a href="/login?next=/kedai" className="btn btn-ghost w-full justify-center">Sign in to buy</a>;
+  return (
+    <button
+      className="btn btn-primary w-full justify-center"
+      disabled={pending || !affordable}
+      onClick={() =>
+        start(async () => {
+          const r = await buyBundle(bundleId);
+          if (r?.error) toast({ icon: "⚠️", title: r.error });
+          if (r?.ok) {
+            toast({ icon: "🎁", title: r.ok, body: "Try it all on in Profile Studio.", kind: "achievement" });
+            rain(["🎁", "✨", "💎"], 35);
+          }
+        })
+      }
+    >
+      {pending ? "…" : `🪙 ${price.toLocaleString()} · Get bundle`}
     </button>
   );
 }

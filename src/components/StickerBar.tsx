@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { stickReview } from "@/app/actions";
-import { AvatarGlyph } from "./ui";
+import { Sticker } from "./ui";
 
 type Sticker = { id: string; name: string; value: string };
 
@@ -37,10 +37,10 @@ export function StickerBar({
             title={`${st.name}${isMine ? " (yours, click to remove)" : ""}`}
             disabled={!signedIn || pending || (!isMine && !owned.some((o) => o.id === s.id))}
             onClick={() => stick(s.id)}
-            className={`chip gap-1 py-0.5 ${isMine ? "border-saffron bg-saffron/15" : ""}`}
+            className={`flex items-center gap-1.5 rounded-2xl border px-2 py-1 transition ${isMine ? "slap-in border-saffron bg-saffron/15" : "border-line bg-raised/60"}`}
           >
-            <AvatarGlyph value={st.value} px={30} />
-            <span className="text-xs">{s.count}</span>
+            <Sticker id={s.id} size={26} />
+            <span className="text-xs font-bold">{s.count}</span>
           </button>
         );
       })}
@@ -50,7 +50,7 @@ export function StickerBar({
         </button>
       )}
       {open && (
-        <div className="card absolute left-0 top-full z-30 mt-2 w-72 p-3 shadow-2xl">
+        <div className="glass absolute left-0 top-full z-30 mt-2 w-80 p-3 shadow-2xl">
           <div className="mb-2 text-xs text-muted">Your stickers. Get more from events and the Kedai.</div>
           <div className="grid grid-cols-5 gap-2">
             {owned.map((s) => (
@@ -61,7 +61,7 @@ export function StickerBar({
                 onClick={() => stick(s.id)}
                 className={`flex aspect-square items-center justify-center rounded-lg border transition hover:scale-110 ${mine === s.id ? "border-saffron bg-saffron/15" : "border-line bg-raised"}`}
               >
-                <AvatarGlyph value={s.value} px={44} />
+                <Sticker id={s.id} size={26} animate={false} />
               </button>
             ))}
           </div>

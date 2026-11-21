@@ -79,14 +79,14 @@ export function countryCounts(): Record<string, number> {
 export type Review = {
   id: number; user_id: number; film_id: number; rating: number | null; body: string; spoiler: number;
   game_type: string; game_config: string; external_links: string; created_at: string;
-  username: string; display_name: string; avatar_item: string; frame_item: string | null; title_item: string | null;
+  username: string; display_name: string; avatar_item: string; frame_item: string | null; title_item: string | null; namestyle_item: string | null;
   film_slug: string; film_title: string; film_year: number; film_country: string; film_motif: string;
   like_count: number; comment_count: number; liked: number;
   film_kind: string; sticker_summary: string | null; my_sticker: string | null;
 };
 
 const REVIEW_SELECT = `
-  SELECT r.*, u.username, u.display_name, u.avatar_item, u.frame_item, u.title_item,
+  SELECT r.*, u.username, u.display_name, u.avatar_item, u.frame_item, u.title_item, u.namestyle_item,
     f.slug film_slug, f.title film_title, f.year film_year, f.country film_country, f.motif film_motif, f.kind film_kind,
     (SELECT GROUP_CONCAT(sticker_id || ':' || c) FROM (SELECT sticker_id, COUNT(*) c FROM review_stickers WHERE review_id = r.id GROUP BY sticker_id ORDER BY c DESC LIMIT 6)) sticker_summary,
     (SELECT sticker_id FROM review_stickers WHERE review_id = r.id AND user_id = ?1) my_sticker,
@@ -122,11 +122,11 @@ export function reviewById(id: number, viewerId = 0): Review | undefined {
   return one<Review>(`${REVIEW_SELECT} WHERE r.id = ?`, viewerId, id);
 }
 
-export type Comment = { id: number; body: string; created_at: string; user_id: number; username: string; display_name: string; avatar_item: string; frame_item: string | null };
+export type Comment = { id: number; body: string; created_at: string; user_id: number; username: string; display_name: string; avatar_item: string; frame_item: string | null; namestyle_item: string | null };
 
 export function commentsFor(reviewId: number): Comment[] {
   return all<Comment>(
-    `SELECT c.id, c.body, c.created_at, c.user_id, u.username, u.display_name, u.avatar_item, u.frame_item
+    `SELECT c.id, c.body, c.created_at, c.user_id, u.username, u.display_name, u.avatar_item, u.frame_item, u.namestyle_item
      FROM comments c JOIN users u ON u.id = c.user_id WHERE c.review_id = ? ORDER BY c.created_at`,
     reviewId,
   );
@@ -227,10 +227,10 @@ export function lifetimePoints(userId: number): number {
   return one<{ n: number }>("SELECT COALESCE(SUM(delta),0) n FROM points_ledger WHERE user_id = ? AND delta > 0", userId)?.n ?? 0;
 }
 
-export type LeaderRow = { id: number; username: string; display_name: string; avatar_item: string; frame_item: string | null; home_country: string; earned: number; achievements: number; films: number };
+export type LeaderRow = { id: number; username: string; display_name: string; avatar_item: string; frame_item: string | null; namestyle_item: string | null; home_country: string; earned: number; achievements: number; films: number };
 export function leaderboard(limit = 10): LeaderRow[] {
   return all<LeaderRow>(
-    `SELECT u.id, u.username, u.display_name, u.avatar_item, u.frame_item, u.home_country,
+    `SELECT u.id, u.username, u.display_name, u.avatar_item, u.frame_item, u.namestyle_item, u.home_country,
        (SELECT COALESCE(SUM(delta),0) FROM points_ledger WHERE user_id = u.id AND delta > 0) earned,
        (SELECT COUNT(*) FROM user_achievements WHERE user_id = u.id) achievements,
        (SELECT COUNT(DISTINCT film_id) FROM logs WHERE user_id = u.id) films

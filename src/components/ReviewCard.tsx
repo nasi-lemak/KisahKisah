@@ -4,7 +4,7 @@ import { identifyPlatform } from "@/lib/regions";
 import { ITEM_BY_ID } from "@/lib/shop";
 import { parseStickers } from "@/lib/queries";
 import { toggleLike } from "@/app/actions";
-import { AvatarGlyph, Poster, Stars, UserChip, timeAgo } from "./ui";
+import { Poster, Sticker, Stars, UserChip, timeAgo } from "./ui";
 
 const GAME_BADGE: Record<string, string> = {
   trivia: "❓ Kuiz",
@@ -78,8 +78,8 @@ export function ReviewCard({ r, viewerId, showFilm = true }: { r: Review; viewer
           <Link href={`/review/${r.id}#comments`} className="text-sm text-muted hover:text-text">💬 {r.comment_count}</Link>
           {parseStickers(r.sticker_summary).slice(0, 3).map((st) =>
             ITEM_BY_ID[st.id] ? (
-              <span key={st.id} className="inline-flex items-center gap-0.5 text-xs text-muted" title={ITEM_BY_ID[st.id].name}>
-                <AvatarGlyph value={ITEM_BY_ID[st.id].value} px={28} />
+              <span key={st.id} className="inline-flex items-center gap-1 text-xs font-bold text-muted">
+                <Sticker id={st.id} size={18} animate={false} />
                 {st.count}
               </span>
             ) : null,

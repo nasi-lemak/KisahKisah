@@ -3,7 +3,7 @@
  * Items with `price: null` cannot be bought; they come from achievements
  * or hidden easter eggs.
  */
-export type ItemType = "avatar" | "frame" | "banner" | "title" | "theme" | "sticker";
+export type ItemType = "avatar" | "frame" | "banner" | "title" | "theme" | "sticker" | "effect" | "namestyle";
 export type Rarity = "common" | "rare" | "epic" | "legendary";
 
 export type ShopItem = {
@@ -21,6 +21,15 @@ export type ShopItem = {
   swatch?: [string, string, string];
   /** Gradient behind an avatar. */
   bg?: string;
+  /** Avatar decorations: glyphs orbiting the avatar, one sitting on top, cat ears. */
+  orbit?: string[];
+  crown?: string;
+  ears?: boolean;
+  /** Profile effects: particle glyphs ("dot" = glowing firefly) and motion. */
+  particles?: string[];
+  motion?: "fall" | "rise" | "drift" | "streak" | "twinkle";
+  /** Sticker animation. */
+  anim?: "bounce" | "wobble" | "spin" | "pulse" | "float" | "shake";
   starter?: boolean;
 };
 
@@ -61,11 +70,11 @@ export const ITEMS: ShopItem[] = [
 
   // ── Frames ──
   { id: "fr_jade", type: "frame", name: "Jade Ring", rarity: "rare", price: 250, value: "frame-jade", description: "Cool green jade, polished smooth." },
-  { id: "fr_gold", type: "frame", name: "Emas", rarity: "rare", price: 350, value: "frame-gold", description: "24k, like a wedding in Penang." },
+  { id: "fr_gold", type: "frame", name: "Emas", rarity: "rare", price: 350, value: "frame-gold", crown: "✨", description: "24k, like a wedding in Penang." },
   { id: "fr_neon", type: "frame", name: "Night Market Neon", rarity: "rare", price: 400, value: "frame-neon", description: "Buzzing like a pasar malam sign." },
   { id: "fr_batik", type: "frame", name: "Batik", rarity: "epic", price: 650, value: "frame-batik", description: "Hand-drawn canting lines, in wax and dye." },
-  { id: "fr_songket", type: "frame", name: "Songket", rarity: "legendary", price: 1200, value: "frame-songket", description: "Gold thread woven by hand, shimmering as you move." },
-  { id: "fr_filmstrip", type: "frame", name: "35mm", rarity: "epic", price: null, value: "frame-filmstrip", description: "For those who buy their tickets at the box office." },
+  { id: "fr_songket", type: "frame", name: "Songket", rarity: "legendary", price: 1200, value: "frame-songket", orbit: ["✨", "✨", "✨"], description: "Gold thread woven by hand, shimmering as you move." },
+  { id: "fr_filmstrip", type: "frame", name: "35mm", rarity: "epic", price: null, value: "frame-filmstrip", crown: "🎞️", description: "For those who buy their tickets at the box office." },
 
   // ── Banners ──
   { id: "bn_sunset", type: "banner", name: "Senja di Pantai", rarity: "common", price: 100, value: "banner-sunset", description: "Sunset on the beach, sticky with sea salt." },
@@ -98,42 +107,85 @@ export const ITEMS: ShopItem[] = [
   { id: "th_hornbill", type: "theme", name: "Hornbill Orbit", rarity: "legendary", price: null, event: "orbit-of-the-hornbill", value: "hornbill", swatch: ["#0b0f0a", "#1c261a", "#ff9f1c"], description: "From the demo sponsor campaign for “Orbit of the Hornbill”." },
 
   // ── Stickers (slap them on reviews) ──
-  { id: "st_popcorn", type: "sticker", name: "Nom Nom", rarity: "common", price: 0, starter: true, value: "🍿", description: "Grabbing popcorn for this thread." },
-  { id: "st_cry", type: "sticker", name: "Crying in the Club", rarity: "common", price: 0, starter: true, value: "😭", description: "Not okay. Never okay." },
-  { id: "st_fire", type: "sticker", name: "Masterpiece", rarity: "common", price: 0, starter: true, value: "🔥", description: "This review goes hard." },
-  { id: "st_mindblown", type: "sticker", name: "Plot Twist!", rarity: "common", price: 0, starter: true, value: "🤯", description: "Did NOT see that coming." },
-  { id: "st_skull", type: "sticker", name: "I'm Dead", rarity: "common", price: 40, value: "💀", description: "Deceased. Laughed too hard." },
-  { id: "st_sleep", type: "sticker", name: "Snoozefest", rarity: "common", price: 40, value: "😴", description: "Brave of you to sit through it." },
-  { id: "st_chefkiss", type: "sticker", name: "Chef's Kiss", rarity: "common", price: 40, value: "🤌", description: "Perfection. No notes." },
-  { id: "st_eyes", type: "sticker", name: "Spoiler Eyes", rarity: "rare", price: 80, value: "🫣", description: "Peeking through my fingers." },
-  { id: "st_durian", type: "sticker", name: "Durian-Level Take", rarity: "rare", price: 120, value: "svg:durian", description: "Spiky, smelly, strangely beloved." },
+  { id: "st_popcorn", type: "sticker", anim: "bounce", name: "Nom Nom", rarity: "common", price: 0, starter: true, value: "🍿", description: "Grabbing popcorn for this thread." },
+  { id: "st_cry", type: "sticker", anim: "shake", name: "Crying in the Club", rarity: "common", price: 0, starter: true, value: "😭", description: "Not okay. Never okay." },
+  { id: "st_fire", type: "sticker", anim: "pulse", name: "Masterpiece", rarity: "common", price: 0, starter: true, value: "🔥", description: "This review goes hard." },
+  { id: "st_mindblown", type: "sticker", anim: "wobble", name: "Plot Twist!", rarity: "common", price: 0, starter: true, value: "🤯", description: "Did NOT see that coming." },
+  { id: "st_skull", type: "sticker", anim: "wobble", name: "I'm Dead", rarity: "common", price: 40, value: "💀", description: "Deceased. Laughed too hard." },
+  { id: "st_sleep", type: "sticker", anim: "float", name: "Snoozefest", rarity: "common", price: 40, value: "😴", description: "Brave of you to sit through it." },
+  { id: "st_chefkiss", type: "sticker", anim: "pulse", name: "Chef's Kiss", rarity: "common", price: 40, value: "🤌", description: "Perfection. No notes." },
+  { id: "st_eyes", type: "sticker", anim: "shake", name: "Spoiler Eyes", rarity: "rare", price: 80, value: "🫣", description: "Peeking through my fingers." },
+  { id: "st_durian", type: "sticker", anim: "spin", name: "Durian-Level Take", rarity: "rare", price: 120, value: "svg:durian", description: "Spiky, smelly, strangely beloved." },
   // event stickers
-  { id: "st_rocket", type: "sticker", name: "Hyperdrive", rarity: "rare", price: null, event: "space-opera-day", value: "🚀", description: "Making the jump to lightspeed." },
-  { id: "st_galaxy", type: "sticker", name: "Galaxy Brain", rarity: "rare", price: null, event: "space-opera-day", value: "🌌", description: "A take from a galaxy far, far away." },
-  { id: "st_robot", type: "sticker", name: "Beep Boop", rarity: "rare", price: null, event: "space-opera-day", value: "🤖", description: "Translation: “great review”." },
-  { id: "st_pumpkin", type: "sticker", name: "Jack-o'-Lantern", rarity: "rare", price: null, event: "halloween", value: "🎃", description: "Spooky season approved." },
-  { id: "st_ghost", type: "sticker", name: "Boo!", rarity: "rare", price: null, event: "halloween", value: "👻", description: "Hantu was here." },
-  { id: "st_candle", type: "sticker", name: "Pelita Hantu", rarity: "rare", price: null, event: "halloween", value: "🕯️", description: "Don't blow it out." },
-  { id: "st_angpao", type: "sticker", name: "Ang Pao", rarity: "rare", price: null, event: "lunar-new-year", value: "🧧", description: "Huat ah!" },
-  { id: "st_dragon", type: "sticker", name: "Dragon Dance", rarity: "rare", price: null, event: "lunar-new-year", value: "🐉", description: "Gong xi fa cai!" },
-  { id: "st_mandarin", type: "sticker", name: "Mandarin Oranges", rarity: "rare", price: null, event: "lunar-new-year", value: "🍊", description: "Two for luck." },
-  { id: "st_crescent", type: "sticker", name: "Selamat Hari Raya", rarity: "rare", price: null, event: "hari-raya", value: "🌙", description: "Maaf zahir dan batin." },
-  { id: "st_pelita", type: "sticker", name: "Pelita", rarity: "rare", price: null, event: "hari-raya", value: "🪔", description: "Lighting the way home." },
-  { id: "st_water", type: "sticker", name: "Splash!", rarity: "rare", price: null, event: "songkran", value: "💦", description: "Sawasdee pee mai!" },
-  { id: "st_watergun", type: "sticker", name: "Water Gun", rarity: "rare", price: null, event: "songkran", value: "🔫", description: "Locked and loaded (with water)." },
-  { id: "st_mooncake", type: "sticker", name: "Mooncake", rarity: "rare", price: null, event: "mid-autumn", value: "🥮", description: "Lotus paste, double yolk." },
-  { id: "st_rabbit", type: "sticker", name: "Jade Rabbit", rarity: "rare", price: null, event: "mid-autumn", value: "🐇", description: "Pounding elixirs on the moon." },
-  { id: "st_fireworks", type: "sticker", name: "Fireworks", rarity: "rare", price: null, event: "diwali", value: "🎆", description: "Shubh Deepavali!" },
-  { id: "st_tree", type: "sticker", name: "Christmas Tree", rarity: "rare", price: null, event: "christmas", value: "🎄", description: "Tinsel on everything." },
-  { id: "st_snow", type: "sticker", name: "Tropical Snow", rarity: "rare", price: null, event: "christmas", value: "❄️", description: "The only snow SEA will ever see." },
-  { id: "st_rewind", type: "sticker", name: "Rewound", rarity: "epic", price: null, event: "rewind-season", value: "⏪", description: "I watched my year back." },
-  { id: "st_hornbill", type: "sticker", name: "To the Moon", rarity: "epic", price: null, event: "orbit-of-the-hornbill", value: "🌕", description: "From the demo “Orbit of the Hornbill” campaign." },
-  { id: "st_feather", type: "sticker", name: "Hornbill Feather", rarity: "epic", price: null, event: "orbit-of-the-hornbill", value: "🪶", description: "From the demo “Orbit of the Hornbill” campaign." },
+  { id: "st_rocket", type: "sticker", anim: "float", name: "Hyperdrive", rarity: "rare", price: null, event: "space-opera-day", value: "🚀", description: "Making the jump to lightspeed." },
+  { id: "st_galaxy", type: "sticker", anim: "spin", name: "Galaxy Brain", rarity: "rare", price: null, event: "space-opera-day", value: "🌌", description: "A take from a galaxy far, far away." },
+  { id: "st_robot", type: "sticker", anim: "bounce", name: "Beep Boop", rarity: "rare", price: null, event: "space-opera-day", value: "🤖", description: "Translation: “great review”." },
+  { id: "st_pumpkin", type: "sticker", anim: "wobble", name: "Jack-o'-Lantern", rarity: "rare", price: null, event: "halloween", value: "🎃", description: "Spooky season approved." },
+  { id: "st_ghost", type: "sticker", anim: "float", name: "Boo!", rarity: "rare", price: null, event: "halloween", value: "👻", description: "Hantu was here." },
+  { id: "st_candle", type: "sticker", anim: "pulse", name: "Pelita Hantu", rarity: "rare", price: null, event: "halloween", value: "🕯️", description: "Don't blow it out." },
+  { id: "st_angpao", type: "sticker", anim: "bounce", name: "Ang Pao", rarity: "rare", price: null, event: "lunar-new-year", value: "🧧", description: "Huat ah!" },
+  { id: "st_dragon", type: "sticker", anim: "wobble", name: "Dragon Dance", rarity: "rare", price: null, event: "lunar-new-year", value: "🐉", description: "Gong xi fa cai!" },
+  { id: "st_mandarin", type: "sticker", anim: "bounce", name: "Mandarin Oranges", rarity: "rare", price: null, event: "lunar-new-year", value: "🍊", description: "Two for luck." },
+  { id: "st_crescent", type: "sticker", anim: "float", name: "Selamat Hari Raya", rarity: "rare", price: null, event: "hari-raya", value: "🌙", description: "Maaf zahir dan batin." },
+  { id: "st_pelita", type: "sticker", anim: "pulse", name: "Pelita", rarity: "rare", price: null, event: "hari-raya", value: "🪔", description: "Lighting the way home." },
+  { id: "st_water", type: "sticker", anim: "bounce", name: "Splash!", rarity: "rare", price: null, event: "songkran", value: "💦", description: "Sawasdee pee mai!" },
+  { id: "st_watergun", type: "sticker", anim: "shake", name: "Water Gun", rarity: "rare", price: null, event: "songkran", value: "🔫", description: "Locked and loaded (with water)." },
+  { id: "st_mooncake", type: "sticker", anim: "pulse", name: "Mooncake", rarity: "rare", price: null, event: "mid-autumn", value: "🥮", description: "Lotus paste, double yolk." },
+  { id: "st_rabbit", type: "sticker", anim: "bounce", name: "Jade Rabbit", rarity: "rare", price: null, event: "mid-autumn", value: "🐇", description: "Pounding elixirs on the moon." },
+  { id: "st_fireworks", type: "sticker", anim: "pulse", name: "Fireworks", rarity: "rare", price: null, event: "diwali", value: "🎆", description: "Shubh Deepavali!" },
+  { id: "st_tree", type: "sticker", anim: "wobble", name: "Christmas Tree", rarity: "rare", price: null, event: "christmas", value: "🎄", description: "Tinsel on everything." },
+  { id: "st_snow", type: "sticker", anim: "spin", name: "Tropical Snow", rarity: "rare", price: null, event: "christmas", value: "❄️", description: "The only snow SEA will ever see." },
+  { id: "st_rewind", type: "sticker", anim: "spin", name: "Rewound", rarity: "epic", price: null, event: "rewind-season", value: "⏪", description: "I watched my year back." },
+  { id: "st_hornbill", type: "sticker", anim: "float", name: "To the Moon", rarity: "epic", price: null, event: "orbit-of-the-hornbill", value: "🌕", description: "From the demo “Orbit of the Hornbill” campaign." },
+  { id: "st_feather", type: "sticker", anim: "float", name: "Hornbill Feather", rarity: "epic", price: null, event: "orbit-of-the-hornbill", value: "🪶", description: "From the demo “Orbit of the Hornbill” campaign." },
   // event frames
-  { id: "fr_hornbill", type: "frame", name: "Hornbill Halo", rarity: "legendary", price: null, event: "orbit-of-the-hornbill", value: "frame-hornbill", description: "Demo sponsor exclusive. Gone when the campaign ends." },
-  { id: "fr_lightspeed", type: "frame", name: "Lightspeed", rarity: "legendary", price: null, event: "space-opera-day", value: "frame-lightspeed", description: "Streaking starlight. One day a year." },
+  { id: "fr_hornbill", type: "frame", name: "Hornbill Halo", rarity: "legendary", price: null, event: "orbit-of-the-hornbill", value: "frame-hornbill", orbit: ["🪶", "🪶"], crown: "🌕", description: "Demo sponsor exclusive. Gone when the campaign ends." },
+  { id: "fr_lightspeed", type: "frame", name: "Lightspeed", rarity: "legendary", price: null, event: "space-opera-day", value: "frame-lightspeed", orbit: ["🚀"], description: "Streaking starlight. One day a year." },
+  // ── Avatar decorations (new) ──
+  { id: "fr_bungaraya", type: "frame", name: "Bunga Raya", rarity: "epic", price: 600, value: "frame-bungaraya", orbit: ["🌺", "🌺", "🌺", "🌺"], description: "Malaysia's hibiscus, circling in full bloom." },
+  { id: "fr_lanterns", type: "frame", name: "Lantern Parade", rarity: "epic", price: 700, value: "frame-lantern", orbit: ["🏮", "🏮", "🏮"], description: "Three lanterns on an endless night walk." },
+  { id: "fr_kucing", type: "frame", name: "Kucing Ears", rarity: "rare", price: 350, value: "frame-kucing", ears: true, description: "Every kopitiam has a cat. Now you are the cat." },
+  { id: "fr_kopi", type: "frame", name: "Kopi Steam", rarity: "rare", price: 300, value: "frame-kopi", crown: "☕", description: "Fresh from the kopitiam, still steaming." },
+  { id: "fr_wau", type: "frame", name: "Wau Bulan", rarity: "legendary", price: 1400, value: "frame-wau", orbit: ["🪁", "✨"], crown: "🌙", description: "The moon kite of Kelantan, soaring round and round." },
+  { id: "fr_durian", type: "frame", name: "Durian Orbit", rarity: "legendary", price: 1600, value: "frame-durian", orbit: ["svg:durian", "svg:durian", "svg:durian"], description: "Three kings of fruit in orbit. Neighbours not consulted." },
+
+  // ── Profile effects (play over your profile card) ──
+  { id: "ef_popcorn", type: "effect", name: "Popcorn Storm", rarity: "common", price: 150, value: "popcorn", particles: ["🍿"], motion: "rise", description: "The bucket overfloweth." },
+  { id: "ef_petals", type: "effect", name: "Bunga Raya Breeze", rarity: "rare", price: 300, value: "petals", particles: ["🌺", "🌸"], motion: "fall", description: "Petals drifting down your profile." },
+  { id: "ef_rain", type: "effect", name: "4pm Monsoon", rarity: "rare", price: 300, value: "rain", particles: ["💧"], motion: "streak", description: "Like clockwork, every afternoon." },
+  { id: "ef_confetti", type: "effect", name: "Premiere Night", rarity: "rare", price: 350, value: "confetti", particles: ["🎊", "✨", "🎉"], motion: "fall", description: "Red carpet energy." },
+  { id: "ef_lanterns", type: "effect", name: "Lantern Release", rarity: "epic", price: 600, value: "lanterns", particles: ["🏮"], motion: "rise", description: "Wishes floating up into the night." },
+  { id: "ef_fireflies", type: "effect", name: "Kelip-Kelip", rarity: "epic", price: 650, value: "fireflies", particles: ["dot"], motion: "twinkle", description: "The fireflies of Kuala Selangor, blinking in sync." },
+  { id: "ef_hyperspace", type: "effect", name: "Hyperspace Jump", rarity: "legendary", price: null, event: "space-opera-day", value: "hyperspace", particles: ["dash"], motion: "streak", description: "Punch it! Stars stretch into lines." },
+  { id: "ef_bats", type: "effect", name: "Hantu Flight", rarity: "epic", price: null, event: "halloween", value: "bats", particles: ["🦇", "👻"], motion: "drift", description: "Something is flying around your profile." },
+  { id: "ef_snow", type: "effect", name: "Tropical Snowfall", rarity: "epic", price: null, event: "christmas", value: "snow", particles: ["❄️", "•"], motion: "fall", description: "Finally, snow in Southeast Asia." },
+
+  // ── Name styles (your display name, everywhere) ──
+  { id: "ns_jade", type: "namestyle", name: "Jade", rarity: "common", price: 120, value: "ns-jade", description: "Cool green gradient." },
+  { id: "ns_sunset", type: "namestyle", name: "Senja", rarity: "rare", price: 200, value: "ns-sunset", description: "Sunset at the beach, in letters." },
+  { id: "ns_pelangi", type: "namestyle", name: "Pelangi", rarity: "rare", price: 300, value: "ns-pelangi", description: "A rainbow that never stops moving." },
+  { id: "ns_batik", type: "namestyle", name: "Batik", rarity: "epic", price: 500, value: "ns-batik", description: "Your name, printed in wax-resist dye." },
+  { id: "ns_neon", type: "namestyle", name: "Pasar Malam Neon", rarity: "epic", price: 450, value: "ns-neon", description: "Flickering like a night-market sign." },
+  { id: "ns_songket", type: "namestyle", name: "Songket Gold", rarity: "legendary", price: 900, value: "ns-songket", description: "Woven gold thread that catches the light." },
+  { id: "ns_hyperspace", type: "namestyle", name: "Hyperspace", rarity: "epic", price: null, event: "space-opera-day", value: "ns-hyperspace", description: "Glowing like a crawl in deep space." },
 ];
 
 export const ITEM_BY_ID: Record<string, ShopItem> = Object.assign(Object.create(null), Object.fromEntries(ITEMS.map((i) => [i.id, i])));
 export const STARTER_ITEMS = ITEMS.filter((i) => i.starter).map((i) => i.id);
 export const DEFAULT_AVATAR = "av_popcorn";
+
+/** Themed bundles: everything in one go, cheaper than buying separately. */
+export type Bundle = { id: string; name: string; blurb: string; items: string[]; price: number; colors: [string, string] };
+
+export const BUNDLES: Bundle[] = [
+  { id: "bd_kampung", name: "Kampung Days", blurb: "Padi fields, fireflies and a carabao who's seen it all.", items: ["av_carabao", "fr_bungaraya", "ef_fireflies", "bn_padi", "ns_jade"], price: 1300, colors: ["#14532d", "#a3e635"] },
+  { id: "bd_pasarmalam", name: "Pasar Malam", blurb: "Satay smoke, neon signs and lanterns overhead.", items: ["av_satay", "fr_neon", "ef_lanterns", "bn_neon", "ns_neon"], price: 1700, colors: ["#4c1d95", "#ff2fd6"] },
+  { id: "bd_royalty", name: "Panggung Royalty", blurb: "For the ones who own the cinema (or act like it).", items: ["av_wayang", "fr_songket", "ef_confetti", "ns_songket", "ti_tauke"], price: 4200, colors: ["#78350f", "#fde68a"] },
+];
+
+export function bundlePrice(b: Bundle, owned: Set<string>): number {
+  const value = (id: string) => ITEM_BY_ID[id]?.price ?? 0;
+  const total = b.items.reduce((a, id) => a + value(id), 0) || 1;
+  const missing = b.items.filter((id) => !owned.has(id)).reduce((a, id) => a + value(id), 0);
+  return Math.round((b.price * missing) / total);
+}

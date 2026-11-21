@@ -254,3 +254,18 @@ CREATE TABLE IF NOT EXISTS ad_inquiries (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 `;
+
+export const SCHEMA_V3 = /* sql */ `
+-- Steam-style sticker board on profiles: stickers placed freely (x/y in %).
+CREATE TABLE IF NOT EXISTS profile_stickers (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  item_id TEXT NOT NULL,
+  x REAL NOT NULL,
+  y REAL NOT NULL,
+  rot REAL NOT NULL DEFAULT 0,
+  scale REAL NOT NULL DEFAULT 1,
+  z INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS profile_stickers_user ON profile_stickers(user_id);
+`;

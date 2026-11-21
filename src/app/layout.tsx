@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import "@fontsource-variable/bricolage-grotesque";
+import "@fontsource-variable/plus-jakarta-sans";
 import "./globals.css";
 import { currentUser } from "@/lib/auth";
 import { unseenNotifications } from "@/lib/queries";
@@ -76,7 +78,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                       [`/u/${user.username}/watchlist`, "Watchlist"],
                       ["/rewind", "⏪ My Rewind"],
                       ["/achievements", "Achievements"],
-                      ["/kedai/inventory", "Inventory & equip"],
+                      ["/studio", "🎨 Profile Studio"],
                       ["/settings", "Settings"],
                     ].map(([href, label]) => (
                       <Link key={href} href={href} className="block rounded-md px-3 py-1.5 hover:bg-raised">

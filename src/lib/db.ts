@@ -2,7 +2,7 @@ import "server-only";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { SCHEMA, SCHEMA_NOTIFICATIONS, SCHEMA_V2 } from "./schema";
+import { SCHEMA, SCHEMA_NOTIFICATIONS, SCHEMA_V2, SCHEMA_V3 } from "./schema";
 import { CATALOG } from "./catalog";
 import { STARTER_ITEMS } from "./shop";
 import { seed } from "./seed";
@@ -21,6 +21,7 @@ export function db(): DatabaseSync {
   d.exec(SCHEMA);
   d.exec(SCHEMA_NOTIFICATIONS);
   d.exec(SCHEMA_V2);
+  d.exec(SCHEMA_V3);
   // Seed exactly once, even if several build workers open the file together.
   let seeded = false;
   d.exec("BEGIN IMMEDIATE");
@@ -55,6 +56,12 @@ function addColumn(d: DatabaseSync, table: string, column: string, definition: s
 function migrate(d: DatabaseSync) {
   addColumn(d, "films", "kind", "TEXT NOT NULL DEFAULT 'film'");
   addColumn(d, "users", "theme_item", "TEXT");
+  addColumn(d, "users", "effect_item", "TEXT");
+  addColumn(d, "users", "namestyle_item", "TEXT");
+  addColumn(d, "users", "accent1", "TEXT");
+  addColumn(d, "users", "accent2", "TEXT");
+  addColumn(d, "users", "showcases", "TEXT NOT NULL DEFAULT '[\"favorites\",\"stickers\",\"achievements\"]'");
+  addColumn(d, "users", "pinned_review_id", "INTEGER");
 }
 
 /** Insert catalogue titles that aren't in the DB yet (new releases ship with code). */

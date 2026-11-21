@@ -7,7 +7,8 @@ import { createSession, destroySession, requireUser, userByUsername, currentUser
 import { all, one, run, tx } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { award, checkAchievements, grantItem, notify, POINTS, unlock } from "@/lib/rewards";
-import { ITEM_BY_ID, STARTER_ITEMS } from "@/lib/shop";
+import { BUNDLES, ITEM_BY_ID, STARTER_ITEMS, bundlePrice } from "@/lib/shop";
+import { SHOWCASES } from "@/lib/profile";
 import { EGG_IDS } from "@/lib/achievements";
 import { configFromForm, judge, type Verdict } from "@/lib/games";
 import { filmById, reviewById } from "@/lib/queries";
@@ -288,9 +289,9 @@ export async function buyItem(itemId: string): Promise<FormState> {
   return result;
 }
 
-export async function equipItem(itemId: string | null, slot: "avatar" | "frame" | "banner" | "title" | "theme") {
+export async function equipItem(itemId: string | null, slot: "avatar" | "frame" | "banner" | "title" | "theme" | "effect" | "namestyle") {
   const user = await requireUser();
-  const cols = { avatar: "avatar_item", frame: "frame_item", banner: "banner_item", title: "title_item", theme: "theme_item" } as const;
+  const cols = { avatar: "avatar_item", frame: "frame_item", banner: "banner_item", title: "title_item", theme: "theme_item", effect: "effect_item", namestyle: "namestyle_item" } as const;
   if (!Object.hasOwn(cols, slot)) return;
   const col = cols[slot];
   if (itemId === null) {
@@ -507,4 +508,89 @@ export async function submitAdInquiry(_: FormState, form: FormData): Promise<For
     company, name, email, title, str(form, "release_date", 10) || null, markets.join(","), pkg || "unsure", str(form, "message", 3000),
   );
   return { ok: "Terima kasih! Our partnerships team will reply within two working days." };
+}
+
+// ── Profile Studio, sticker board, bundles ───────────────────────────
+
+const owns = (userId: number, itemId: string) => !!one("SELECT 1 x FROM inventory WHERE user_id = ? AND item_id = ?", userId, itemId);
+const HEX = /^#[0-9a-fA-F]{6}$/;
+
+export type StudioPayload = {
+  avatar: string; frame: string | null; banner: string | null; title: string | null; theme: string | null;
+  effect: string | null; namestyle: string | null; accent1: string | null; accent2: string | null;
+  showcases: string[]; pinnedReviewId: number | null; bio: string;
+};
+
+export async function saveStudio(p: StudioPayload): Promise<FormState> {
+  const user = await requireUser("/studio");
+  const slots: [keyof StudioPayload, string, string][] = [
+    ["frame", "frame", "frame_item"], ["banner", "banner", "banner_item"], ["title", "title", "title_item"],
+    ["theme", "theme", "theme_item"], ["effect", "effect", "effect_item"], ["namestyle", "namestyle", "namestyle_item"],
+  ];
+  const avatar = ITEM_BY_ID[p.avatar];
+  if (!avatar || avatar.type !== "avatar" || !owns(user.id, p.avatar)) return { error: "You don't own that avatar yet." };
+  const values: Record<string, string | null> = { avatar_item: p.avatar };
+  for (const [key, type, col] of slots) {
+    const id = p[key] as string | null;
+    if (id === null || id === "") {
+      values[col] = null;
+      continue;
+    }
+    const it = ITEM_BY_ID[id];
+    if (!it || it.type !== type) return { error: "Unknown item." };
+    if (!owns(user.id, id)) return { error: `You're previewing “${it.name}”. Get it first to save it.` };
+    values[col] = id;
+  }
+  const a1 = p.accent1 && HEX.test(p.accent1) ? p.accent1 : null;
+  const a2 = p.accent2 && HEX.test(p.accent2) ? p.accent2 : null;
+  const showcases = [...new Set(p.showcases.filter((x) => Object.hasOwn(SHOWCASES, x)))].slice(0, 6);
+  const pinned = p.pinnedReviewId && one("SELECT 1 x FROM reviews WHERE id = ? AND user_id = ?", p.pinnedReviewId, user.id) ? p.pinnedReviewId : null;
+  run(
+    `UPDATE users SET avatar_item = ?, frame_item = ?, banner_item = ?, title_item = ?, theme_item = ?, effect_item = ?, namestyle_item = ?,
+       accent1 = ?, accent2 = ?, showcases = ?, pinned_review_id = ?, bio = ? WHERE id = ?`,
+    values.avatar_item, values.frame_item, values.banner_item, values.title_item, values.theme_item, values.effect_item, values.namestyle_item,
+    a1, a2, JSON.stringify(showcases), pinned, String(p.bio ?? "").slice(0, 400), user.id,
+  );
+  refresh();
+  return { ok: "Profile saved!" };
+}
+
+export type BoardInput = { item_id: string; x: number; y: number; rot: number; scale: number; z: number };
+
+export async function saveStickerBoard(items: BoardInput[]): Promise<FormState> {
+  const user = await requireUser();
+  if (!Array.isArray(items) || items.length > 20) return { error: "Up to 20 stickers on a board." };
+  const clamp = (v: number, lo: number, hi: number) => (Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : lo);
+  const clean: BoardInput[] = [];
+  for (const it of items) {
+    const item = ITEM_BY_ID[it?.item_id];
+    if (!item || item.type !== "sticker" || !owns(user.id, it.item_id)) return { error: "You can only place stickers you own." };
+    clean.push({ item_id: it.item_id, x: clamp(it.x, 0, 100), y: clamp(it.y, 0, 100), rot: clamp(it.rot, -180, 180), scale: clamp(it.scale, 0.5, 2.5), z: Math.round(clamp(it.z, 0, 100)) });
+  }
+  tx(() => {
+    run("DELETE FROM profile_stickers WHERE user_id = ?", user.id);
+    for (const c of clean) run("INSERT INTO profile_stickers (user_id, item_id, x, y, rot, scale, z) VALUES (?,?,?,?,?,?,?)", user.id, c.item_id, c.x, c.y, c.rot, c.scale, c.z);
+  });
+  refresh();
+  return { ok: "Board saved" };
+}
+
+export async function buyBundle(bundleId: string): Promise<FormState> {
+  const user = await requireUser("/kedai");
+  const b = BUNDLES.find((x) => x.id === bundleId);
+  if (!b) return { error: "Unknown bundle." };
+  const owned = new Set(all<{ item_id: string }>("SELECT item_id FROM inventory WHERE user_id = ?", user.id).map((r) => r.item_id));
+  const missing = b.items.filter((i) => !owned.has(i));
+  if (!missing.length) return { error: "You already own everything in this bundle." };
+  const price = bundlePrice(b, owned);
+  const res = tx((): FormState => {
+    const fresh = one<{ points: number }>("SELECT points FROM users WHERE id = ?", user.id)!;
+    if (fresh.points < price) return { error: `Not enough KP. You need ${price - fresh.points} more.` };
+    award(user.id, -price, "purchase", `bundle:${b.id}:${Date.now()}`, `Bought the ${b.name} bundle`);
+    for (const id of missing) grantItem(user.id, id, "shop");
+    return { ok: `${b.name} unlocked: ${missing.length} new item${missing.length > 1 ? "s" : ""}!` };
+  });
+  if (res?.ok) checkAchievements(user.id);
+  refresh();
+  return res;
 }

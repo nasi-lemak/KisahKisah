@@ -14,7 +14,7 @@ export default async function SettingsPage() {
         <SettingsForm user={user} countries={COUNTRIES} />
       </div>
       <p className="text-sm text-muted">
-        Avatar, frame, banner and title live in your <Link href="/kedai/inventory" className="text-saffron">inventory</Link>.
+        Avatar, decoration, effects, name style, banner, colours and showcases live in <Link href="/studio" className="text-saffron">Profile Studio</Link>.
       </p>
     </div>
   );

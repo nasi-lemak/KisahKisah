@@ -7,7 +7,7 @@ import { ITEMS } from "@/lib/shop";
 import { StickerBar } from "@/components/StickerBar";
 import { publicGame } from "@/lib/games";
 import { ITEM_BY_ID } from "@/lib/shop";
-import { Avatar, Poster, Stars, UserChip, timeAgo } from "@/components/ui";
+import { Avatar, Poster, Stars, StyledName, UserChip, timeAgo } from "@/components/ui";
 import { ExternalLinks, LikeButton } from "@/components/ReviewCard";
 import { GamePanel, SpoilerText } from "@/components/games";
 import { CommentForm, SignInPrompt } from "@/components/forms";
@@ -99,7 +99,7 @@ export default async function ReviewPage({ params }: { params: Params }) {
             </Link>
             <div className="card flex-1 px-4 py-2.5">
               <div className="text-sm">
-                <Link href={`/u/${c.username}`} className="font-semibold hover:text-saffron">{c.display_name}</Link>{" "}
+                <Link href={`/u/${c.username}`} className="font-semibold hover:brightness-125"><StyledName name={c.display_name} style={c.namestyle_item} /></Link>{" "}
                 <span className="text-xs text-muted">{timeAgo(c.created_at)}</span>
               </div>
               <p className="mt-0.5 whitespace-pre-line text-sm">{c.body}</p>

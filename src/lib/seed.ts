@@ -152,6 +152,28 @@ export function seed(d: DatabaseSync) {
     insLedger.run(id, u.points, "seed", "opening-balance", "Founding member bonus", dateTimeAgo(200 - i * 10));
   });
 
+  // Nitro/Steam-style customisation for the demo community
+  const COSMETICS: Record<string, { frame: string; effect?: string; namestyle?: string; a1: string; a2: string; showcases: string[]; board?: [string, number, number, number][] }> = {
+    aisyah: { frame: "fr_bungaraya", effect: "ef_petals", namestyle: "ns_sunset", a1: "#fb923c", a2: "#db2777", showcases: ["favorites", "stickers", "achievements", "review"],
+      board: [["st_fire", 14, 40, -12], ["st_cry", 30, 62, 10], ["st_popcorn", 48, 35, -6], ["st_mindblown", 66, 58, 14], ["st_durian", 84, 38, -18]] },
+    budi: { frame: "fr_batik", effect: "ef_rain", namestyle: "ns_batik", a1: "#b45309", a2: "#19b38a", showcases: ["favorites", "review", "stickers", "stats"],
+      board: [["st_skull", 22, 45, -10], ["st_eyes", 50, 55, 8], ["st_fire", 76, 42, -4]] },
+    nong: { frame: "fr_neon", effect: "ef_lanterns", namestyle: "ns_neon", a1: "#ff2fd6", a2: "#22d3ee", showcases: ["stickers", "favorites", "collection"],
+      board: [["st_cry", 18, 50, -14], ["st_chefkiss", 42, 40, 6], ["st_popcorn", 64, 60, -8], ["st_mindblown", 84, 45, 12]] },
+    jiwoo: { frame: "fr_songket", effect: "ef_fireflies", namestyle: "ns_songket", a1: "#fde68a", a2: "#b45309", showcases: ["favorites", "achievements", "collection", "stats"] },
+    weijie: { frame: "fr_kucing", effect: "ef_popcorn", namestyle: "ns_jade", a1: "#34d399", a2: "#0e7490", showcases: ["favorites", "stickers", "stats"],
+      board: [["st_sleep", 30, 50, -10], ["st_popcorn", 60, 48, 12]] },
+    camille: { frame: "fr_lanterns", effect: "ef_confetti", namestyle: "ns_pelangi", a1: "#a78bfa", a2: "#6d28d9", showcases: ["review", "favorites", "stats"] },
+    tunde: { frame: "fr_kopi", namestyle: "ns_sunset", a1: "#f59e0b", a2: "#b91c1c", showcases: ["favorites", "stats", "achievements"] },
+  };
+  const setLook = d.prepare("UPDATE users SET frame_item = ?, effect_item = ?, namestyle_item = ?, accent1 = ?, accent2 = ?, showcases = ? WHERE id = ?");
+  const insBoard = d.prepare("INSERT INTO profile_stickers (user_id, item_id, x, y, rot, scale, z) VALUES (?,?,?,?,?,?,?)");
+  for (const [u, c] of Object.entries(COSMETICS)) {
+    for (const it of [c.frame, c.effect, c.namestyle, ...(c.board ?? []).map((b) => b[0])]) if (it) insInv.run(uid[u], it, "shop");
+    setLook.run(c.frame, c.effect ?? null, c.namestyle ?? null, c.a1, c.a2, JSON.stringify(c.showcases), uid[u]);
+    (c.board ?? []).forEach(([it, x, y, rot], i) => insBoard.run(uid[u], it, x, y, rot, 1 + (i % 3) * 0.15, i));
+  }
+
   const insLog = d.prepare(
     "INSERT INTO logs (user_id, film_id, watched_on, rating, liked, rewatch, cinema_chain, local_hour, created_at) VALUES (?,?,?,?,?,0,?,20,?)",
   );

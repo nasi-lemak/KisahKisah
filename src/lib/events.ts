@@ -191,7 +191,7 @@ export function allEvents(): SiteEvent[] {
     {
       id: "space-opera-day", kind: "house", name: "Space Opera Day", icon: "🚀", tagline: "May 4th: galaxies far, far away and very close by.",
       rule: { kind: "fixed", start: "05-04", end: "05-05" }, colors: ["#05070f", "#ffe81f"],
-      offers: [{ item: "st_rocket", price: 0 }, { item: "st_galaxy", price: 0 }, { item: "st_robot", price: 0 }, { item: "th_hyperspace", price: 0 }, { item: "fr_lightspeed", price: 300 }],
+      offers: [{ item: "st_rocket", price: 0 }, { item: "st_galaxy", price: 0 }, { item: "st_robot", price: 0 }, { item: "th_hyperspace", price: 0 }, { item: "ns_hyperspace", price: 0 }, { item: "ef_hyperspace", price: 250 }, { item: "fr_lightspeed", price: 300 }],
       bonus: { label: "Log a sci-fi title", points: 20, maxLogs: 3, genres: ["Sci-Fi"] },
       featured: ["star-wars-1977", "the-wandering-earth-2019", "everything-everywhere-2022", "the-long-walk-2019"],
       blurb: "The fan holiday for galaxies far, far away and very close by. Sci-fi from Hollywood to Beijing to Vientiane.",
@@ -215,7 +215,7 @@ export function allEvents(): SiteEvent[] {
     {
       id: "halloween", kind: "house", name: "Hantu Week", icon: "🎃", tagline: "Halloween, Southeast Asian style: pontianak, pocong & friends.",
       rule: { kind: "fixed", start: "10-25", end: "10-31" }, colors: ["#ff7a1a", "#2d1b46"],
-      offers: [{ item: "st_pumpkin", price: 0 }, { item: "st_ghost", price: 0 }, { item: "st_candle", price: 0 }, { item: "th_hantu", price: 150 }],
+      offers: [{ item: "st_pumpkin", price: 0 }, { item: "st_ghost", price: 0 }, { item: "st_candle", price: 0 }, { item: "th_hantu", price: 150 }, { item: "ef_bats", price: 200 }],
       bonus: { label: "Log a horror title", points: 20, maxLogs: 4, genres: ["Horror"] },
       featured: ["satans-slaves-2017", "shutter-2004", "impetigore-2019", "exhuma-2024", "let-the-right-one-in-2008"],
       blurb: "Horror logs earn bonus KP all week. Survive the region's scariest.",
@@ -239,7 +239,7 @@ export function allEvents(): SiteEvent[] {
     {
       id: "christmas", kind: "house", name: "Festive Season", icon: "🎄", tagline: "Tropical Christmas: 32°C and a snowy theme anyway.",
       rule: { kind: "fixed", start: "12-20", end: "12-26" }, colors: ["#1f6f3d", "#ff4d4d"],
-      offers: [{ item: "st_tree", price: 0 }, { item: "st_snow", price: 0 }, { item: "th_pine", price: 120 }],
+      offers: [{ item: "st_tree", price: 0 }, { item: "st_snow", price: 0 }, { item: "th_pine", price: 120 }, { item: "ef_snow", price: 150 }],
       bonus: { label: "Log a family title", points: 10, maxLogs: 3, genres: ["Family"] },
       featured: ["paddington-2-2017", "spirited-away-2001", "four-sisters-and-a-wedding-2013"],
       blurb: "Comfort rewatches and family films with bonus KP.",

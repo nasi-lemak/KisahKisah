@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ITEM_BY_ID, DEFAULT_AVATAR } from "@/lib/shop";
 import { country } from "@/lib/regions";
+import { levelStyle } from "@/lib/levels";
+import { ProfileHover } from "./ProfileHover";
 
 /* ── Poster ───────────────────────────────────────────────── */
 
@@ -82,22 +84,119 @@ export function Avatar({ item, frame, size = 40 }: { item?: string | null; frame
   const fr = frame ? ITEM_BY_ID[frame] : null;
   const face = (
     <span
-      className="inline-flex items-center justify-center rounded-full"
+      className="face inline-flex items-center justify-center rounded-full"
       style={{ width: size, height: size, background: av.bg, boxShadow: "inset 0 -4px 10px rgba(0,0,0,.25)" }}
     >
       <AvatarGlyph value={av.value} px={size} />
     </span>
   );
   if (!fr) return <span className="inline-flex shrink-0 rounded-full ring-1 ring-white/10">{face}</span>;
-  return <span className={`avatar-frame ${fr.value}`}>{face}</span>;
+  const pad = Math.max(2, Math.round(size * 0.05));
+  const orbit = fr.orbit ?? [];
+  const r = size / 2 + pad + size * 0.08;
+  return (
+    <span className="deco" style={{ width: size + pad * 2, height: size + pad * 2 }}>
+      {fr.ears && (
+        <>
+          <span className="deco-ear l" />
+          <span className="deco-ear r" />
+        </>
+      )}
+      <span className={`avatar-frame ${fr.value}`} style={{ padding: pad }}>{face}</span>
+      {orbit.length > 0 && (
+        <span className="deco-orbit" aria-hidden>
+          {orbit.map((g, i) => {
+            const a = (i / orbit.length) * 360;
+            return (
+              <span key={i} style={{ fontSize: size * 0.26, transform: `translate(-50%, -50%) rotate(${a}deg) translateY(${-r}px) rotate(${-a}deg)` }}>
+                <AvatarGlyph value={g} px={size * 0.48} />
+              </span>
+            );
+          })}
+        </span>
+      )}
+      {fr.crown && (
+        <span className="deco-crown" style={{ fontSize: size * 0.3 }} aria-hidden>
+          <AvatarGlyph value={fr.crown} px={size * 0.55} />
+        </span>
+      )}
+    </span>
+  );
 }
 
-export function UserChip({ u, size = 28 }: { u: { username: string; display_name: string; avatar_item: string; frame_item: string | null }; size?: number }) {
+/** Display name with an equipped name style (gradient, neon, shimmer…). */
+export function StyledName({ name, style, className = "" }: { name: string; style?: string | null; className?: string }) {
+  const cls = style ? ITEM_BY_ID[style]?.value : undefined;
+  return <span className={`${cls ?? ""} ${className}`}>{name}</span>;
+}
+
+/** A die-cut sticker, optionally animated. */
+export function Sticker({ id, size = 40, animate = true, className = "" }: { id: string; size?: number; animate?: boolean; className?: string }) {
+  const it = ITEM_BY_ID[id];
+  if (!it) return null;
   return (
-    <Link href={`/u/${u.username}`} className="inline-flex items-center gap-2 hover:text-saffron">
-      <Avatar item={u.avatar_item} frame={u.frame_item} size={size} />
-      <span className="font-semibold">{u.display_name}</span>
-    </Link>
+    <span className={`sticker ${className}`} title={it.name}>
+      <span className={animate && it.anim ? `inline-flex st-${it.anim}` : "inline-flex"}>
+        <AvatarGlyph value={it.value} px={size * 1.6} />
+      </span>
+    </span>
+  );
+}
+
+/** Deterministic pseudo-random so server and client render the same particles. */
+function prand(i: number, salt: number) {
+  const x = Math.sin(i * 12.9898 + salt * 78.233) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+/** Discord-style profile effect: particles drifting over a card. */
+export function ProfileEffect({ effect, count = 14 }: { effect?: string | null; count?: number }) {
+  const it = effect ? ITEM_BY_ID[effect] : null;
+  if (!it?.particles) return null;
+  const motion = it.motion ?? "fall";
+  return (
+    <div className="fx-profile" aria-hidden>
+      {Array.from({ length: count }).map((_, i) => {
+        const g = it.particles![i % it.particles!.length];
+        const left = prand(i, 1) * 100;
+        const top = motion === "twinkle" || motion === "drift" ? prand(i, 2) * 90 : undefined;
+        const dur = (motion === "streak" ? 1.2 : motion === "twinkle" ? 1.6 : 7) + prand(i, 3) * (motion === "streak" ? 1 : 5);
+        const delay = -prand(i, 4) * dur;
+        const size = 14 + prand(i, 5) * 14;
+        const style: React.CSSProperties = { left: `${left}%`, top: top !== undefined ? `${top}%` : undefined, animationDuration: `${dur}s`, animationDelay: `${delay}s`, fontSize: size };
+        if (g === "dot") return <span key={i} className={`fx-p fx-${motion} fx-dot`} style={style} />;
+        if (g === "dash") return <span key={i} className={`fx-p fx-${motion} fx-dash`} style={style} />;
+        return (
+          <span key={i} className={`fx-p fx-${motion}`} style={style}>
+            {g}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+export function LevelBadge({ level, size = 36 }: { level: number; size?: number }) {
+  const { shape, color, glow } = levelStyle(level);
+  return (
+    <span
+      className={`level-badge ${shape} ${glow ? "glow" : ""}`}
+      style={{ width: size, height: size, fontSize: size * 0.42, ["--lv" as string]: color }}
+      title={`Level ${level}`}
+    >
+      {level}
+    </span>
+  );
+}
+
+export function UserChip({ u, size = 28 }: { u: { username: string; display_name: string; avatar_item: string; frame_item: string | null; namestyle_item?: string | null }; size?: number }) {
+  return (
+    <ProfileHover username={u.username}>
+      <Link href={`/u/${u.username}`} className="inline-flex items-center gap-2 hover:brightness-125">
+        <Avatar item={u.avatar_item} frame={u.frame_item} size={size} />
+        <StyledName name={u.display_name} style={u.namestyle_item} className="font-semibold" />
+      </Link>
+    </ProfileHover>
   );
 }
 

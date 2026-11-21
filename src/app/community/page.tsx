@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { currentUser } from "@/lib/auth";
 import { leaderboard, recentReviews } from "@/lib/queries";
 import { country } from "@/lib/regions";
-import { Avatar, KP } from "@/components/ui";
+import { Avatar, KP, StyledName } from "@/components/ui";
 import { ReviewCard } from "@/components/ReviewCard";
 
 export const metadata: Metadata = { title: "Community" };
@@ -49,7 +49,7 @@ export default async function CommunityPage() {
               <span className={`w-6 text-center font-display text-lg font-bold ${i < 3 ? "text-saffron" : "text-muted"}`}>{["🥇", "🥈", "🥉"][i] ?? i + 1}</span>
               <Avatar item={l.avatar_item} frame={l.frame_item} size={32} />
               <div className="min-w-0 flex-1">
-                <Link href={`/u/${l.username}`} className="block truncate font-semibold hover:text-saffron">{l.display_name} {country(l.home_country)?.flag}</Link>
+                <Link href={`/u/${l.username}`} className="block truncate font-semibold hover:brightness-125"><StyledName name={l.display_name} style={l.namestyle_item} /> {country(l.home_country)?.flag}</Link>
                 <div className="text-xs text-muted">{l.films} films · {l.achievements} achievements</div>
               </div>
               <KP n={l.earned} className="text-sm" />

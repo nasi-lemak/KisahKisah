@@ -187,3 +187,40 @@ test("scores: normalisation, relevant platforms, parsers", () => {
   assert.deepEqual(parseTmdb({ results: [{ id: 7, vote_average: 8.46, vote_count: 99 }] }, "series"), [{ platform: "tmdb", value: 8.5, votes: 99, url: "https://www.themoviedb.org/tv/7" }]);
   assert.deepEqual(parseTmdb({ results: [] }, "film"), []);
 });
+
+// ── v3: levels, bundles, cosmetics integrity ───────────────────────
+import { levelFromXp, levelStyle, xpForLevel } from "../src/lib/levels.ts";
+
+test("levels: XP per level grows each decade, shapes change every 10 levels", () => {
+  assert.equal(xpForLevel(0), 100);
+  assert.equal(xpForLevel(10), 200);
+  assert.deepEqual(levelFromXp(0), { level: 0, into: 0, need: 100, pct: 0 });
+  assert.equal(levelFromXp(1000).level, 10);
+  assert.equal(levelFromXp(1199).level, 10);
+  assert.equal(levelFromXp(1200).level, 11);
+  assert.equal(levelStyle(5).shape, "circle");
+  assert.equal(levelStyle(15).shape, "hexagon");
+  assert.equal(levelStyle(99).shape, "star");
+});
+
+test("bundles: cheaper than buying separately, price shrinks with what you own", async () => {
+  const { BUNDLES, ITEM_BY_ID, bundlePrice } = await import("../src/lib/shop.ts");
+  for (const b of BUNDLES) {
+    const total = b.items.reduce((a, id) => a + (ITEM_BY_ID[id]?.price ?? 0), 0);
+    for (const id of b.items) assert.ok(ITEM_BY_ID[id]?.price, `${b.id}: ${id} must be a purchasable item`);
+    assert.ok(b.price < total, `${b.id} should be a discount`);
+    assert.equal(bundlePrice(b, new Set()), b.price);
+    assert.equal(bundlePrice(b, new Set(b.items)), 0);
+    assert.ok(bundlePrice(b, new Set([b.items[0]])) < b.price);
+  }
+});
+
+test("cosmetics: effects have particles, stickers animate, decorations are frames", async () => {
+  const { ITEMS } = await import("../src/lib/shop.ts");
+  for (const i of ITEMS) {
+    if (i.type === "effect") assert.ok(i.particles?.length && i.motion, `${i.id} needs particles + motion`);
+    if (i.type === "sticker") assert.ok(i.anim, `${i.id} needs an animation`);
+    if (i.type === "namestyle") assert.match(i.value, /^ns-/);
+  }
+  assert.equal(new Set(ITEMS.map((i) => i.id)).size, ITEMS.length, "item ids unique");
+});
