@@ -26,11 +26,12 @@ export type User = {
   accent2: string | null;
   showcases: string;
   pinned_review_id: number | null;
+  role: "member" | "staff" | "admin";
   last_checkin: string | null;
   created_at: string;
 };
 
-const USER_COLS = "u.id, u.username, u.display_name, u.bio, u.home_country, u.points, u.avatar_item, u.frame_item, u.banner_item, u.title_item, u.theme_item, u.effect_item, u.namestyle_item, u.accent1, u.accent2, u.showcases, u.pinned_review_id, u.last_checkin, u.created_at";
+const USER_COLS = "u.id, u.username, u.display_name, u.bio, u.home_country, u.points, u.avatar_item, u.frame_item, u.banner_item, u.title_item, u.theme_item, u.effect_item, u.namestyle_item, u.accent1, u.accent2, u.showcases, u.pinned_review_id, u.role, u.last_checkin, u.created_at";
 
 export async function createSession(userId: number) {
   const token = randomBytes(32).toString("base64url");
@@ -77,4 +78,11 @@ export function userById(id: number): User | undefined {
 
 export function userByUsername(username: string): User | undefined {
   return one<User>(`SELECT ${USER_COLS} FROM users u WHERE u.username = ?`, username);
+}
+
+/** Staff-only pages and actions. */
+export async function requireStaff(): Promise<User> {
+  const u = await requireUser("/admin");
+  if (u.role !== "staff" && u.role !== "admin") redirect("/");
+  return u;
 }

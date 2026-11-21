@@ -61,7 +61,23 @@ Copy `.env.example` to `.env.local`:
 | `DATABASE_PATH` | SQLite file location (default `./data/kisahkisah.db`). |
 | `CINEMA_WEBHOOK_SECRET` | HMAC secret shared with cinema partners. **Set this in production.** It also signs ticket-code checksums. |
 | `OMDB_API_KEY`, `TMDB_API_KEY` | Optional, for `npm run scores:sync`. Respect each provider's terms. |
+| `ADMIN_USERNAMES` | Comma-separated usernames given admin access (item editor, inquiries). |
+| `UPLOAD_DIR` | Where uploaded artwork is stored (default `./data/uploads`). |
+| `NEXT_PUBLIC_SITE_URL` | Public URL for share links and link-preview images. |
 | `DISABLE_DEMO_CINEMA=1` | Hides the demo box office, which lets any signed-in user mint test tickets. Set this anywhere real points matter. |
+
+## Adding cosmetics without code (admin)
+
+Staff (`role = admin`, set with `ADMIN_USERNAMES`; the demo seed includes **kurator** / `kisah123`) get **🛠️ Admin** in the user menu:
+
+1. **Upload artwork** for stickers, avatar decorations, avatars, banners and profile effects. Every file is checked automatically: format, size, dimensions or aspect ratio, transparency, animation, and for decorations that the centre "avatar hole" is see-through. Passing files are re-encoded to WebP with metadata stripped and stored by content hash (`UPLOAD_DIR`, served from `/media/<hash>.webp`).
+2. **Colour-only items** (app themes, name styles, titles) need no upload. Themes and gradients get contrast checks.
+3. **Preview** on a real profile card, in the shop and as a review sticker while you edit.
+4. **Approve → Publish**: only items passing every check can be approved, and publishing is one click: no deploy. Attach an item to an event to make it a limited drop (free claim or KP). **Retire** removes it from sale; owners keep it. Editing a live item sends it back to draft for review.
+
+Partners and artists follow the public spec page at `/specs`. Partner inquiries from `/advertise` appear in **Admin → Partner inquiries**.
+
+For production, swap `src/lib/storage.ts` for S3/R2. Partner and artist self-service portals are the next steps (see `docs/PROMOTIONS.md`).
 
 ## Cinema partner API
 

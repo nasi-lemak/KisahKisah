@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { CardData } from "@/lib/profile";
 import { ITEM_BY_ID } from "@/lib/shop";
 import { country } from "@/lib/regions";
-import { Avatar, LevelBadge, ProfileEffect, StyledName } from "./ui";
+import { Avatar, LevelBadge, ProfileEffect, StyledName, bannerStyle } from "./ui";
 
 /** Discord-Nitro-style profile card. Pure & client-safe: used for profiles, previews and hover cards. */
 export function ProfileCard({ p, variant = "full", children }: { p: CardData; variant?: "full" | "mini"; children?: React.ReactNode }) {
@@ -20,7 +20,7 @@ export function ProfileCard({ p, variant = "full", children }: { p: CardData; va
       <div className="inner">
         <div
           className={`banner ${banner} ${mini ? "h-20" : "h-40 sm:h-52"}`}
-          style={banner ? undefined : { background: "radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--p2) 70%, transparent), transparent 60%), linear-gradient(135deg, var(--p1), color-mix(in srgb, var(--p2) 60%, var(--color-ink)))" }}
+          style={banner ? bannerStyle(p.banner_item) : { background: "radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--p2) 70%, transparent), transparent 60%), linear-gradient(135deg, var(--p1), color-mix(in srgb, var(--p2) 60%, var(--color-ink)))" }}
         />
         <ProfileEffect effect={p.effect_item} count={mini ? 8 : 16} />
         <div className={`relative z-[4] ${mini ? "px-4 pb-4" : "px-5 pb-6 sm:px-7"}`}>

@@ -10,6 +10,7 @@ const USERS = [
   { username: "migs", name: "Migs Reyes", country: "PH", bio: "Cinemalaya kid. Heneral Luna changed my life.", points: 410, avatar: "av_jeepney", frame: null, banner: "bn_sunset", title: null, owns: ["av_jeepney", "bn_sunset"] },
   { username: "linh", name: "Linh Trần", country: "VN", bio: "Phở first, films second. Tết box office is my Olympics.", points: 330, avatar: "av_pho", frame: "fr_jade", banner: null, title: "ti_setia", owns: ["av_pho", "fr_jade", "ti_setia"] },
   { username: "weijie", name: "Wei Jie", country: "SG", bio: "NS survivor. Anthony Chen stan. Sub-titles always on.", points: 720, avatar: "av_boba", frame: null, banner: "bn_lantern", title: "ti_ninja", owns: ["av_boba", "bn_lantern", "ti_ninja"] },
+  { username: "kurator", name: "KisahKisah Team", country: "MY", bio: "The people behind the Kedai. Demo staff account.", points: 0, avatar: "av_clapper", frame: null, banner: null, title: null, owns: [] },
   { username: "camille", name: "Camille", country: "FR", bio: "Parisienne who fell for Southeast Asian cinema at Cannes. Apichatpong forever.", points: 380, avatar: "av_lotus", frame: null, banner: "bn_sunset", title: "ti_subtitle", owns: ["av_lotus", "bn_sunset", "ti_subtitle"] },
   { username: "tunde", name: "Tunde", country: "NG", bio: "Lagos. Nollywood, K-dramas and anything with a heist.", points: 290, avatar: "av_tuktuk", frame: null, banner: null, title: null, owns: ["av_tuktuk"] },
   { username: "jiwoo", name: "Ji-woo", country: "KR", bio: "Visiting from Seoul. Will defend Park Chan-wook in any court.", points: 950, avatar: "av_lantern", frame: "fr_songket", banner: null, title: null, owns: ["av_lantern", "fr_songket"] },
@@ -151,6 +152,8 @@ export function seed(d: DatabaseSync) {
     for (const it of u.owns) insInv.run(id, it, "shop");
     insLedger.run(id, u.points, "seed", "opening-balance", "Founding member bonus", dateTimeAgo(200 - i * 10));
   });
+
+  d.prepare("UPDATE users SET role = 'admin' WHERE username = 'kurator'").run();
 
   // Nitro/Steam-style customisation for the demo community
   const COSMETICS: Record<string, { frame: string; effect?: string; namestyle?: string; a1: string; a2: string; showcases: string[]; board?: [string, number, number, number][] }> = {

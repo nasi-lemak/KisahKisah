@@ -64,9 +64,26 @@ export function Durian({ size = 24 }: { size?: number }) {
   );
 }
 
-export function AvatarGlyph({ value, px }: { value: string; px: number }) {
+export function AvatarGlyph({ value, px, fill = false }: { value: string; px: number; fill?: boolean }) {
   if (value === "svg:durian") return <Durian size={px * 0.7} />;
+  if (value.startsWith("img:")) {
+    const s = fill ? px : px * 0.62;
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={value.slice(4)} alt="" width={s} height={s} draggable={false} className={fill ? "h-full w-full rounded-full object-cover" : "object-contain"} style={{ width: s, height: s }} />;
+  }
   return <span style={{ fontSize: px * 0.55, lineHeight: 1 }}>{value}</span>;
+}
+
+/** Inline styles for banners with uploaded artwork. */
+export function bannerStyle(id?: string | null): React.CSSProperties | undefined {
+  const it = id ? ITEM_BY_ID[id] : undefined;
+  return it?.image ? { backgroundImage: `url(${it.image})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined;
+}
+
+/** CSS variables for custom (admin-made) themes. */
+export function themeStyle(id?: string | null): React.CSSProperties | undefined {
+  const it = id ? ITEM_BY_ID[id] : undefined;
+  return it?.themeVars ? (it.themeVars as React.CSSProperties) : undefined;
 }
 
 export function Avatar({ item, frame, size = 40 }: { item?: string | null; frame?: string | null; size?: number }) {
@@ -77,7 +94,7 @@ export function Avatar({ item, frame, size = 40 }: { item?: string | null; frame
       className="face inline-flex items-center justify-center rounded-full"
       style={{ width: size, height: size, background: av.bg, boxShadow: "inset 0 -4px 10px rgba(0,0,0,.25)" }}
     >
-      <AvatarGlyph value={av.value} px={size} />
+      <AvatarGlyph value={av.value} px={size} fill />
     </span>
   );
   if (!fr) return <span className="inline-flex shrink-0 rounded-full ring-1 ring-white/10">{face}</span>;
@@ -105,6 +122,17 @@ export function Avatar({ item, frame, size = 40 }: { item?: string | null; frame
           })}
         </span>
       )}
+      {fr.overlay && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={fr.overlay}
+          alt=""
+          aria-hidden
+          draggable={false}
+          className="pointer-events-none absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2"
+          style={{ width: (size + pad * 2) * 1.25, height: (size + pad * 2) * 1.25 }}
+        />
+      )}
       {fr.crown && (
         <span className="deco-crown" style={{ fontSize: size * 0.3 }} aria-hidden>
           <AvatarGlyph value={fr.crown} px={size * 0.55} />
@@ -116,8 +144,19 @@ export function Avatar({ item, frame, size = 40 }: { item?: string | null; frame
 
 /** Display name with an equipped name style (gradient, neon, shimmer…). */
 export function StyledName({ name, style, className = "" }: { name: string; style?: string | null; className?: string }) {
-  const cls = style ? ITEM_BY_ID[style]?.value : undefined;
-  return <span className={`${cls ?? ""} ${className}`}>{name}</span>;
+  const it = style ? ITEM_BY_ID[style] : undefined;
+  if (it?.gradient?.length) {
+    const g = it.shimmer ? [...it.gradient, it.gradient[0]] : it.gradient;
+    return (
+      <span
+        className={`${it.shimmer ? "ns-shimmer" : ""} ${className}`}
+        style={{ backgroundImage: `linear-gradient(90deg, ${g.join(", ")})`, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent", backgroundSize: it.shimmer ? "200% 100%" : undefined }}
+      >
+        {name}
+      </span>
+    );
+  }
+  return <span className={`${it?.value ?? ""} ${className}`}>{name}</span>;
 }
 
 /** A die-cut sticker, optionally animated. */
@@ -142,6 +181,14 @@ function prand(i: number, salt: number) {
 /** Discord-style profile effect: particles drifting over a card. */
 export function ProfileEffect({ effect, count = 14 }: { effect?: string | null; count?: number }) {
   const it = effect ? ITEM_BY_ID[effect] : null;
+  if (it?.overlay) {
+    return (
+      <div className="fx-profile" aria-hidden>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={it.overlay} alt="" className="absolute inset-0 h-full w-full object-cover" draggable={false} />
+      </div>
+    );
+  }
   if (!it?.particles) return null;
   const motion = it.motion ?? "fall";
   return (

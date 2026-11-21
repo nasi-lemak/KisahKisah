@@ -137,6 +137,10 @@ function demoWindow(): { start: string; end: string } {
 }
 
 export function allEvents(): SiteEvent[] {
+  return withExtras(baseEvents());
+}
+
+function baseEvents(): SiteEvent[] {
   const demo = demoWindow();
   return [
     {
@@ -245,6 +249,18 @@ export function allEvents(): SiteEvent[] {
       blurb: "Comfort rewatches and family films with bonus KP.",
     },
   ];
+}
+
+/** Offers added from the admin (custom items attached to an event). */
+const EXTRA_OFFERS: Record<string, Offer[]> = Object.create(null);
+
+export function registerExtraOffers(map: Record<string, Offer[]>) {
+  for (const k of Object.keys(EXTRA_OFFERS)) delete EXTRA_OFFERS[k];
+  Object.assign(EXTRA_OFFERS, map);
+}
+
+function withExtras(list: SiteEvent[]): SiteEvent[] {
+  return list.map((e) => (EXTRA_OFFERS[e.id]?.length ? { ...e, offers: [...e.offers, ...EXTRA_OFFERS[e.id].filter((o) => !e.offers.some((x) => x.item === o.item))] } : e));
 }
 
 export function eventById(id: string): SiteEvent | undefined {

@@ -285,3 +285,41 @@ CREATE TABLE IF NOT EXISTS list_collaborators (
   PRIMARY KEY (list_id, user_id)
 );
 `;
+
+export const SCHEMA_V5 = /* sql */ `
+-- Uploaded artwork, content-addressed (key = sha256 + ".webp")
+CREATE TABLE IF NOT EXISTS assets (
+  key TEXT PRIMARY KEY,
+  original_name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  format TEXT NOT NULL,
+  width INTEGER NOT NULL,
+  height INTEGER NOT NULL,
+  frames INTEGER NOT NULL DEFAULT 1,
+  bytes INTEGER NOT NULL,
+  checks TEXT NOT NULL DEFAULT '{}',
+  uploaded_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Cosmetics created in the admin (no code change needed). status: draft → approved → live → retired
+CREATE TABLE IF NOT EXISTS custom_items (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  rarity TEXT NOT NULL DEFAULT 'rare',
+  price INTEGER,
+  event TEXT,
+  event_price INTEGER,
+  status TEXT NOT NULL DEFAULT 'draft',
+  asset_key TEXT REFERENCES assets(key),
+  data TEXT NOT NULL DEFAULT '{}',
+  artist TEXT NOT NULL DEFAULT '',
+  notes TEXT NOT NULL DEFAULT '',
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  published_at TEXT
+);
+`;

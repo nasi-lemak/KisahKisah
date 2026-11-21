@@ -7,6 +7,7 @@ import { ITEM_BY_ID } from "@/lib/shop";
 import { checkAchievements } from "@/lib/rewards";
 import { cardData } from "@/lib/profile";
 import { ProfileCard } from "@/components/ProfileCard";
+import { bannerStyle } from "@/components/ui";
 import { toggleFollow } from "@/app/actions";
 
 export default async function ProfileLayout({ children, params }: { children: React.ReactNode; params: Promise<{ username: string }> }) {
@@ -37,7 +38,7 @@ export default async function ProfileLayout({ children, params }: { children: Re
     <div className="space-y-6" style={vars}>
       {/* Steam-style full-page profile background */}
       <div className="pointer-events-none fixed inset-0 -z-10" aria-hidden>
-        <div className={`banner ${banner} h-full w-full opacity-45`} style={banner ? undefined : { background: "radial-gradient(circle at 20% 10%, color-mix(in srgb, var(--p1) 35%, transparent), transparent 50%), radial-gradient(circle at 80% 30%, color-mix(in srgb, var(--p2) 30%, transparent), transparent 50%)" }} />
+        <div className={`banner ${banner} h-full w-full opacity-45`} style={banner ? bannerStyle(u.banner_item) : { background: "radial-gradient(circle at 20% 10%, color-mix(in srgb, var(--p1) 35%, transparent), transparent 50%), radial-gradient(circle at 80% 30%, color-mix(in srgb, var(--p2) 30%, transparent), transparent 50%)" }} />
         <div className="absolute inset-0 bg-gradient-to-b from-ink/30 via-ink/75 to-ink" />
       </div>
 

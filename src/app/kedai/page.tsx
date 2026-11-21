@@ -44,6 +44,7 @@ function ShopCard({ item, children, avatar, name }: { item: ShopItem; children: 
         <div className="text-[0.62rem] font-extrabold uppercase tracking-[0.14em]" style={{ color: rc }}>{RARITY_STYLE[item.rarity].label}</div>
         <div className="font-display text-base font-bold leading-tight">{item.name}</div>
         <p className="line-clamp-2 text-xs text-muted">{item.description}</p>
+        {item.artist && <p className="text-[0.7rem] text-lotus">🎨 Art by {item.artist}</p>}
         <div className="mt-auto pt-1">{children}</div>
       </div>
     </div>
@@ -56,7 +57,7 @@ export default async function KedaiPage() {
   const history = user ? ledger(user.id, 10) : [];
   const source = new Map(ACHIEVEMENTS.filter((a) => a.reward).map((a) => [a.reward!, a]));
   const live = activeEvents().filter((e) => e.offers.length);
-  const vaulted = ITEMS.filter((i) => i.event && !live.some((e) => e.offers.some((o) => o.item === i.id)));
+  const vaulted = ITEMS.filter((i) => i.event && !i.retired && !live.some((e) => e.offers.some((o) => o.item === i.id)));
   const avatar = user?.avatar_item;
   const name = user?.display_name ?? "Your Name";
 
@@ -166,7 +167,7 @@ export default async function KedaiPage() {
       </nav>
 
       {SECTIONS.map((s) => {
-        const list = ITEMS.filter((i) => i.type === s.type && !i.starter && !i.event);
+        const list = ITEMS.filter((i) => i.type === s.type && !i.starter && !i.event && !i.retired);
         return (
           <section key={s.type} id={s.type} className="scroll-mt-36">
             <div className="mb-4 flex items-baseline gap-3">

@@ -15,7 +15,7 @@ export function ItemPreview({ item, avatar, displayName = "Your Name", compact =
     case "frame":
       return <Avatar item={avatar ?? "av_popcorn"} frame={item.id} size={64 * s} />;
     case "banner":
-      return <div className={`banner w-full rounded-md ${item.value}`} style={{ height: 80 * s }} />;
+      return <div className={`banner w-full rounded-md ${item.value}`} style={{ height: 80 * s, ...(item.image ? { backgroundImage: `url(${item.image})`, backgroundSize: "cover", backgroundPosition: "center" } : {}) }} />;
     case "title":
       return <span className="rounded-md bg-black/30 px-2.5 py-1 text-sm font-semibold italic text-lotus">{item.value}</span>;
     case "sticker":

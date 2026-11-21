@@ -252,3 +252,62 @@ test("catalogue visibility works like playlists", () => {
   assert.equal(canViewList({ ...base, visibility: "private", isCollaborator: true }), true);
   assert.equal(canViewList({ ...base, visibility: "private", isOwner: true }), true);
 });
+
+// ── v5: uploads, checks, custom items ──────────────────────────────
+import { contrast, validateAsset, validateGradient, validateTheme } from "../src/lib/asset-spec.ts";
+import { readiness, toShopItem } from "../src/lib/custom-item-map.ts";
+
+test("asset checks: stickers, decorations, banners", () => {
+  const good = { format: "png", width: 512, height: 512, bytes: 120_000, hasAlpha: true, frames: 1 };
+  assert.equal(validateAsset("sticker", good).ok, true);
+  assert.equal(validateAsset("sticker", { ...good, hasAlpha: false }).ok, false, "stickers need transparency");
+  assert.equal(validateAsset("sticker", { ...good, width: 600 }).ok, false, "must be square");
+  assert.equal(validateAsset("sticker", { ...good, bytes: 900_000 }).ok, false, "too big");
+  assert.equal(validateAsset("sticker", { ...good, format: "svg" }).ok, false, "svg not accepted");
+  const deco = { ...good, width: 640, height: 640 };
+  assert.equal(validateAsset("frame", { ...deco, holeAlphaMax: 0 }).ok, true);
+  assert.equal(validateAsset("frame", { ...deco, holeAlphaMax: 255 }).ok, false, "avatar hole must be clear");
+  assert.equal(validateAsset("banner", { format: "jpeg", width: 1500, height: 500, bytes: 400_000, hasAlpha: false, frames: 1 }).ok, true);
+  assert.equal(validateAsset("banner", { format: "jpeg", width: 1500, height: 900, bytes: 400_000, hasAlpha: false, frames: 1 }).ok, false);
+  const fx = validateAsset("effect", { format: "webp", width: 1000, height: 1200, bytes: 800_000, hasAlpha: true, frames: 1 });
+  assert.equal(fx.ok, true, "a static effect is only a warning");
+  assert.ok(fx.checks.some((c) => c.level === "warning" && !c.pass));
+});
+
+test("colour checks: contrast, themes, gradients", () => {
+  assert.equal(contrast("#000000", "#ffffff"), 21);
+  assert.equal(contrast("#ffffff", "#ffffff"), 1);
+  const ok = { ink: "#0e1014", surface: "#171a21", raised: "#1f232c", line: "#2a2f3a", text: "#ece8e1", muted: "#9aa1ad", saffron: "#f5a524", jade: "#19b38a", lotus: "#ec6fa5" };
+  assert.equal(validateTheme(ok).ok, true, "the default palette passes");
+  assert.equal(validateTheme({ ...ok, text: "#20242c" }).ok, false, "unreadable text fails");
+  assert.equal(validateTheme({ ...ok, saffron: "#3b2a10" }).ok, false, "button text must be readable on the accent");
+  assert.equal(validateTheme({ ink: "#000000" }).ok, false, "all tokens required");
+  assert.equal(validateGradient(["#fb923c", "#f43f5e"]).ok, true);
+  assert.equal(validateGradient(["#111111", "#fb923c"]).ok, false, "too dark on the dark page");
+  assert.equal(validateGradient(["#fb923c"]).ok, false);
+});
+
+test("custom items map to renderable catalogue items", () => {
+  const base = { id: "ci_x", name: "Test", description: "A test item", rarity: "rare" as const, price: 300, event: null, status: "live" as const, artist: "Nadia", data: "{}" };
+  const st = toShopItem({ ...base, type: "sticker", asset_key: "a".repeat(64) + ".webp", data: JSON.stringify({ anim: "bounce" }) });
+  assert.equal(st.value, `img:/media/${"a".repeat(64)}.webp`);
+  assert.equal(st.anim, "bounce");
+  assert.equal(st.artist, "Nadia");
+  assert.equal(toShopItem({ ...base, type: "frame", asset_key: "b".repeat(64) + ".webp" }).overlay, `/media/${"b".repeat(64)}.webp`);
+  assert.equal(toShopItem({ ...base, type: "banner", asset_key: "c".repeat(64) + ".webp" }).image, `/media/${"c".repeat(64)}.webp`);
+  const th = toShopItem({ ...base, type: "theme", asset_key: null, data: JSON.stringify({ theme: { ink: "#000000", text: "#ffffff" } }) });
+  assert.deepEqual(th.themeVars, { "--color-ink": "#000000", "--color-text": "#ffffff" });
+  assert.equal(toShopItem({ ...base, type: "title", asset_key: null, data: JSON.stringify({ text: "Night Owl" }) }).value, "Night Owl");
+  assert.equal(toShopItem({ ...base, type: "sticker", asset_key: null, event: "halloween" }).price, null, "event items aren't sold in the shop");
+  assert.equal(toShopItem({ ...base, type: "sticker", asset_key: null, status: "retired" }).retired, true);
+});
+
+test("readiness: what must be true before publishing", () => {
+  const d = { type: "sticker" as const, name: "Boo", description: "A spooky sticker", price: 100, event: null, event_price: null, asset_key: "k", assetOk: true, data: {} };
+  assert.ok(readiness(d, true).every((r) => r.pass));
+  assert.ok(!readiness({ ...d, asset_key: null }, true).every((r) => r.pass), "needs artwork");
+  assert.ok(!readiness({ ...d, price: null }, true).every((r) => r.pass), "needs a price or an event");
+  assert.ok(readiness({ ...d, price: null, event: "halloween", event_price: 0 }, true).every((r) => r.pass), "free event claim is fine");
+  assert.ok(!readiness({ ...d, type: "theme", asset_key: null }, false).every((r) => r.pass), "themes need passing colour checks");
+  assert.ok(readiness({ ...d, type: "effect", asset_key: null, data: { particles: ["✨"] } }, true).every((r) => r.pass), "particle effects need no upload");
+});

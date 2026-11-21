@@ -30,6 +30,22 @@ export type ShopItem = {
   motion?: "fall" | "rise" | "drift" | "streak" | "twinkle";
   /** Sticker animation. */
   anim?: "bounce" | "wobble" | "spin" | "pulse" | "float" | "shake";
+  // ── Uploaded artwork (items created in the admin) ──
+  /** Banner image URL. */
+  image?: string;
+  /** Decoration / effect overlay image URL. */
+  overlay?: string;
+  /** Custom theme: CSS variables to apply. */
+  themeVars?: Record<string, string>;
+  /** Custom name style: gradient colours, optionally shimmering. */
+  gradient?: string[];
+  shimmer?: boolean;
+  /** Credit shown in the shop. */
+  artist?: string;
+  /** Created in the admin rather than in code. */
+  custom?: boolean;
+  /** No longer sold; owners keep it. */
+  retired?: boolean;
   starter?: boolean;
 };
 
@@ -171,6 +187,21 @@ export const ITEMS: ShopItem[] = [
 ];
 
 export const ITEM_BY_ID: Record<string, ShopItem> = Object.assign(Object.create(null), Object.fromEntries(ITEMS.map((i) => [i.id, i])));
+
+/**
+ * Merge items created in the admin into the catalogue. Idempotent: re-registering
+ * an id replaces it. Called on the server (boot + publish) and on the client
+ * (ItemRegistry), since each runtime has its own copy of this module.
+ */
+export function registerItems(list: ShopItem[]) {
+  for (const it of list) {
+    if (!it.custom) continue;
+    ITEM_BY_ID[it.id] = it;
+    const i = ITEMS.findIndex((x) => x.id === it.id);
+    if (i >= 0) ITEMS[i] = it;
+    else ITEMS.push(it);
+  }
+}
 export const STARTER_ITEMS = ITEMS.filter((i) => i.starter).map((i) => i.id);
 export const DEFAULT_AVATAR = "av_popcorn";
 

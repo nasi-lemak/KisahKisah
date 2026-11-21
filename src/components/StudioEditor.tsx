@@ -8,6 +8,7 @@ import type { ShopItem } from "@/lib/shop";
 import { RARITY_STYLE } from "@/lib/shop";
 import { ProfileCard } from "./ProfileCard";
 import { ItemPreview } from "./ItemPreview";
+import { themeStyle } from "./ui";
 import { toast } from "./Toaster";
 import { rain } from "./EasterEggs";
 
@@ -96,7 +97,7 @@ export function StudioEditor({ base, items, owned, points, reviews }: {
 
   const slotItems = (slot: Slot) =>
     items
-      .filter((i) => i.type === slot)
+      .filter((i) => i.type === slot && (!i.retired || ownedSet.has(i.id)))
       .sort((a, b) => Number(ownedSet.has(b.id)) - Number(ownedSet.has(a.id)) || (a.price ?? 99999) - (b.price ?? 99999));
 
   return (
@@ -215,7 +216,7 @@ export function StudioEditor({ base, items, owned, points, reviews }: {
           <span className="font-bold uppercase tracking-widest text-muted">Live preview</span>
           <span className="text-saffron">🪙 {points.toLocaleString()} KP</span>
         </div>
-        <div data-theme={themeValue} className="rounded-2xl bg-ink p-2">
+        <div data-theme={themeValue} style={themeStyle(sel.theme)} className="rounded-2xl bg-ink p-2">
           <ProfileCard p={card} />
         </div>
         {previews.length > 0 && (

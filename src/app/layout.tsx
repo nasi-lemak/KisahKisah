@@ -12,6 +12,9 @@ import { logout } from "./actions";
 import { ITEM_BY_ID } from "@/lib/shop";
 import { activeEvents } from "@/lib/events";
 import { EventBanner } from "@/components/EventBanner";
+import { ItemRegistry } from "@/components/ItemRegistry";
+import { syncCustomItems } from "@/lib/custom-items";
+import { themeStyle } from "@/components/ui";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
@@ -35,10 +38,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const notes = user ? unseenNotifications(user.id) : [];
   const theme = user?.theme_item ? ITEM_BY_ID[user.theme_item]?.value : undefined;
   const live = activeEvents();
+  const custom = syncCustomItems();
 
   return (
     <html lang="en">
-      <body className="min-h-screen" data-theme={theme}>
+      <body className="min-h-screen" data-theme={theme} style={themeStyle(user?.theme_item)}>
+        <ItemRegistry items={custom} />
         <div className="batik-strip" />
         <header className="sticky top-0 z-40 border-b border-line bg-ink/90 backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
@@ -80,6 +85,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                       ["/rewind", "⏪ My Rewind"],
                       ["/achievements", "Achievements"],
                       ["/studio", "🎨 Profile Studio"],
+                      ...(user.role === "admin" || user.role === "staff" ? [["/admin", "🛠️ Admin"]] : []),
                       ["/settings", "Settings"],
                     ].map(([href, label]) => (
                       <Link key={href} href={href} className="block rounded-md px-3 py-1.5 hover:bg-raised">

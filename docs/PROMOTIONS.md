@@ -122,7 +122,7 @@ Tracked per campaign, reported mid-flight and at wrap:
    - Theme: 9 colour tokens (background, surface, raised, line, text, muted, accent, secondary, highlight), contrast-checked
    - Frame and avatar art; title card (title, tagline, synopsis, release date per market, motif/key art)
    - Bonus rules (which titles/genres/countries), featured titles
-5. **Build:** today, one entry in `allEvents()` in `src/lib/events.ts` plus items in `src/lib/shop.ts` (see the demo "Orbit of the Hornbill" campaign). Later this moves to an admin CMS.
+5. **Build:** items are created in **Admin → Items**: upload, automatic checks, preview, approve, publish, and attach to the campaign's event. The event window itself is still one entry in `allEvents()` in `src/lib/events.ts`.
 6. **QA:** preview with the time machine, test claims on staging, check labels.
 7. **Launch → mid-flight report → wrap report.**
 
@@ -138,7 +138,7 @@ Tracked per campaign, reported mid-flight and at wrap:
 
 **Next, in priority order**
 
-1. Admin CMS for campaigns and items (no code deploy per campaign), with asset upload
+1. ~~Admin CMS for items with asset upload~~ **Built**: upload with automatic checks, live preview, approve → publish, event drops, retire (`/admin`, spec at `/specs`). Still to do: campaigns themselves (event windows, banners) created in the admin rather than in `events.ts`
 2. Geo-targeting by viewer country (today `spotlight` is display-only; everyone sees every campaign)
 3. Impression and click tracking plus a sponsor reporting dashboard
 4. Release-day watchlist reminders and the "notify me" button
