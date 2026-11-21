@@ -1,0 +1,262 @@
+import "server-only";
+import { all, one } from "./db";
+import { COUNTRIES, type RegionId } from "./regions";
+
+export type Film = {
+  id: number; slug: string; title: string; original_title: string | null; year: number;
+  country: string; director: string; genres: string; motif: string; synopsis: string;
+};
+export type FilmWithStats = Film & { avg_rating: number | null; log_count: number; review_count: number };
+
+const FILM_STATS = `
+  (SELECT ROUND(AVG(rating), 2) FROM logs WHERE film_id = f.id AND rating IS NOT NULL) AS avg_rating,
+  (SELECT COUNT(*) FROM logs WHERE film_id = f.id) AS log_count,
+  (SELECT COUNT(*) FROM reviews WHERE film_id = f.id) AS review_count`;
+
+export type FilmFilter = { q?: string; country?: string; region?: RegionId; genre?: string; sort?: "popular" | "rating" | "newest" | "oldest" | "title" };
+
+export function listFilms(f: FilmFilter = {}): FilmWithStats[] {
+  const where: string[] = [];
+  const params: string[] = [];
+  if (f.q) {
+    where.push("(f.title LIKE ? OR f.original_title LIKE ? OR f.director LIKE ?)");
+    const like = `%${f.q}%`;
+    params.push(like, like, like);
+  }
+  if (f.country) {
+    where.push("f.country = ?");
+    params.push(f.country);
+  } else if (f.region) {
+    const codes = COUNTRIES.filter((c) => c.region === f.region).map((c) => c.code);
+    where.push(`f.country IN (${codes.map(() => "?").join(",")})`);
+    params.push(...codes);
+  }
+  if (f.genre) {
+    where.push("(',' || f.genres || ',') LIKE ?");
+    params.push(`%,${f.genre},%`);
+  }
+  const order = {
+    popular: "log_count DESC, avg_rating DESC",
+    rating: "avg_rating IS NULL, avg_rating DESC",
+    newest: "f.year DESC",
+    oldest: "f.year ASC",
+    title: "f.title COLLATE NOCASE",
+  }[f.sort ?? "popular"];
+  return all<FilmWithStats>(
+    `SELECT f.*, ${FILM_STATS} FROM films f ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY ${order}, f.title`,
+    ...params,
+  );
+}
+
+export function filmBySlug(slug: string): FilmWithStats | undefined {
+  return one<FilmWithStats>(`SELECT f.*, ${FILM_STATS} FROM films f WHERE f.slug = ?`, slug);
+}
+
+export function filmById(id: number): Film | undefined {
+  return one<Film>("SELECT * FROM films WHERE id = ?", id);
+}
+
+export function ratingHistogram(filmId: number): number[] {
+  const rows = all<{ r: number; n: number }>(
+    "SELECT rating r, COUNT(*) n FROM logs WHERE film_id = ? AND rating IS NOT NULL GROUP BY rating",
+    filmId,
+  );
+  const buckets = Array(10).fill(0);
+  for (const { r, n } of rows) buckets[Math.round(r * 2) - 1] += n;
+  return buckets;
+}
+
+export function countryCounts(): Record<string, number> {
+  return Object.fromEntries(all<{ country: string; n: number }>("SELECT country, COUNT(*) n FROM films GROUP BY country").map((r) => [r.country, r.n]));
+}
+
+// ── Reviews ─────────────────────────────────────────────────────────
+
+export type Review = {
+  id: number; user_id: number; film_id: number; rating: number | null; body: string; spoiler: number;
+  game_type: string; game_config: string; external_links: string; created_at: string;
+  username: string; display_name: string; avatar_item: string; frame_item: string | null; title_item: string | null;
+  film_slug: string; film_title: string; film_year: number; film_country: string; film_motif: string;
+  like_count: number; comment_count: number; liked: number;
+};
+
+const REVIEW_SELECT = `
+  SELECT r.*, u.username, u.display_name, u.avatar_item, u.frame_item, u.title_item,
+    f.slug film_slug, f.title film_title, f.year film_year, f.country film_country, f.motif film_motif,
+    (SELECT COUNT(*) FROM review_likes WHERE review_id = r.id) like_count,
+    (SELECT COUNT(*) FROM comments WHERE review_id = r.id) comment_count,
+    EXISTS(SELECT 1 FROM review_likes WHERE review_id = r.id AND user_id = ?) liked
+  FROM reviews r JOIN users u ON u.id = r.user_id JOIN films f ON f.id = r.film_id`;
+
+export function reviewsForFilm(filmId: number, viewerId = 0): Review[] {
+  return all<Review>(`${REVIEW_SELECT} WHERE r.film_id = ? ORDER BY like_count DESC, r.created_at DESC`, viewerId, filmId);
+}
+
+export function recentReviews(limit = 10, viewerId = 0): Review[] {
+  return all<Review>(`${REVIEW_SELECT} ORDER BY r.created_at DESC LIMIT ?`, viewerId, limit);
+}
+
+export function popularReviews(limit = 6, viewerId = 0): Review[] {
+  return all<Review>(`${REVIEW_SELECT} ORDER BY like_count DESC, r.created_at DESC LIMIT ?`, viewerId, limit);
+}
+
+export function reviewsByUser(userId: number, viewerId = 0): Review[] {
+  return all<Review>(`${REVIEW_SELECT} WHERE r.user_id = ? ORDER BY r.created_at DESC`, viewerId, userId);
+}
+
+export function feedReviews(viewerId: number, limit = 10): Review[] {
+  return all<Review>(
+    `${REVIEW_SELECT} WHERE r.user_id IN (SELECT followee_id FROM follows WHERE follower_id = ?) ORDER BY r.created_at DESC LIMIT ?`,
+    viewerId, viewerId, limit,
+  );
+}
+
+export function reviewById(id: number, viewerId = 0): Review | undefined {
+  return one<Review>(`${REVIEW_SELECT} WHERE r.id = ?`, viewerId, id);
+}
+
+export type Comment = { id: number; body: string; created_at: string; user_id: number; username: string; display_name: string; avatar_item: string; frame_item: string | null };
+
+export function commentsFor(reviewId: number): Comment[] {
+  return all<Comment>(
+    `SELECT c.id, c.body, c.created_at, c.user_id, u.username, u.display_name, u.avatar_item, u.frame_item
+     FROM comments c JOIN users u ON u.id = c.user_id WHERE c.review_id = ? ORDER BY c.created_at`,
+    reviewId,
+  );
+}
+
+// ── Diary, lists, profile ───────────────────────────────────────────
+
+export type LogEntry = {
+  id: number; watched_on: string; rating: number | null; liked: number; rewatch: number; cinema_chain: string | null;
+  film_id: number; slug: string; title: string; year: number; country: string; motif: string; review_id: number | null;
+};
+
+export function diary(userId: number, limit = 200): LogEntry[] {
+  return all<LogEntry>(
+    `SELECT l.id, l.watched_on, l.rating, l.liked, l.rewatch, l.cinema_chain, f.id film_id, f.slug, f.title, f.year, f.country, f.motif,
+       (SELECT r.id FROM reviews r WHERE r.user_id = l.user_id AND r.film_id = l.film_id ORDER BY r.created_at DESC LIMIT 1) review_id
+     FROM logs l JOIN films f ON f.id = l.film_id WHERE l.user_id = ? ORDER BY l.watched_on DESC, l.id DESC LIMIT ?`,
+    userId, limit,
+  );
+}
+
+export function favorites(userId: number): Film[] {
+  return all<Film>("SELECT f.* FROM favorites fv JOIN films f ON f.id = fv.film_id WHERE fv.user_id = ? ORDER BY fv.position", userId);
+}
+
+export function watchlist(userId: number): Film[] {
+  return all<Film>("SELECT f.* FROM watchlist w JOIN films f ON f.id = w.film_id WHERE w.user_id = ? ORDER BY w.added_at DESC", userId);
+}
+
+export type ListSummary = {
+  id: number; title: string; description: string; ranked: number; created_at: string; user_id: number;
+  username: string; display_name: string; item_count: number; preview: string;
+};
+
+const LIST_SELECT = `
+  SELECT l.*, u.username, u.display_name,
+    (SELECT COUNT(*) FROM list_items WHERE list_id = l.id) item_count,
+    (SELECT GROUP_CONCAT(slug, ',') FROM (SELECT f.slug FROM list_items i JOIN films f ON f.id = i.film_id WHERE i.list_id = l.id ORDER BY i.position LIMIT 5)) preview
+  FROM lists l JOIN users u ON u.id = l.user_id`;
+
+export function listsByUser(userId: number): ListSummary[] {
+  return all<ListSummary>(`${LIST_SELECT} WHERE l.user_id = ? ORDER BY l.created_at DESC`, userId);
+}
+
+export function recentLists(limit = 6): ListSummary[] {
+  return all<ListSummary>(`${LIST_SELECT} ORDER BY item_count DESC, l.created_at DESC LIMIT ?`, limit);
+}
+
+export function listsContainingFilm(filmId: number): ListSummary[] {
+  return all<ListSummary>(`${LIST_SELECT} WHERE l.id IN (SELECT list_id FROM list_items WHERE film_id = ?) ORDER BY item_count DESC LIMIT 4`, filmId);
+}
+
+export function listById(id: number): ListSummary | undefined {
+  return one<ListSummary>(`${LIST_SELECT} WHERE l.id = ?`, id);
+}
+
+export function listItems(listId: number): (Film & { position: number; note: string })[] {
+  return all(`SELECT f.*, i.position, i.note FROM list_items i JOIN films f ON f.id = i.film_id WHERE i.list_id = ? ORDER BY i.position`, listId);
+}
+
+export function viewerFilmState(userId: number, filmId: number) {
+  const last = one<{ rating: number | null; watched_on: string }>(
+    "SELECT rating, watched_on FROM logs WHERE user_id = ? AND film_id = ? ORDER BY watched_on DESC, id DESC LIMIT 1",
+    userId, filmId,
+  );
+  const n = (sql: string) => (one<{ n: number }>(sql, userId, filmId)?.n ?? 0);
+  return {
+    logged: !!last,
+    lastRating: last?.rating ?? null,
+    lastWatched: last?.watched_on ?? null,
+    timesLogged: n("SELECT COUNT(*) n FROM logs WHERE user_id = ? AND film_id = ?"),
+    inWatchlist: n("SELECT COUNT(*) n FROM watchlist WHERE user_id = ? AND film_id = ?") > 0,
+    isFavorite: n("SELECT COUNT(*) n FROM favorites WHERE user_id = ? AND film_id = ?") > 0,
+  };
+}
+
+export function followCounts(userId: number) {
+  return {
+    followers: one<{ n: number }>("SELECT COUNT(*) n FROM follows WHERE followee_id = ?", userId)?.n ?? 0,
+    following: one<{ n: number }>("SELECT COUNT(*) n FROM follows WHERE follower_id = ?", userId)?.n ?? 0,
+  };
+}
+
+export function isFollowing(followerId: number, followeeId: number): boolean {
+  return !!one("SELECT 1 x FROM follows WHERE follower_id = ? AND followee_id = ?", followerId, followeeId);
+}
+
+export function inventory(userId: number): string[] {
+  return all<{ item_id: string }>("SELECT item_id FROM inventory WHERE user_id = ?", userId).map((r) => r.item_id);
+}
+
+export type LedgerRow = { id: number; delta: number; reason: string; label: string; created_at: string };
+export function ledger(userId: number, limit = 30): LedgerRow[] {
+  return all<LedgerRow>("SELECT id, delta, reason, label, created_at FROM points_ledger WHERE user_id = ? ORDER BY id DESC LIMIT ?", userId, limit);
+}
+
+export function lifetimePoints(userId: number): number {
+  return one<{ n: number }>("SELECT COALESCE(SUM(delta),0) n FROM points_ledger WHERE user_id = ? AND delta > 0", userId)?.n ?? 0;
+}
+
+export type LeaderRow = { id: number; username: string; display_name: string; avatar_item: string; frame_item: string | null; home_country: string; earned: number; achievements: number; films: number };
+export function leaderboard(limit = 10): LeaderRow[] {
+  return all<LeaderRow>(
+    `SELECT u.id, u.username, u.display_name, u.avatar_item, u.frame_item, u.home_country,
+       (SELECT COALESCE(SUM(delta),0) FROM points_ledger WHERE user_id = u.id AND delta > 0) earned,
+       (SELECT COUNT(*) FROM user_achievements WHERE user_id = u.id) achievements,
+       (SELECT COUNT(DISTINCT film_id) FROM logs WHERE user_id = u.id) films
+     FROM users u ORDER BY earned DESC LIMIT ?`,
+    limit,
+  );
+}
+
+export function countryBreakdown(userId: number): { country: string; n: number }[] {
+  return all("SELECT f.country, COUNT(DISTINCT f.id) n FROM logs l JOIN films f ON f.id = l.film_id WHERE l.user_id = ? GROUP BY f.country ORDER BY n DESC", userId);
+}
+
+export type Notification = { id: number; kind: string; icon: string; title: string; body: string };
+export function unseenNotifications(userId: number): Notification[] {
+  return all<Notification>("SELECT id, kind, icon, title, body FROM notifications WHERE user_id = ? AND seen = 0 ORDER BY id LIMIT 8", userId);
+}
+
+export function cinemaLinks(userId: number): { chain_id: string; member_ref: string; linked_at: string }[] {
+  return all("SELECT chain_id, member_ref, linked_at FROM cinema_links WHERE user_id = ?", userId);
+}
+
+export type Purchase = { id: number; chain_id: string; ticket_ref: string; amount: number; currency: string; points: number; local_bonus: number; source: string; created_at: string; title: string | null; slug: string | null };
+export function purchases(userId: number): Purchase[] {
+  return all<Purchase>(
+    "SELECT p.*, f.title, f.slug FROM cinema_purchases p LEFT JOIN films f ON f.id = p.film_id WHERE p.user_id = ? ORDER BY p.id DESC LIMIT 20",
+    userId,
+  );
+}
+
+export function gamePlay(userId: number, reviewId: number): { won: number; score: number } | undefined {
+  return one("SELECT won, score FROM game_plays WHERE user_id = ? AND review_id = ?", userId, reviewId);
+}
+
+export function gameStats(reviewId: number): { plays: number; wins: number } {
+  return one("SELECT COUNT(*) plays, COALESCE(SUM(won),0) wins FROM game_plays WHERE review_id = ?", reviewId) ?? { plays: 0, wins: 0 };
+}

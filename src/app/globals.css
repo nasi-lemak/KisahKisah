@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0e1014;
+  --color-surface: #171a21;
+  --color-raised: #1f232c;
+  --color-line: #2a2f3a;
+  --color-text: #ece8e1;
+  --color-muted: #9aa1ad;
+  --color-saffron: #f5a524;
+  --color-jade: #19b38a;
+  --color-chili: #ef4444;
+  --color-lotus: #ec6fa5;
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Thai", "Noto Sans KR", "Noto Sans SC", sans-serif;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Midnight mode: the site dims a little after midnight (set by EasterEggs) */
+body.midnight {
+  background: radial-gradient(ellipse at top, #141a33 0%, var(--color-ink) 55%);
+}
+
+a { color: inherit; }
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 0.9rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.6rem;
+  padding: 0.5rem 0.9rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: transform 0.1s, background 0.15s, opacity 0.15s;
+  cursor: pointer;
+}
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: var(--color-saffron); color: #1a1205; }
+.btn-primary:hover { background: #ffb73d; }
+.btn-ghost { background: var(--color-raised); color: var(--color-text); border: 1px solid var(--color-line); }
+.btn-ghost:hover { background: #272c37; }
+.btn-jade { background: var(--color-jade); color: #04150f; }
+
+.input {
+  width: 100%;
+  background: var(--color-ink);
+  border: 1px solid var(--color-line);
+  border-radius: 0.55rem;
+  padding: 0.55rem 0.75rem;
+  color: var(--color-text);
+  font-size: 0.95rem;
+}
+.input:focus { outline: 2px solid var(--color-saffron); outline-offset: -1px; }
+
+.label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--color-muted); margin-bottom: 0.3rem; text-transform: uppercase; letter-spacing: 0.04em; }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  border: 1px solid var(--color-line); background: var(--color-raised);
+  padding: 0.25rem 0.6rem; border-radius: 999px; font-size: 0.8rem;
+}
+
+.section-title {
+  font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-muted);
+  border-bottom: 1px solid var(--color-line); padding-bottom: 0.4rem; margin-bottom: 1rem; font-weight: 600;
+}
+
+/* Batik-inspired decorative strip */
+.batik-strip {
+  height: 6px;
+  background:
+    repeating-linear-gradient(45deg, transparent 0 6px, rgba(245, 165, 36, 0.55) 6px 8px),
+    repeating-linear-gradient(-45deg, transparent 0 6px, rgba(25, 179, 138, 0.55) 6px 8px),
+    #1b1410;
+}
+
+/* ── Generated posters ─────────────────────────────────── */
+.poster {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset, 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+a:hover > .poster, .poster:hover { transform: translateY(-2px); box-shadow: 0 0 0 2px var(--color-saffron) inset, 0 10px 24px rgba(0, 0, 0, 0.45); }
+.poster-pattern {
+  position: absolute; inset: 0; opacity: 0.18;
+  background-image: radial-gradient(circle at 1px 1px, #fff 1px, transparent 0);
+  background-size: 10px 10px;
+}
+
+/* ── Avatar frames (cosmetics) ─────────────────────────── */
+.avatar-frame { border-radius: 999px; padding: 3px; display: inline-flex; flex-shrink: 0; }
+.frame-jade { background: linear-gradient(135deg, #34d399, #065f46); }
+.frame-gold { background: linear-gradient(135deg, #fde68a, #b45309, #fde68a); }
+.frame-neon { background: conic-gradient(#f0f, #0ff, #ff0, #f0f); animation: spin-hue 3s linear infinite; }
+.frame-batik { background: repeating-conic-gradient(#b45309 0 15deg, #1c1917 15deg 30deg, #19b38a 30deg 45deg, #1c1917 45deg 60deg); }
+.frame-songket {
+  background: linear-gradient(110deg, #78350f 20%, #fde68a 40%, #b45309 50%, #fde68a 60%, #78350f 80%);
+  background-size: 250% 100%;
+  animation: shimmer 2.5s linear infinite;
+}
+.frame-filmstrip { background: repeating-linear-gradient(90deg, #111 0 4px, #e5e7eb 4px 7px); }
+@keyframes spin-hue { to { filter: hue-rotate(360deg); } }
+@keyframes shimmer { to { background-position: -250% 0; } }
+
+/* ── Profile banners (cosmetics) ───────────────────────── */
+.banner { background: linear-gradient(180deg, #1f232c, #171a21); }
+.banner-sunset { background: linear-gradient(180deg, #f97316 0%, #db2777 55%, #4c1d95 100%); }
+.banner-padi { background: repeating-linear-gradient(170deg, #14532d 0 18px, #166534 18px 36px, #15803d 36px 54px); }
+.banner-monsoon { background: repeating-linear-gradient(100deg, rgba(255,255,255,0.08) 0 2px, transparent 2px 14px), linear-gradient(180deg, #334155, #0f172a); }
+.banner-neon { background: linear-gradient(90deg, #f0abfc22, #22d3ee22), repeating-linear-gradient(0deg, #0b0b1a 0 22px, #ff2fd622 22px 24px, #0b0b1a 24px 46px, #22d3ee22 46px 48px); }
+.banner-lantern { background: radial-gradient(circle at 20% 40%, #f59e0b 0 6%, transparent 7%), radial-gradient(circle at 55% 25%, #ef4444 0 5%, transparent 6%), radial-gradient(circle at 80% 55%, #f59e0b 0 6%, transparent 7%), linear-gradient(180deg, #450a0a, #0f0505); }
+.banner-midnight { background: radial-gradient(circle at 80% 30%, #fef9c3 0 3%, transparent 4%), radial-gradient(1px 1px at 20% 30%, #fff, transparent), radial-gradient(1px 1px at 40% 60%, #fff, transparent), radial-gradient(1px 1px at 70% 80%, #fff, transparent), radial-gradient(1px 1px at 10% 70%, #fff, transparent), linear-gradient(180deg, #0c1445, #020617); }
+
+/* ── Easter egg effects ─────────────────────────────────── */
+.fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
+.fx-drop { position: absolute; top: -60px; animation: fall linear forwards; }
+@keyframes fall { to { transform: translateY(calc(100vh + 120px)) rotate(540deg); } }
+
+.toast-in { animation: toast-in 0.35s cubic-bezier(.2,1.4,.4,1); }
+@keyframes toast-in { from { transform: translateY(20px) scale(0.95); opacity: 0; } }
+
+.wiggle:hover { animation: wiggle 0.4s; }
+@keyframes wiggle { 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+
+.lantern { transition: filter 0.4s, transform 0.4s; filter: grayscale(1) brightness(0.5); }
+.lantern.lit { filter: drop-shadow(0 0 14px #f59e0b) drop-shadow(0 0 28px #ef4444); transform: translateY(-4px); }
+
+.spoiler-blur { filter: blur(7px); user-select: none; cursor: pointer; transition: filter 0.3s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .frame-neon, .frame-songket, .fx-drop, .toast-in, .wiggle:hover { animation: none !important; }
+}
