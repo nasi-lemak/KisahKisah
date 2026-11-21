@@ -2,7 +2,7 @@ import "server-only";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { SCHEMA, SCHEMA_NOTIFICATIONS, SCHEMA_V2, SCHEMA_V3 } from "./schema";
+import { SCHEMA, SCHEMA_NOTIFICATIONS, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4 } from "./schema";
 import { CATALOG } from "./catalog";
 import { STARTER_ITEMS } from "./shop";
 import { seed } from "./seed";
@@ -22,6 +22,7 @@ export function db(): DatabaseSync {
   d.exec(SCHEMA_NOTIFICATIONS);
   d.exec(SCHEMA_V2);
   d.exec(SCHEMA_V3);
+  d.exec(SCHEMA_V4);
   // Seed exactly once, even if several build workers open the file together.
   let seeded = false;
   d.exec("BEGIN IMMEDIATE");
@@ -62,18 +63,28 @@ function migrate(d: DatabaseSync) {
   addColumn(d, "users", "accent2", "TEXT");
   addColumn(d, "users", "showcases", "TEXT NOT NULL DEFAULT '[\"favorites\",\"stickers\",\"achievements\"]'");
   addColumn(d, "users", "pinned_review_id", "INTEGER");
+  addColumn(d, "films", "seasons", "INTEGER");
+  addColumn(d, "films", "status", "TEXT");
+  addColumn(d, "lists", "visibility", "TEXT NOT NULL DEFAULT 'public'");
+  addColumn(d, "lists", "share_token", "TEXT");
+  addColumn(d, "lists", "collaborative", "INTEGER NOT NULL DEFAULT 0");
+  addColumn(d, "lists", "updated_at", "TEXT");
+  addColumn(d, "list_items", "added_by", "INTEGER");
+  addColumn(d, "list_items", "added_at", "TEXT");
+  d.exec("CREATE UNIQUE INDEX IF NOT EXISTS lists_share_token ON lists(share_token)");
 }
 
 /** Insert catalogue titles that aren't in the DB yet (new releases ship with code). */
 function syncCatalog(d: DatabaseSync) {
   const ins = d.prepare(
-    "INSERT OR IGNORE INTO films (slug, kind, title, original_title, year, country, director, genres, motif, synopsis) VALUES (?,?,?,?,?,?,?,?,?,?)",
+    `INSERT INTO films (slug, kind, title, original_title, year, country, director, genres, motif, synopsis, seasons, status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+     ON CONFLICT(slug) DO UPDATE SET kind = excluded.kind, seasons = excluded.seasons, status = excluded.status`,
   );
-  const kind = d.prepare("UPDATE films SET kind = ? WHERE slug = ? AND kind != ?");
   for (const f of CATALOG) {
-    ins.run(f.slug, f.kind ?? "film", f.title, f.originalTitle ?? null, f.year, f.country, f.director, f.genres.join(","), f.motif, f.synopsis);
-    kind.run(f.kind ?? "film", f.slug, f.kind ?? "film");
+    ins.run(f.slug, f.kind ?? "film", f.title, f.originalTitle ?? null, f.year, f.country, f.director, f.genres.join(","), f.motif, f.synopsis, f.seasons ?? null, f.status ?? null);
   }
+  // Every catalogue gets a short share token (used in /l/<token> links).
+  d.exec("UPDATE lists SET share_token = lower(hex(randomblob(5))) WHERE share_token IS NULL");
   // Everyone gets newly added starter items (e.g. the starter sticker pack).
   const grant = d.prepare("INSERT OR IGNORE INTO inventory (user_id, item_id, source) SELECT id, ?, 'starter' FROM users");
   for (const it of STARTER_ITEMS) grant.run(it);

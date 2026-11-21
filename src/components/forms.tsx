@@ -236,6 +236,14 @@ export function ListBuilder({ films, preselect }: { films: PickFilm[]; preselect
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="ranked" /> Ranked list (order matters)
         </label>
+        <div>
+          <label className="label" htmlFor="visibility">Who can see it</label>
+          <select id="visibility" name="visibility" className="input" defaultValue="public">
+            <option value="public">🌏 Public: on your profile and in search</option>
+            <option value="unlisted">🔗 Unlisted: only people with the link</option>
+            <option value="private">🔒 Private: just you</option>
+          </select>
+        </div>
         {chosen.map((id) => (
           <input key={id} type="hidden" name="film" value={id} />
         ))}

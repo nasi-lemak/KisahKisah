@@ -12,6 +12,8 @@ import { LogForm } from "@/components/LogForm";
 import { FavoriteButton, SignInPrompt } from "@/components/forms";
 import { addToListForm, toggleWatchlist } from "@/app/actions";
 import { ScoresPanel } from "@/components/ScoresPanel";
+import { FranchisePanel } from "@/components/FranchisePanel";
+import { franchisesFor, positionIn } from "@/lib/franchises";
 import { bonusesFor } from "@/lib/events";
 
 type Params = Promise<{ slug: string }>;
@@ -56,6 +58,22 @@ export default async function FilmPage({ params, searchParams }: { params: Param
           {film.original_title && film.original_title !== film.title && <div className="mt-1 text-lg text-muted">{film.original_title}</div>}
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
             {film.kind === "series" && <span className="rounded bg-lotus/20 px-1.5 py-0.5 text-xs font-bold uppercase tracking-wider text-lotus">TV series</span>}
+            {film.kind === "series" && (film.seasons || film.status) && (
+              <span className="text-text">
+                {film.seasons ? `${film.seasons} season${film.seasons > 1 ? "s" : ""}` : ""}
+                {film.seasons && film.status ? " · " : ""}
+                {film.status === "ongoing" ? "still running" : film.status === "limited" ? "limited series" : film.status === "ended" ? "ended" : ""}
+              </span>
+            )}
+            {franchisesFor(film.slug).map((f) => {
+              const pos = positionIn(f, film.slug)!;
+              return (
+                <a key={f.id} href="#collection" className="rounded bg-saffron/15 px-1.5 py-0.5 text-xs font-bold text-saffron hover:bg-saffron/25">
+                  {f.kind === "Trilogy" || f.kind === "Loose trilogy" ? "🎞️ " : "📚 "}
+                  {f.name} · {pos.index} of {pos.total}
+                </a>
+              );
+            })}
             <span>{film.kind === "series" ? "Created by" : "Directed by"} <span className="text-text">{film.director}</span></span>
             <span>·</span>
             <Flag code={film.country} withName />
@@ -157,6 +175,10 @@ export default async function FilmPage({ params, searchParams }: { params: Param
             <SignInPrompt what="log, rate and review this film" next={`/film/${film.slug}`} />
           )}
         </aside>
+      </div>
+
+      <div id="collection" className="scroll-mt-24">
+        <FranchisePanel slug={film.slug} viewerId={user?.id} />
       </div>
 
       <ScoresPanel film={film} signedIn={!!user} />

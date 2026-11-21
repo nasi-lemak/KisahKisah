@@ -12,9 +12,12 @@ export default function ListsPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold">Catalogues</h1>
-          <p className="text-muted">Curated collections by the community: ranked countdowns, starter packs, comfort films.</p>
+          <p className="text-muted">Playlists for films & series: ranked countdowns, starter packs, comfort watches. Save the ones you like, share yours anywhere.</p>
         </div>
-        <Link href="/lists/new" className="btn btn-primary">＋ New catalogue</Link>
+        <div className="flex gap-2">
+          <Link href="/collections" className="btn btn-ghost">🎞️ Trilogies & collections</Link>
+          <Link href="/lists/new" className="btn btn-primary">＋ New catalogue</Link>
+        </div>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         {lists.map((l) => <ListCard key={l.id} l={l} />)}

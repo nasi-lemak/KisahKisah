@@ -14,6 +14,7 @@ import { activeEvents } from "@/lib/events";
 import { EventBanner } from "@/components/EventBanner";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: { default: "KisahKisah · Every film has a kisah", template: "%s · KisahKisah" },
   description: "A social diary for films & series, with Southeast Asia in the spotlight and the whole world on the shelf. Log, review, collect, play.",
 };
@@ -124,6 +125,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Link href="/achievements" className="hover:text-text">Achievements</Link>
               <Link href="/community" className="hover:text-text">Leaderboard</Link>
               <Link href="/cinemas" className="hover:text-text">Cinema partners</Link>
+              <Link href="/collections" className="hover:text-text">Trilogies & collections</Link>
               <Link href="/events" className="hover:text-text">Events calendar</Link>
               <Link href="/rewind" className="hover:text-text">Kisah Rewind</Link>
               <Link href="/about" className="hover:text-text">How points work</Link>

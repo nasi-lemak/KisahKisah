@@ -269,3 +269,19 @@ CREATE TABLE IF NOT EXISTS profile_stickers (
 );
 CREATE INDEX IF NOT EXISTS profile_stickers_user ON profile_stickers(user_id);
 `;
+
+export const SCHEMA_V4 = /* sql */ `
+-- Spotify-style catalogue sharing
+CREATE TABLE IF NOT EXISTS list_saves (
+  list_id INTEGER NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  saved_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (list_id, user_id)
+);
+CREATE TABLE IF NOT EXISTS list_collaborators (
+  list_id INTEGER NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  added_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (list_id, user_id)
+);
+`;

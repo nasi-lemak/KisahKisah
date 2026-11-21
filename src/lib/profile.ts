@@ -114,3 +114,24 @@ export function collectionCount(userId: number): { total: number; byRarity: Reco
   for (const r of Object.keys(RARITY_STYLE)) byRarity[r] = items.filter((i) => i.rarity === r).length;
   return { total: items.length, byRarity };
 }
+
+export type Stamp = { code: string; first: { date: string; title: string; slug: string } | null; titles: number };
+
+/** One stamp per country: the first title watched from there and how many since. */
+export function passport(userId: number): Map<string, Stamp> {
+  const rows = all<{ country: string; watched_on: string; title: string; slug: string; film_id: number }>(
+    `SELECT f.country, l.watched_on, f.title, f.slug, f.id film_id FROM logs l JOIN films f ON f.id = l.film_id
+     WHERE l.user_id = ? ORDER BY l.watched_on ASC, l.id ASC`,
+    userId,
+  );
+  const out = new Map<string, Stamp>();
+  const seen = new Map<string, Set<number>>();
+  for (const r of rows) {
+    if (!out.has(r.country)) out.set(r.country, { code: r.country, first: { date: r.watched_on, title: r.title, slug: r.slug }, titles: 0 });
+    const s = seen.get(r.country) ?? new Set<number>();
+    s.add(r.film_id);
+    seen.set(r.country, s);
+    out.get(r.country)!.titles = s.size;
+  }
+  return out;
+}

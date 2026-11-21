@@ -30,7 +30,7 @@ export default async function ProfileLayout({ children, params }: { children: Re
     ["Followers", fc.followers, null],
     ["Following", fc.following, null],
   ] as const;
-  const tabs = [["", "Profile"], ["/diary", "Diary"], ["/reviews", "Reviews"], ["/lists", "Catalogues"], ["/watchlist", "Watchlist"]];
+  const tabs = [["", "Profile"], ["/diary", "Diary"], ["/reviews", "Reviews"], ["/lists", "Catalogues"], ["/watchlist", "Watchlist"], ["/passport", "🛂 Passport"]];
   const vars = { ["--p1" as string]: u.accent1 ?? "var(--color-saffron)", ["--p2" as string]: u.accent2 ?? "var(--color-jade)" } as React.CSSProperties;
 
   return (

@@ -6,18 +6,8 @@ import { ProfileHover } from "./ProfileHover";
 
 /* ── Poster ───────────────────────────────────────────────── */
 
-function hash(s: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
-  return h >>> 0;
-}
-
-export function posterColors(slug: string): [string, string] {
-  const h = hash(slug);
-  const hue = h % 360;
-  const hue2 = (hue + 35 + ((h >> 9) % 80)) % 360;
-  return [`hsl(${hue} 55% 32%)`, `hsl(${hue2} 65% 14%)`];
-}
+export { posterColors } from "@/lib/poster";
+import { posterColors } from "@/lib/poster";
 
 type PosterFilm = { slug: string; title: string; year: number; country: string; motif: string; kind?: string };
 

@@ -90,6 +90,7 @@ export default async function FilmsPage({ searchParams }: { searchParams: SP }) 
         {([[undefined, "All"], ["film", "🎬 Films"], ["series", "📺 Series"]] as const).map(([k, label]) => (
           <Link key={label} href={qs({ kind: k })} className={`chip ${filter.kind === k ? "border-saffron text-saffron" : ""}`}>{label}</Link>
         ))}
+        <Link href="/collections" className="chip">🎞️ Trilogies & collections</Link>
         <span className="mx-1 w-px bg-line" />
         {(Object.keys(REGIONS) as RegionId[]).filter((r) => r !== "sea").map((r) => (
           <Link key={r} href={qs({ region: r, country: undefined })} className={`chip ${filter.region === r ? "border-saffron text-saffron" : ""}`}>

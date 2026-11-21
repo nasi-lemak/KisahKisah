@@ -212,12 +212,25 @@ export function seed(d: DatabaseSync) {
   const insComment = d.prepare("INSERT INTO comments (review_id, user_id, body, created_at) VALUES (?,?,?,?)");
   COMMENTS.forEach(([u, ri, body], i) => insComment.run(reviewIds[ri], uid[u], body, dateTimeAgo(REVIEWS[ri].daysAgo - 0.2 - i * 0.01)));
 
-  const insList = d.prepare("INSERT INTO lists (user_id, title, description, ranked, created_at) VALUES (?,?,?,?,?)");
+  const insList = d.prepare("INSERT INTO lists (user_id, title, description, ranked, created_at, share_token, visibility) VALUES (?,?,?,?,?, lower(hex(randomblob(5))), 'public')");
   const insItem = d.prepare("INSERT INTO list_items (list_id, film_id, position) VALUES (?,?,?)");
   LISTS.forEach((l, i) => {
     const lid = Number(insList.run(uid[l.user], l.title, l.description, l.ranked ? 1 : 0, dateTimeAgo(20 + i)).lastInsertRowid);
     l.films.forEach((f, pos) => insItem.run(lid, filmId(f), pos));
   });
+
+  // Spotify-style social: saves, a collaborative catalogue, an unlisted one
+  const listId = (title: string) => (d.prepare("SELECT id FROM lists WHERE title = ?").get(title) as { id: number }).id;
+  const insSave = d.prepare("INSERT OR IGNORE INTO list_saves (list_id, user_id) VALUES (?,?)");
+  for (const [title, savers] of [
+    ["Starter Pack: Southeast Asian Cinema", ["budi", "nong", "migs", "linh", "camille", "tunde"]],
+    ["Nusantara Nightmares", ["aisyah", "jiwoo", "camille"]],
+    ["Films to Watch With Your Ah Ma", ["aisyah", "linh", "weijie"]],
+    ["Hallyu 101", ["tunde", "nong"]],
+  ] as [string, string[]][]) for (const u of savers) insSave.run(listId(title), uid[u]);
+  d.prepare("UPDATE lists SET collaborative = 1 WHERE id = ?").run(listId("Starter Pack: Southeast Asian Cinema"));
+  d.prepare("INSERT OR IGNORE INTO list_collaborators (list_id, user_id) VALUES (?,?)").run(listId("Starter Pack: Southeast Asian Cinema"), uid.budi);
+  d.prepare("UPDATE list_items SET added_by = (SELECT user_id FROM lists WHERE id = list_items.list_id)").run();
 
   const insFav = d.prepare("INSERT INTO favorites (user_id, film_id, position) VALUES (?,?,?)");
   for (const [u, films] of Object.entries(FAVORITES)) films.forEach((f, i) => insFav.run(uid[u], filmId(f), i));

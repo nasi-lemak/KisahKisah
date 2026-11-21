@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { currentUser, userByUsername } from "@/lib/auth";
 import { countryBreakdown, diary, favorites, inventory, lifetimePoints, reviewById, reviewsByUser } from "@/lib/queries";
-import { REGIONS, COUNTRIES, country, regionOf, type RegionId } from "@/lib/regions";
+import { COUNTRIES, country, regionOf } from "@/lib/regions";
 import { ITEM_BY_ID, RARITY_STYLE } from "@/lib/shop";
 import { SHOWCASES, collectionCount, collectionHighlights, parseShowcases, rarestAchievements, stickerBoard, type ShowcaseId } from "@/lib/profile";
 import { EST_HOURS } from "@/lib/rewind";
@@ -177,25 +177,30 @@ export default async function ProfilePage({ params }: { params: Params }) {
           )}
         </section>
 
-        <section className="glass p-4">
-          <h2 className="mb-3 font-display font-bold">ASEAN passport</h2>
-          <div className="grid grid-cols-4 gap-2">
-            {COUNTRIES.filter((c) => c.region === "sea").map((c) => (
-              <div key={c.code} className={`flex flex-col items-center rounded-lg border p-1.5 ${visited.has(c.code) ? "border-saffron/60 bg-saffron/10" : "border-line opacity-35 grayscale"}`} title={c.name}>
-                <span className="text-xl">{c.flag}</span>
-                <span className="text-[0.55rem] uppercase tracking-wider text-muted">{c.code}</span>
-              </div>
+        <Link href={`/u/${u.username}/passport`} className="glass block p-4 transition hover:ring-1 hover:ring-saffron/50">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display font-bold">🛂 Film Passport</h2>
+            <span className="text-xs text-muted">Open →</span>
+          </div>
+          <p className="mt-1 text-xs text-muted">Every country {isMe ? "you watch" : "they watch"} a title from gets stamped.</p>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+            <div className="rounded-lg bg-black/20 py-2">
+              <div className="font-display text-xl font-extrabold">{COUNTRIES.filter((c) => c.region === "sea" && visited.has(c.code)).length}<span className="text-sm text-muted">/{COUNTRIES.filter((c) => c.region === "sea").length}</span></div>
+              <div className="text-[0.6rem] font-bold uppercase tracking-widest text-muted">Southeast Asia</div>
+            </div>
+            <div className="rounded-lg bg-black/20 py-2">
+              <div className="font-display text-xl font-extrabold">{visited.size}<span className="text-sm text-muted">/{COUNTRIES.length}</span></div>
+              <div className="text-[0.6rem] font-bold uppercase tracking-widest text-muted">World</div>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {[...visited].slice(0, 12).map((code) => (
+              <span key={code} className="flex h-8 w-8 items-center justify-center rounded-md border-2 border-double border-saffron/70 text-base" style={{ transform: `rotate(${(code.charCodeAt(1) % 9) - 4}deg)` }}>
+                {country(code)?.flag}
+              </span>
             ))}
           </div>
-          <h3 className="mb-2 mt-4 text-sm font-bold">World · {regionsVisited.size}/{Object.keys(REGIONS).length} regions</h3>
-          <div className="flex flex-wrap gap-1.5">
-            {(Object.keys(REGIONS) as RegionId[]).map((r) => (
-              <Link key={r} href={`/films?region=${r}`} title={REGIONS[r].name} className={`flex h-9 w-9 items-center justify-center rounded-lg border text-lg ${regionsVisited.has(r) ? "border-jade/60 bg-jade/10" : "border-line opacity-35 grayscale"}`}>
-                {REGIONS[r].icon}
-              </Link>
-            ))}
-          </div>
-        </section>
+        </Link>
 
         {byCountry.length > 0 && (
           <section className="glass p-4">

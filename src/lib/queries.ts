@@ -1,10 +1,12 @@
 import "server-only";
 import { all, one } from "./db";
 import { COUNTRIES, type RegionId } from "./regions";
+import { canViewList } from "./visibility";
 
 export type Film = {
   id: number; slug: string; title: string; original_title: string | null; year: number;
   country: string; director: string; genres: string; motif: string; synopsis: string; kind: "film" | "series";
+  seasons: number | null; status: "ended" | "ongoing" | "limited" | null;
 };
 export type FilmWithStats = Film & { avg_rating: number | null; log_count: number; review_count: number };
 
@@ -156,35 +158,87 @@ export function watchlist(userId: number): Film[] {
   return all<Film>("SELECT f.* FROM watchlist w JOIN films f ON f.id = w.film_id WHERE w.user_id = ? ORDER BY w.added_at DESC", userId);
 }
 
+export type Visibility = "public" | "unlisted" | "private";
+
 export type ListSummary = {
-  id: number; title: string; description: string; ranked: number; created_at: string; user_id: number;
-  username: string; display_name: string; item_count: number; preview: string;
+  id: number; title: string; description: string; ranked: number; created_at: string; updated_at: string | null; user_id: number;
+  username: string; display_name: string; avatar_item: string; frame_item: string | null; namestyle_item: string | null;
+  item_count: number; preview: string; visibility: Visibility; share_token: string; collaborative: number; save_count: number;
 };
 
 const LIST_SELECT = `
-  SELECT l.*, u.username, u.display_name,
+  SELECT l.*, u.username, u.display_name, u.avatar_item, u.frame_item, u.namestyle_item,
     (SELECT COUNT(*) FROM list_items WHERE list_id = l.id) item_count,
+    (SELECT COUNT(*) FROM list_saves WHERE list_id = l.id) save_count,
     (SELECT GROUP_CONCAT(slug, ',') FROM (SELECT f.slug FROM list_items i JOIN films f ON f.id = i.film_id WHERE i.list_id = l.id ORDER BY i.position LIMIT 5)) preview
   FROM lists l JOIN users u ON u.id = l.user_id`;
 
-export function listsByUser(userId: number): ListSummary[] {
-  return all<ListSummary>(`${LIST_SELECT} WHERE l.user_id = ? ORDER BY l.created_at DESC`, userId);
+/** A member's catalogues. Others only see public ones; you also see ones you collaborate on. */
+export function listsByUser(userId: number, viewerId = 0): ListSummary[] {
+  if (userId === viewerId) {
+    return all<ListSummary>(
+      `${LIST_SELECT} WHERE l.user_id = ? OR l.id IN (SELECT list_id FROM list_collaborators WHERE user_id = ?) ORDER BY COALESCE(l.updated_at, l.created_at) DESC`,
+      userId, userId,
+    );
+  }
+  return all<ListSummary>(`${LIST_SELECT} WHERE l.user_id = ? AND l.visibility = 'public' ORDER BY l.created_at DESC`, userId);
 }
 
 export function recentLists(limit = 6): ListSummary[] {
-  return all<ListSummary>(`${LIST_SELECT} ORDER BY item_count DESC, l.created_at DESC LIMIT ?`, limit);
+  return all<ListSummary>(`${LIST_SELECT} WHERE l.visibility = 'public' ORDER BY save_count DESC, item_count DESC, l.created_at DESC LIMIT ?`, limit);
 }
 
 export function listsContainingFilm(filmId: number): ListSummary[] {
-  return all<ListSummary>(`${LIST_SELECT} WHERE l.id IN (SELECT list_id FROM list_items WHERE film_id = ?) ORDER BY item_count DESC LIMIT 4`, filmId);
+  return all<ListSummary>(
+    `${LIST_SELECT} WHERE l.visibility = 'public' AND l.id IN (SELECT list_id FROM list_items WHERE film_id = ?) ORDER BY save_count DESC, item_count DESC LIMIT 4`,
+    filmId,
+  );
 }
 
 export function listById(id: number): ListSummary | undefined {
   return one<ListSummary>(`${LIST_SELECT} WHERE l.id = ?`, id);
 }
 
-export function listItems(listId: number): (Film & { position: number; note: string })[] {
-  return all(`SELECT f.*, i.position, i.note FROM list_items i JOIN films f ON f.id = i.film_id WHERE i.list_id = ? ORDER BY i.position`, listId);
+export function listByToken(token: string): ListSummary | undefined {
+  return one<ListSummary>(`${LIST_SELECT} WHERE l.share_token = ?`, token);
+}
+
+export function savedLists(userId: number, viewerId = 0): ListSummary[] {
+  return all<ListSummary>(
+    `${LIST_SELECT} JOIN list_saves s ON s.list_id = l.id WHERE s.user_id = ? AND (l.visibility != 'private' OR l.user_id = ?) ORDER BY s.saved_at DESC`,
+    userId, viewerId,
+  ).filter((l) => l.visibility === "public" || userId === viewerId);
+}
+
+export function listCollaborators(listId: number): { id: number; username: string; display_name: string; avatar_item: string; frame_item: string | null }[] {
+  return all("SELECT u.id, u.username, u.display_name, u.avatar_item, u.frame_item FROM list_collaborators c JOIN users u ON u.id = c.user_id WHERE c.list_id = ? ORDER BY c.added_at", listId);
+}
+
+export function isCollaborator(listId: number, userId: number): boolean {
+  return !!one("SELECT 1 x FROM list_collaborators WHERE list_id = ? AND user_id = ?", listId, userId);
+}
+
+export function hasSavedList(listId: number, userId: number): boolean {
+  return !!one("SELECT 1 x FROM list_saves WHERE list_id = ? AND user_id = ?", listId, userId);
+}
+
+/** Who may see / edit a catalogue. Unlisted needs the share link (token); private is owner + collaborators. */
+export function listAccess(l: ListSummary, viewerId: number | undefined, viaToken: boolean): { view: boolean; edit: boolean; own: boolean } {
+  const own = !!viewerId && viewerId === l.user_id;
+  const collab = !!viewerId && !own && l.collaborative === 1 && isCollaborator(l.id, viewerId);
+  const view = canViewList({ visibility: l.visibility, isOwner: own, isCollaborator: collab, viaShareLink: viaToken });
+  return { view, edit: own || collab, own };
+}
+
+export type ListItem = Film & { position: number; note: string; added_by_name: string | null; avg_rating: number | null };
+export function listItems(listId: number): ListItem[] {
+  return all(
+    `SELECT f.*, i.position, i.note, u.display_name added_by_name,
+       (SELECT ROUND(AVG(rating), 1) FROM logs WHERE film_id = f.id AND rating IS NOT NULL) avg_rating
+     FROM list_items i JOIN films f ON f.id = i.film_id LEFT JOIN users u ON u.id = i.added_by
+     WHERE i.list_id = ? ORDER BY i.position`,
+    listId,
+  );
 }
 
 export function viewerFilmState(userId: number, filmId: number) {

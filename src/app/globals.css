@@ -19,6 +19,9 @@ html {
   color-scheme: dark;
 }
 
+/* Decorations (orbits, effects) may poke past the edge; never let them cause sideways scroll. */
+html, body { overflow-x: clip; }
+
 body {
   background: var(--color-ink);
   color: var(--color-text);
@@ -338,3 +341,33 @@ h1, h2, h3, .font-display { letter-spacing: -0.015em; }
 @media (prefers-reduced-motion: reduce) {
   .deco-orbit, .deco-crown, .fx-p, .sticker, .st-bounce, .st-wobble, .st-spin, .st-pulse, .st-float, .st-shake, .ns-pelangi, .ns-songket, .ns-neon, .banner::before, .banner::after, .banner-padi, .shop-card.legendary, .frame-wau, .frame-lantern, .avatar-frame > .face { animation: none !important; }
 }
+
+/* ── Film passport ── */
+.passport-book {
+  border-radius: 1.25rem;
+  background:
+    repeating-radial-gradient(circle at 30% 40%, transparent 0 14px, color-mix(in srgb, var(--color-text) 3%, transparent) 14px 15px),
+    repeating-radial-gradient(circle at 75% 70%, transparent 0 18px, color-mix(in srgb, var(--color-saffron) 4%, transparent) 18px 19px),
+    linear-gradient(160deg, #13203a, #0e1626 60%, #121a2c);
+  border: 1px solid #2a3a5e;
+}
+.stamp {
+  --ink: var(--color-saffron);
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  aspect-ratio: 1; padding: 10px; text-align: center; color: var(--ink);
+  border: 3px double var(--ink); border-radius: 18px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--ink) 10%, transparent), transparent 70%);
+  mix-blend-mode: screen;
+  transition: transform 0.2s;
+}
+.stamp.round { border-radius: 999px; }
+.stamp:hover { transform: rotate(0deg) scale(1.06) !important; }
+.stamp::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: repeating-linear-gradient(115deg, transparent 0 5px, rgba(14,22,38,.35) 5px 6px);
+}
+.stamp-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  aspect-ratio: 1; padding: 10px; text-align: center; border: 2px dashed #34466e; border-radius: 18px; color: #7f8db0;
+}
+.stamp-empty:hover { border-color: var(--color-saffron); color: var(--color-text); }

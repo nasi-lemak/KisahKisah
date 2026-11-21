@@ -31,6 +31,8 @@ export type Stats = {
   eventsJoined: number;
   scoresReported: number;
   stickersGiven: number;
+  franchisesCompleted: number;
+  listSaves: number;
 };
 
 export type Achievement = {
@@ -61,6 +63,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "one_community", name: "One Vision, One Identity", description: "Watch films from 8 Southeast Asian countries.", icon: "🤝", points: 300, reward: "fr_batik", progress: (s) => [s.seaCountries, 8] },
   { id: "globetrotter", name: "Globetrotter", description: "Watch titles from 4 different world regions.", icon: "✈️", points: 100, progress: (s) => [s.regions, 4] },
   { id: "around_the_world", name: "Around the World in 80 Films", description: "Watch titles from 20 countries.", icon: "🎈", points: 400, progress: (s) => [s.countries, 20] },
+  { id: "trilogy_complete", name: "Trilogy Complete", description: "Watch every title in a trilogy or collection.", icon: "🎞️", points: 120, progress: (s) => [s.franchisesCompleted, 1] },
+  { id: "box_set", name: "Box Set Collector", description: "Complete 3 collections.", icon: "📦", points: 250, progress: (s) => [s.franchisesCompleted, 3] },
   { id: "binge_mode", name: "Binge Mode", description: "Log 5 TV series.", icon: "📺", points: 60, progress: (s) => [s.seriesLogged, 5] },
   { id: "hallyu", name: "Riding the Hallyu", description: "Watch 5 Korean films.", icon: "🌊", points: 80, reward: "av_star", progress: (s) => [s.byCountry.KR ?? 0, 5] },
   { id: "hantu_hunter", name: "Hantu Hunter", description: "Survive 3 Southeast Asian horror films.", icon: "🕯️", points: 80, progress: (s) => [s.seaHorror, 3] },
@@ -77,6 +81,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "long_form_lah", name: "Long-Form Lah", description: "Write a review of 600+ characters.", icon: "📜", points: 50, progress: (s) => [Math.min(s.longestReview, 600), 600] },
   { id: "crowd_favourite", name: "Crowd Favourite", description: "Receive 10 likes on your reviews.", icon: "❤️", points: 100, progress: (s) => [s.likesReceived, 10] },
   { id: "kurator", name: "Kurator", description: "Make a catalogue with at least 5 films.", icon: "🗂️", points: 50, progress: (s) => [s.bigLists, 1] },
+  { id: "tastemaker", name: "Tastemaker", description: "Have your catalogues saved 5 times by others.", icon: "📌", points: 100, progress: (s) => [s.listSaves, 5] },
   { id: "kawan_kawan", name: "Kawan-Kawan", description: "Follow 3 fellow film lovers.", icon: "👥", points: 30, progress: (s) => [s.following, 3] },
   // Cinema
   { id: "big_screen", name: "Big Screen Believer", description: "Earn points from your first cinema ticket.", icon: "🎞️", points: 50, reward: "fr_filmstrip", progress: (s) => [s.cinemaVisits, 1] },

@@ -9,6 +9,7 @@ import { hashPassword, verifyPassword } from "@/lib/password";
 import { award, checkAchievements, grantItem, notify, POINTS, unlock } from "@/lib/rewards";
 import { BUNDLES, ITEM_BY_ID, STARTER_ITEMS, bundlePrice } from "@/lib/shop";
 import { SHOWCASES } from "@/lib/profile";
+import { FRANCHISE_BY_ID } from "@/lib/franchises";
 import { EGG_IDS } from "@/lib/achievements";
 import { configFromForm, judge, type Verdict } from "@/lib/games";
 import { filmById, reviewById } from "@/lib/queries";
@@ -222,9 +223,15 @@ export async function createList(_: FormState, form: FormData): Promise<FormStat
   const ranked = form.get("ranked") === "on" ? 1 : 0;
   const filmIds = [...new Set(form.getAll("film").map(Number).filter(Boolean))].slice(0, 100);
   const id = tx(() => {
-    const lid = Number(run("INSERT INTO lists (user_id, title, description, ranked) VALUES (?,?,?,?)", user.id, title, description, ranked).lastInsertRowid);
+    const visibility = ["public", "unlisted", "private"].includes(str(form, "visibility")) ? str(form, "visibility") : "public";
+    const lid = Number(
+      run(
+        "INSERT INTO lists (user_id, title, description, ranked, visibility, share_token, updated_at) VALUES (?,?,?,?,?, lower(hex(randomblob(5))), datetime('now'))",
+        user.id, title, description, ranked, visibility,
+      ).lastInsertRowid,
+    );
     filmIds.forEach((fid, i) => {
-      if (filmById(fid)) run("INSERT OR IGNORE INTO list_items (list_id, film_id, position) VALUES (?,?,?)", lid, fid, i);
+      if (filmById(fid)) run("INSERT OR IGNORE INTO list_items (list_id, film_id, position, added_by, added_at) VALUES (?,?,?,?, datetime('now'))", lid, fid, i, user.id);
     });
     award(user.id, POINTS.list, "list", String(lid), `Created catalogue “${title}”`);
     return lid;
@@ -233,22 +240,111 @@ export async function createList(_: FormState, form: FormData): Promise<FormStat
   redirect(`/lists/${id}`);
 }
 
+function canEditList(listId: number, userId: number): boolean {
+  const l = one<{ user_id: number; collaborative: number }>("SELECT user_id, collaborative FROM lists WHERE id = ?", listId);
+  if (!l) return false;
+  return l.user_id === userId || (l.collaborative === 1 && !!one("SELECT 1 x FROM list_collaborators WHERE list_id = ? AND user_id = ?", listId, userId));
+}
+
 export async function addToList(listId: number, filmId: number) {
   const user = await requireUser();
-  const list = one<{ user_id: number }>("SELECT user_id FROM lists WHERE id = ?", listId);
-  if (!list || list.user_id !== user.id || !filmById(filmId)) return;
+  if (!canEditList(listId, user.id) || !filmById(filmId)) return;
   const pos = one<{ n: number }>("SELECT COALESCE(MAX(position)+1, 0) n FROM list_items WHERE list_id = ?", listId)?.n ?? 0;
-  run("INSERT OR IGNORE INTO list_items (list_id, film_id, position) VALUES (?,?,?)", listId, filmId, pos);
+  run("INSERT OR IGNORE INTO list_items (list_id, film_id, position, added_by, added_at) VALUES (?,?,?,?, datetime('now'))", listId, filmId, pos, user.id);
+  run("UPDATE lists SET updated_at = datetime('now') WHERE id = ?", listId);
   checkAchievements(user.id);
   refresh();
 }
 
 export async function removeFromList(listId: number, filmId: number) {
   const user = await requireUser();
-  const list = one<{ user_id: number }>("SELECT user_id FROM lists WHERE id = ?", listId);
-  if (!list || list.user_id !== user.id) return;
+  if (!canEditList(listId, user.id)) return;
   run("DELETE FROM list_items WHERE list_id = ? AND film_id = ?", listId, filmId);
-  revalidatePath(`/lists/${listId}`);
+  run("UPDATE lists SET updated_at = datetime('now') WHERE id = ?", listId);
+  refresh();
+}
+
+export async function moveListItem(listId: number, filmId: number, dir: -1 | 1) {
+  const user = await requireUser();
+  if (!canEditList(listId, user.id)) return;
+  const items = all<{ film_id: number }>("SELECT film_id FROM list_items WHERE list_id = ? ORDER BY position", listId).map((r) => r.film_id);
+  const i = items.indexOf(filmId);
+  const j = i + (dir === -1 ? -1 : 1);
+  if (i < 0 || j < 0 || j >= items.length) return;
+  [items[i], items[j]] = [items[j], items[i]];
+  tx(() => items.forEach((fid, k) => run("UPDATE list_items SET position = ? WHERE list_id = ? AND film_id = ?", k, listId, fid)));
+  refresh();
+}
+
+export async function updateListDetails(_: FormState, form: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const id = Number(form.get("list_id"));
+  const l = one<{ user_id: number }>("SELECT user_id FROM lists WHERE id = ?", id);
+  if (!l || l.user_id !== user.id) return { error: "Only the owner can change these settings." };
+  const title = str(form, "title", 120);
+  if (!title) return { error: "Give your catalogue a name." };
+  const visibility = ["public", "unlisted", "private"].includes(str(form, "visibility")) ? str(form, "visibility") : "public";
+  run(
+    "UPDATE lists SET title = ?, description = ?, visibility = ?, ranked = ?, collaborative = ?, updated_at = datetime('now') WHERE id = ?",
+    title, str(form, "description", 1000), visibility, form.get("ranked") === "on" ? 1 : 0, form.get("collaborative") === "on" ? 1 : 0, id,
+  );
+  refresh();
+  return { ok: "Saved" };
+}
+
+export async function toggleSaveList(listId: number) {
+  const user = await requireUser();
+  const l = one<{ user_id: number; title: string; visibility: string }>("SELECT user_id, title, visibility FROM lists WHERE id = ?", listId);
+  if (!l || l.user_id === user.id) return;
+  if (run("DELETE FROM list_saves WHERE list_id = ? AND user_id = ?", listId, user.id).changes === 0) {
+    run("INSERT INTO list_saves (list_id, user_id) VALUES (?,?)", listId, user.id);
+    notify(l.user_id, "list", "📌", `${user.display_name} saved your catalogue`, l.title);
+    checkAchievements(l.user_id);
+  }
+  refresh();
+}
+
+export async function duplicateList(listId: number) {
+  const user = await requireUser();
+  const src = one<{ title: string; description: string; ranked: number; visibility: string; user_id: number }>(
+    "SELECT title, description, ranked, visibility, user_id FROM lists WHERE id = ?",
+    listId,
+  );
+  if (!src || (src.visibility === "private" && src.user_id !== user.id && !canEditList(listId, user.id))) return;
+  const id = tx(() => {
+    const nid = Number(
+      run(
+        "INSERT INTO lists (user_id, title, description, ranked, visibility, share_token, updated_at) VALUES (?,?,?,?, 'private', lower(hex(randomblob(5))), datetime('now'))",
+        user.id, `${src.title} (copy)`.slice(0, 120), src.description, src.ranked,
+      ).lastInsertRowid,
+    );
+    run("INSERT INTO list_items (list_id, film_id, position, added_by, added_at) SELECT ?, film_id, position, ?, datetime('now') FROM list_items WHERE list_id = ?", nid, user.id, listId);
+    return nid;
+  });
+  redirect(`/lists/${id}`);
+}
+
+export async function inviteCollaborator(_: FormState, form: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const id = Number(form.get("list_id"));
+  const l = one<{ user_id: number; title: string }>("SELECT user_id, title FROM lists WHERE id = ?", id);
+  if (!l || l.user_id !== user.id) return { error: "Only the owner can invite collaborators." };
+  const who = userByUsername(str(form, "username", 40).replace(/^@/, ""));
+  if (!who) return { error: "No member with that username." };
+  if (who.id === user.id) return { error: "You already own this one!" };
+  run("INSERT OR IGNORE INTO list_collaborators (list_id, user_id) VALUES (?,?)", id, who.id);
+  run("UPDATE lists SET collaborative = 1 WHERE id = ?", id);
+  notify(who.id, "list", "🤝", `${user.display_name} invited you to a catalogue`, `You can now add titles to “${l.title}”.`);
+  refresh();
+  return { ok: `${who.display_name} can now add titles.` };
+}
+
+export async function removeCollaborator(listId: number, userId: number) {
+  const user = await requireUser();
+  const l = one<{ user_id: number }>("SELECT user_id FROM lists WHERE id = ?", listId);
+  if (!l || (l.user_id !== user.id && user.id !== userId)) return;
+  run("DELETE FROM list_collaborators WHERE list_id = ? AND user_id = ?", listId, userId);
+  refresh();
 }
 
 export async function deleteList(listId: number) {
@@ -593,4 +689,24 @@ export async function buyBundle(bundleId: string): Promise<FormState> {
   if (res?.ok) checkAchievements(user.id);
   refresh();
   return res;
+}
+
+export async function saveCollectionAsCatalogue(franchiseId: string) {
+  const user = await requireUser("/collections");
+  const f = FRANCHISE_BY_ID[franchiseId];
+  if (!f) return;
+  const ids = f.entries
+    .map((e) => one<{ id: number }>("SELECT id FROM films WHERE slug = ?", e.slug)?.id)
+    .filter((x): x is number => !!x);
+  const lid = tx(() => {
+    const id = Number(
+      run(
+        "INSERT INTO lists (user_id, title, description, ranked, visibility, share_token, updated_at) VALUES (?,?,?,1,'public', lower(hex(randomblob(5))), datetime('now'))",
+        user.id, f.name, f.blurb,
+      ).lastInsertRowid,
+    );
+    ids.forEach((fid, i) => run("INSERT OR IGNORE INTO list_items (list_id, film_id, position, added_by, added_at) VALUES (?,?,?,?, datetime('now'))", id, fid, i, user.id));
+    return id;
+  });
+  redirect(`/lists/${lid}`);
 }

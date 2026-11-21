@@ -3,6 +3,7 @@ import { all, one, run, tx } from "./db";
 import { ACHIEVEMENT_BY_ID, ACHIEVEMENTS, satisfied, type Stats } from "./achievements";
 import { ITEM_BY_ID } from "./shop";
 import { SEA_CODES, regionOf } from "./regions";
+import { completedFranchises } from "./franchises";
 
 /** Points awarded for everyday activity. */
 export const POINTS = {
@@ -93,6 +94,8 @@ export function computeStats(userId: number): Stats {
     ),
     scoresReported: n("SELECT COUNT(*) n FROM external_scores WHERE user_id = ? AND source = 'community'", userId),
     stickersGiven: n("SELECT COUNT(*) n FROM review_stickers WHERE user_id = ?", userId),
+    franchisesCompleted: completedFranchises(new Set(logged.map((f) => f.slug))).length,
+    listSaves: n("SELECT COUNT(*) n FROM list_saves s JOIN lists l ON l.id = s.list_id WHERE l.user_id = ? AND s.user_id != ?", userId, userId),
   };
 }
 

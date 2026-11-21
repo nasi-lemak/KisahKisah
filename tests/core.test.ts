@@ -75,7 +75,7 @@ const empty: Stats = {
   filmsLogged: 0, countries: 0, seaCountries: 0, byCountry: {}, seaHorror: 0, decades: 0, rewatches: 0, fiveStars: 0,
   midnightLogs: 0, reviews: 0, longestReview: 0, likesReceived: 0, bigLists: 0, cinemaVisits: 0, cinemaChains: 0,
   localCinemaVisits: 0, gamesWon: 0, following: 0, itemsBought: 0, legendaryOwned: 0, eggsFound: 0, loggedSlugs: new Set(),
-  regions: 0, seriesLogged: 0, eventsJoined: 0, scoresReported: 0, stickersGiven: 0,
+  regions: 0, seriesLogged: 0, eventsJoined: 0, scoresReported: 0, stickersGiven: 0, franchisesCompleted: 0, listSaves: 0,
 };
 
 test("achievements unlock from stats and never twice", () => {
@@ -223,4 +223,32 @@ test("cosmetics: effects have particles, stickers animate, decorations are frame
     if (i.type === "namestyle") assert.match(i.value, /^ns-/);
   }
   assert.equal(new Set(ITEMS.map((i) => i.id)).size, ITEMS.length, "item ids unique");
+});
+
+// ── v4: collections, sharing ───────────────────────────────────────
+import { FRANCHISES, completedFranchises, franchisesFor, positionIn } from "../src/lib/franchises.ts";
+import { canViewList } from "../src/lib/visibility.ts";
+
+test("collections point at real catalogue titles, with valid story orders", async () => {
+  const { CATALOG } = await import("../src/lib/catalog.ts");
+  const slugs = new Set(CATALOG.map((f) => f.slug));
+  assert.equal(new Set(FRANCHISES.map((f) => f.id)).size, FRANCHISES.length);
+  for (const f of FRANCHISES) {
+    assert.ok(f.entries.length >= 2, `${f.id} needs 2+ entries`);
+    for (const e of f.entries) assert.ok(slugs.has(e.slug), `${f.id}: unknown ${e.slug}`);
+    if (f.storyOrder) assert.deepEqual([...f.storyOrder].sort(), f.entries.map((e) => e.slug).sort(), `${f.id} story order must be a permutation`);
+  }
+  assert.deepEqual(positionIn(franchisesFor("oldboy-2003")[0], "oldboy-2003"), { index: 2, total: 3 });
+  assert.equal(completedFranchises(new Set(["the-raid-2011", "the-raid-2-2014"]))[0]?.id, "the-raid");
+  assert.equal(completedFranchises(new Set(["the-raid-2011"])).length, 0);
+});
+
+test("catalogue visibility works like playlists", () => {
+  const base = { isOwner: false, isCollaborator: false, viaShareLink: false };
+  assert.equal(canViewList({ ...base, visibility: "public" }), true);
+  assert.equal(canViewList({ ...base, visibility: "unlisted" }), false);
+  assert.equal(canViewList({ ...base, visibility: "unlisted", viaShareLink: true }), true);
+  assert.equal(canViewList({ ...base, visibility: "private", viaShareLink: true }), false);
+  assert.equal(canViewList({ ...base, visibility: "private", isCollaborator: true }), true);
+  assert.equal(canViewList({ ...base, visibility: "private", isOwner: true }), true);
 });
