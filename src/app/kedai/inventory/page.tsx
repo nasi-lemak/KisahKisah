@@ -1,18 +1,21 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { inventory } from "@/lib/queries";
-import { ITEM_BY_ID, type ItemType } from "@/lib/shop";
+import { ITEM_BY_ID } from "@/lib/shop";
+import { AvatarGlyph } from "@/components/ui";
 import { equipItem } from "@/app/actions";
 import { ItemPreview, RarityTag } from "@/components/ItemPreview";
 import { Avatar } from "@/components/ui";
 
 export const metadata = { title: "Inventory" };
 
-const SLOTS: { type: ItemType; title: string; col: "avatar_item" | "frame_item" | "banner_item" | "title_item" }[] = [
+type Slot = "avatar" | "frame" | "banner" | "title" | "theme";
+const SLOTS: { type: Slot; title: string; col: "avatar_item" | "frame_item" | "banner_item" | "title_item" | "theme_item" }[] = [
   { type: "avatar", title: "Avatars", col: "avatar_item" },
   { type: "frame", title: "Frames", col: "frame_item" },
   { type: "banner", title: "Banners", col: "banner_item" },
   { type: "title", title: "Titles", col: "title_item" },
+  { type: "theme", title: "Site theme", col: "theme_item" },
 ];
 
 export default async function InventoryPage() {
@@ -40,6 +43,17 @@ export default async function InventoryPage() {
         </div>
       </div>
 
+      <section>
+        <h2 className="section-title">Stickers · use them on any review page</h2>
+        <div className="flex flex-wrap gap-2">
+          {owned.filter((i) => i.type === "sticker").map((i) => (
+            <span key={i.id} className="card flex items-center gap-2 px-3 py-1.5 text-sm" title={i.description}>
+              <AvatarGlyph value={i.value} px={34} /> {i.name}
+            </span>
+          ))}
+        </div>
+      </section>
+
       {SLOTS.map((slot) => {
         const items = owned.filter((i) => i.type === slot.type);
         const equipped = user[slot.col];
@@ -49,7 +63,7 @@ export default async function InventoryPage() {
             {items.length === 0 ? (
               <p className="text-sm text-muted">None yet. <Link href="/kedai" className="text-saffron">Visit the Kedai</Link>.</p>
             ) : (
-              <div className={`grid gap-3 ${slot.type === "banner" ? "sm:grid-cols-3" : "grid-cols-2 sm:grid-cols-4 lg:grid-cols-6"}`}>
+              <div className={`grid gap-3 ${slot.type === "banner" || slot.type === "theme" ? "sm:grid-cols-3" : "grid-cols-2 sm:grid-cols-4 lg:grid-cols-6"}`}>
                 {slot.type !== "avatar" && (
                   <form action={equipItem.bind(null, null, slot.type)} className={`card flex flex-col items-center justify-center gap-2 p-4 ${!equipped ? "border-saffron" : ""}`}>
                     <div className="text-sm text-muted">None</div>

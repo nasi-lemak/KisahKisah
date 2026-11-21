@@ -19,11 +19,12 @@ export type User = {
   frame_item: string | null;
   banner_item: string | null;
   title_item: string | null;
+  theme_item: string | null;
   last_checkin: string | null;
   created_at: string;
 };
 
-const USER_COLS = "u.id, u.username, u.display_name, u.bio, u.home_country, u.points, u.avatar_item, u.frame_item, u.banner_item, u.title_item, u.last_checkin, u.created_at";
+const USER_COLS = "u.id, u.username, u.display_name, u.bio, u.home_country, u.points, u.avatar_item, u.frame_item, u.banner_item, u.title_item, u.theme_item, u.last_checkin, u.created_at";
 
 export async function createSession(userId: number) {
   const token = randomBytes(32).toString("base64url");

@@ -8,6 +8,21 @@ import {
 } from "@/app/actions";
 import { toast } from "./Toaster";
 
+/**
+ * Like useActionState, but submits via onSubmit so React doesn't reset the
+ * form's fields when the server answers with a validation error.
+ */
+export function useKeptAction(fn: (prev: FormState, fd: FormData) => Promise<FormState>) {
+  const [state, dispatch, pending] = useActionState(fn, undefined);
+  const [, start] = useTransition();
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    start(() => dispatch(fd));
+  };
+  return [state, onSubmit, pending] as const;
+}
+
 export function Notice({ state }: { state: FormState }) {
   if (!state) return null;
   if (state.error) return <p className="rounded-md border border-chili/40 bg-chili/10 px-3 py-2 text-sm text-red-300">{state.error}</p>;
@@ -45,9 +60,9 @@ export function LoginForm({ next }: { next: string }) {
 }
 
 export function RegisterForm({ countries, next }: { countries: { code: string; name: string; flag: string; region: string }[]; next: string }) {
-  const [state, action, pending] = useActionState(register, undefined);
+  const [state, action, pending] = useKeptAction(register);
   return (
-    <form action={action} className="space-y-4">
+    <form onSubmit={action} className="space-y-4">
       <input type="hidden" name="next" value={next} />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
@@ -81,9 +96,9 @@ export function RegisterForm({ countries, next }: { countries: { code: string; n
 }
 
 export function SettingsForm({ user, countries }: { user: { display_name: string; bio: string; home_country: string }; countries: { code: string; name: string; flag: string }[] }) {
-  const [state, action, pending] = useActionState(updateProfile, undefined);
+  const [state, action, pending] = useKeptAction(updateProfile);
   return (
-    <form action={action} className="space-y-4">
+    <form onSubmit={action} className="space-y-4">
       <div>
         <label className="label" htmlFor="display_name">Display name</label>
         <input id="display_name" name="display_name" defaultValue={user.display_name} className="input" required />
@@ -193,7 +208,7 @@ export function CheckinButton({ done }: { done: boolean }) {
 type PickFilm = { id: number; title: string; year: number; country: string; flag: string };
 
 export function ListBuilder({ films, preselect }: { films: PickFilm[]; preselect?: number }) {
-  const [state, action, pending] = useActionState(createList, undefined);
+  const [state, action, pending] = useKeptAction(createList);
   const [chosen, setChosen] = useState<number[]>(preselect ? [preselect] : []);
   const [q, setQ] = useState("");
   const byId = new Map(films.map((f) => [f.id, f]));
@@ -208,7 +223,7 @@ export function ListBuilder({ films, preselect }: { films: PickFilm[]; preselect
     });
 
   return (
-    <form action={action} className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+    <form onSubmit={action} className="grid gap-6 lg:grid-cols-[1fr_1fr]">
       <div className="space-y-4">
         <div>
           <label className="label" htmlFor="title">Name</label>
@@ -265,9 +280,9 @@ export function ListBuilder({ films, preselect }: { films: PickFilm[]; preselect
 type Chain = { id: string; name: string; currency: string; flag: string };
 
 export function LinkCinemaForm({ chains }: { chains: Chain[] }) {
-  const [state, action, pending] = useActionState(linkCinema, undefined);
+  const [state, action, pending] = useKeptAction(linkCinema);
   return (
-    <form action={action} className="space-y-3">
+    <form onSubmit={action} className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <select name="chain" className="input" required defaultValue="">
           <option value="" disabled>Choose cinema…</option>
@@ -299,12 +314,12 @@ export function RedeemForm({ initialCode = "" }: { initialCode?: string }) {
 }
 
 export function DemoBoxOffice({ chains, films }: { chains: Chain[]; films: { id: number; title: string; flag: string }[] }) {
-  const [state, action, pending] = useActionState(demoIssueTicket, undefined);
+  const [state, action, pending] = useKeptAction(demoIssueTicket);
   const [chain, setChain] = useState(chains[0]?.id ?? "");
   const cur = chains.find((c) => c.id === chain);
   return (
     <div className="space-y-4">
-      <form action={action} className="grid gap-3 sm:grid-cols-[1fr_1.4fr_0.8fr_auto]">
+      <form onSubmit={action} className="grid gap-3 sm:grid-cols-[1fr_1.4fr_0.8fr_auto]">
         <select name="chain" className="input" value={chain} onChange={(e) => setChain(e.target.value)}>
           {chains.map((c) => (
             <option key={c.id} value={c.id}>{c.flag} {c.name}</option>

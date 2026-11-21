@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { currentUser } from "@/lib/auth";
-import { commentsFor, gamePlay, gameStats, reviewById } from "@/lib/queries";
+import { commentsFor, gamePlay, gameStats, inventory, parseStickers, reviewById } from "@/lib/queries";
+import { ITEMS } from "@/lib/shop";
+import { StickerBar } from "@/components/StickerBar";
 import { publicGame } from "@/lib/games";
 import { ITEM_BY_ID } from "@/lib/shop";
 import { Avatar, Poster, Stars, UserChip, timeAgo } from "@/components/ui";
@@ -30,6 +32,8 @@ export default async function ReviewPage({ params }: { params: Params }) {
   const hideRating = r.game_type === "guess_rating" && !isAuthor && !played;
   const comments = commentsFor(r.id);
   const title = r.title_item ? ITEM_BY_ID[r.title_item]?.value : null;
+  const stickerCatalog = Object.fromEntries(ITEMS.filter((i) => i.type === "sticker").map((i) => [i.id, { id: i.id, name: i.name, value: i.value }]));
+  const owned = user ? inventory(user.id).filter((id) => stickerCatalog[id]).map((id) => stickerCatalog[id]) : [];
   const film = { slug: r.film_slug, title: r.film_title, year: r.film_year, country: r.film_country, motif: r.film_motif };
 
   return (
@@ -58,7 +62,11 @@ export default async function ReviewPage({ params }: { params: Params }) {
           {r.spoiler ? <SpoilerText>{r.body}</SpoilerText> : r.body}
         </div>
 
-        <div className="mt-6 flex flex-wrap items-center gap-4 border-t border-line pt-4">
+        <div className="mt-5">
+          <StickerBar reviewId={r.id} summary={parseStickers(r.sticker_summary)} mine={r.my_sticker} owned={owned} catalog={stickerCatalog} signedIn={!!user} />
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-line pt-4">
           <LikeButton r={r} viewerId={user?.id} />
           <span className="text-sm text-muted">💬 {r.comment_count}</span>
           <ExternalLinks raw={r.external_links} />

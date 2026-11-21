@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { logFilm } from "@/app/actions";
-import { Notice, Submit } from "./forms";
+import { Notice, Submit, useKeptAction } from "./forms";
 
 export function StarInput({ name, value, onChange }: { name: string; value: number; onChange: (v: number) => void }) {
   const [hover, setHover] = useState(0);
@@ -33,7 +33,7 @@ const GAMES = [
 ];
 
 export function LogForm({ film, films, today }: { film: { id: number; title: string }; films: { id: number; title: string; year: number }[]; today: string }) {
-  const [state, action, pending] = useActionState(logFilm, undefined);
+  const [state, action, pending] = useKeptAction(logFilm);
   const [rating, setRating] = useState(0);
   const [body, setBody] = useState("");
   const [game, setGame] = useState("none");
@@ -43,7 +43,7 @@ export function LogForm({ film, films, today }: { film: { id: number; title: str
   useEffect(() => setHour(new Date().getHours()), []);
 
   return (
-    <form action={action} className="space-y-5">
+    <form onSubmit={action} className="space-y-5">
       <input type="hidden" name="film_id" value={film.id} />
       <input type="hidden" name="local_hour" value={hour} />
       <div className="flex flex-wrap items-end gap-6">

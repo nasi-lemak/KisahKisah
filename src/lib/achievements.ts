@@ -26,6 +26,11 @@ export type Stats = {
   legendaryOwned: number;
   eggsFound: number;
   loggedSlugs: Set<string>;
+  regions: number;
+  seriesLogged: number;
+  eventsJoined: number;
+  scoresReported: number;
+  stickersGiven: number;
 };
 
 export type Achievement = {
@@ -39,6 +44,8 @@ export type Achievement = {
   reward?: string;
   /** easter eggs are triggered from the client and verified by key */
   egg?: boolean;
+  /** granted directly by a server action (no progress function) */
+  manual?: boolean;
   progress?: (s: Stats) => [number, number];
 };
 
@@ -52,6 +59,9 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "jalan_jalan", name: "Jalan-Jalan", description: "Watch films from 5 different countries.", icon: "🧭", points: 60, progress: (s) => [s.countries, 5] },
   { id: "asean_explorer", name: "ASEAN Explorer", description: "Watch films from 5 Southeast Asian countries.", icon: "🗺️", points: 120, progress: (s) => [s.seaCountries, 5] },
   { id: "one_community", name: "One Vision, One Identity", description: "Watch films from 8 Southeast Asian countries.", icon: "🤝", points: 300, reward: "fr_batik", progress: (s) => [s.seaCountries, 8] },
+  { id: "globetrotter", name: "Globetrotter", description: "Watch titles from 4 different world regions.", icon: "✈️", points: 100, progress: (s) => [s.regions, 4] },
+  { id: "around_the_world", name: "Around the World in 80 Films", description: "Watch titles from 20 countries.", icon: "🎈", points: 400, progress: (s) => [s.countries, 20] },
+  { id: "binge_mode", name: "Binge Mode", description: "Log 5 TV series.", icon: "📺", points: 60, progress: (s) => [s.seriesLogged, 5] },
   { id: "hallyu", name: "Riding the Hallyu", description: "Watch 5 Korean films.", icon: "🌊", points: 80, reward: "av_star", progress: (s) => [s.byCountry.KR ?? 0, 5] },
   { id: "hantu_hunter", name: "Hantu Hunter", description: "Survive 3 Southeast Asian horror films.", icon: "🕯️", points: 80, progress: (s) => [s.seaHorror, 3] },
   { id: "time_traveller", name: "Time Traveller", description: "Watch films from 4 different decades.", icon: "⏳", points: 60, progress: (s) => [s.decades, 4] },
@@ -73,6 +83,11 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "popcorn_loyalist", name: "Popcorn Loyalist", description: "Earn points from 5 cinema tickets.", icon: "🥤", points: 150, progress: (s) => [s.cinemaVisits, 5] },
   { id: "mall_hopper", name: "Mall Hopper", description: "Visit 3 different cinema chains.", icon: "🏬", points: 120, progress: (s) => [s.cinemaChains, 3] },
   { id: "sokong_lokal", name: "Sokong Lokal", description: "Watch a local film at a cinema in its home country.", icon: "💪", points: 80, progress: (s) => [s.localCinemaVisits, 1] },
+  // Events, scores, stickers, Rewind
+  { id: "festival_goer", name: "Festival Goer", description: "Join 3 events (claim an item or earn an event bonus).", icon: "🎪", points: 80, progress: (s) => [s.eventsJoined, 3] },
+  { id: "score_scout", name: "Score Scout", description: "Report 5 scores from other platforms.", icon: "🔎", points: 50, progress: (s) => [s.scoresReported, 5] },
+  { id: "sticker_happy", name: "Sticker Happy", description: "Slap stickers on 10 reviews.", icon: "🏷️", points: 40, progress: (s) => [s.stickersGiven, 10] },
+  { id: "rewound", name: "Rewound", description: "Watch your Kisah Rewind.", icon: "⏪", points: 30, manual: true },
   // Games & shop
   { id: "game_on", name: "Game On", description: "Win a mini game on someone's review.", icon: "🎯", points: 20, progress: (s) => [s.gamesWon, 1] },
   { id: "arcade_legend", name: "Arcade Legend", description: "Win 10 review mini games.", icon: "🕹️", points: 150, reward: "av_trophy", progress: (s) => [s.gamesWon, 10] },

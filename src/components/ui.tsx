@@ -17,7 +17,7 @@ export function posterColors(slug: string): [string, string] {
   return [`hsl(${hue} 55% 32%)`, `hsl(${hue2} 65% 14%)`];
 }
 
-type PosterFilm = { slug: string; title: string; year: number; country: string; motif: string };
+type PosterFilm = { slug: string; title: string; year: number; country: string; motif: string; kind?: string };
 
 export function Poster({ film, size = "md", link = true }: { film: PosterFilm; size?: "sm" | "md" | "lg"; link?: boolean }) {
   const [a, b] = posterColors(film.slug);
@@ -27,6 +27,9 @@ export function Poster({ film, size = "md", link = true }: { film: PosterFilm; s
   const inner = (
     <div className="poster" style={{ background: `linear-gradient(160deg, ${a}, ${b})` }} title={`${film.title} (${film.year})`}>
       <div className="poster-pattern" />
+      {film.kind === "series" && (
+        <div className="absolute right-1.5 top-1.5 rounded bg-black/60 px-1 text-[0.55rem] font-bold uppercase tracking-wider text-white/90">Series</div>
+      )}
       <div className={`absolute inset-0 flex items-center justify-center ${motif} drop-shadow-lg`} aria-hidden>
         {film.motif}
       </div>

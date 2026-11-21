@@ -150,3 +150,41 @@ a:hover > .poster, .poster:hover { transform: translateY(-2px); box-shadow: 0 0 
 @media (prefers-reduced-motion: reduce) {
   .frame-neon, .frame-songket, .fx-drop, .toast-in, .wiggle:hover { animation: none !important; }
 }
+
+/* ── Site themes (equippable; recolour every token) ──────────────── */
+[data-theme="kopi"] { --color-ink: #120d09; --color-surface: #1d1510; --color-raised: #281d16; --color-line: #3d2c20; --color-text: #f3e9dc; --color-muted: #b8a48f; --color-saffron: #d4a373; --color-jade: #a3b18a; --color-lotus: #e9c46a; }
+[data-theme="neon"] { --color-ink: #0a0614; --color-surface: #140d24; --color-raised: #1d1433; --color-line: #2f2152; --color-text: #f2eaff; --color-muted: #a99cc9; --color-saffron: #ff2fd6; --color-jade: #22d3ee; --color-lotus: #a78bfa; }
+[data-theme="hyperspace"] { --color-ink: #05070f; --color-surface: #0b1020; --color-raised: #121a33; --color-line: #1e2a4d; --color-text: #e8eeff; --color-muted: #8f9cc4; --color-saffron: #ffe81f; --color-jade: #4fd1ff; --color-lotus: #ff4f9a; }
+[data-theme="hantu"] { --color-ink: #0d0a12; --color-surface: #17111f; --color-raised: #22192d; --color-line: #33264a; --color-text: #efe6ff; --color-muted: #a796c2; --color-saffron: #ff7a1a; --color-jade: #8bea5a; --color-lotus: #b47cff; }
+[data-theme="lantern"] { --color-ink: #140707; --color-surface: #1f0d0b; --color-raised: #2b1310; --color-line: #45201a; --color-text: #fff0e0; --color-muted: #cda48e; --color-saffron: #ffb347; --color-jade: #e8c37a; --color-lotus: #ff6f61; }
+[data-theme="angpao"] { --color-ink: #160606; --color-surface: #230b0b; --color-raised: #311111; --color-line: #4d1a1a; --color-text: #fff3e0; --color-muted: #d7a3a3; --color-saffron: #ffd23f; --color-jade: #ffb703; --color-lotus: #ffb3c1; }
+[data-theme="raya"] { --color-ink: #04140d; --color-surface: #0a2018; --color-raised: #102c21; --color-line: #1b4535; --color-text: #eefbf3; --color-muted: #94c2ad; --color-saffron: #e6c35c; --color-jade: #3ddc97; --color-lotus: #f2d492; }
+[data-theme="songkran"] { --color-ink: #041319; --color-surface: #08212b; --color-raised: #0d2e3b; --color-line: #16495c; --color-text: #e8fbff; --color-muted: #8fc3d3; --color-saffron: #36d6ff; --color-jade: #7cf5c4; --color-lotus: #ff7eb6; }
+[data-theme="diya"] { --color-ink: #12070f; --color-surface: #1e0d19; --color-raised: #2a1223; --color-line: #451d39; --color-text: #fff0f6; --color-muted: #c99bb6; --color-saffron: #ffa62b; --color-jade: #ff5ca8; --color-lotus: #ffd166; }
+[data-theme="pine"] { --color-ink: #06110b; --color-surface: #0d1c14; --color-raised: #13281c; --color-line: #1f3f2c; --color-text: #f0fff4; --color-muted: #93b9a0; --color-saffron: #ff4d4d; --color-jade: #4caf50; --color-lotus: #ffd6d6; }
+[data-theme="hornbill"] { --color-ink: #0b0f0a; --color-surface: #141b12; --color-raised: #1c261a; --color-line: #2c3b28; --color-text: #f6f4d2; --color-muted: #a9b59a; --color-saffron: #ff9f1c; --color-jade: #e9c46a; --color-lotus: #ef476f; }
+
+/* Event-only frames */
+.frame-hornbill { background: conic-gradient(from 200deg, #ff9f1c, #fde68a, #e71d36, #111 60%, #ff9f1c); }
+.frame-lightspeed {
+  background: repeating-linear-gradient(100deg, #fff 0 2px, #4fd1ff 2px 5px, #05070f 5px 9px);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
+/* Rewind stories */
+.story-bg-0 { background: radial-gradient(circle at 20% 20%, #f5a524 0, transparent 45%), radial-gradient(circle at 80% 80%, #19b38a 0, transparent 45%), #0e1014; }
+.story-bg-1 { background: linear-gradient(160deg, #4c1d95, #db2777); }
+.story-bg-2 { background: linear-gradient(160deg, #065f46, #0ea5e9); }
+.story-bg-3 { background: linear-gradient(160deg, #9a3412, #facc15); }
+.story-bg-4 { background: linear-gradient(160deg, #1e3a8a, #22d3ee); }
+.story-bg-5 { background: linear-gradient(160deg, #831843, #f97316); }
+.story-bg-6 { background: linear-gradient(160deg, #14532d, #a3e635); }
+.story-bg-7 { background: linear-gradient(160deg, #0f172a, #6366f1); }
+.story-pop { animation: story-pop 0.6s cubic-bezier(.2,1.4,.4,1) both; }
+.story-pop-2 { animation: story-pop 0.6s 0.25s cubic-bezier(.2,1.4,.4,1) both; }
+.story-pop-3 { animation: story-pop 0.6s 0.5s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes story-pop { from { opacity: 0; transform: translateY(24px) scale(0.92); } }
+.story-bar > span { animation: story-fill linear forwards; }
+@keyframes story-fill { from { width: 0; } to { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .story-pop, .story-pop-2, .story-pop-3, .frame-lightspeed { animation: none !important; } }

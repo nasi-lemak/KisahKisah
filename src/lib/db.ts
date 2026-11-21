@@ -2,7 +2,9 @@ import "server-only";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { SCHEMA, SCHEMA_NOTIFICATIONS } from "./schema";
+import { SCHEMA, SCHEMA_NOTIFICATIONS, SCHEMA_V2 } from "./schema";
+import { CATALOG } from "./catalog";
+import { STARTER_ITEMS } from "./shop";
 import { seed } from "./seed";
 import { checkAchievements } from "./rewards";
 
@@ -18,11 +20,14 @@ export function db(): DatabaseSync {
   d.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;");
   d.exec(SCHEMA);
   d.exec(SCHEMA_NOTIFICATIONS);
+  d.exec(SCHEMA_V2);
   // Seed exactly once, even if several build workers open the file together.
   let seeded = false;
   d.exec("BEGIN IMMEDIATE");
   try {
-    const { n } = d.prepare("SELECT COUNT(*) AS n FROM films").get() as { n: number };
+    migrate(d);
+    syncCatalog(d);
+    const { n } = d.prepare("SELECT COUNT(*) AS n FROM users").get() as { n: number };
     if (n === 0) {
       seed(d);
       seeded = true;
@@ -39,6 +44,32 @@ export function db(): DatabaseSync {
     d.exec("UPDATE notifications SET seen = 1");
   }
   return d;
+}
+
+function addColumn(d: DatabaseSync, table: string, column: string, definition: string) {
+  const cols = d.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  if (!cols.some((c) => c.name === column)) d.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+
+/** Additive migrations for databases created by earlier versions. */
+function migrate(d: DatabaseSync) {
+  addColumn(d, "films", "kind", "TEXT NOT NULL DEFAULT 'film'");
+  addColumn(d, "users", "theme_item", "TEXT");
+}
+
+/** Insert catalogue titles that aren't in the DB yet (new releases ship with code). */
+function syncCatalog(d: DatabaseSync) {
+  const ins = d.prepare(
+    "INSERT OR IGNORE INTO films (slug, kind, title, original_title, year, country, director, genres, motif, synopsis) VALUES (?,?,?,?,?,?,?,?,?,?)",
+  );
+  const kind = d.prepare("UPDATE films SET kind = ? WHERE slug = ? AND kind != ?");
+  for (const f of CATALOG) {
+    ins.run(f.slug, f.kind ?? "film", f.title, f.originalTitle ?? null, f.year, f.country, f.director, f.genres.join(","), f.motif, f.synopsis);
+    kind.run(f.kind ?? "film", f.slug, f.kind ?? "film");
+  }
+  // Everyone gets newly added starter items (e.g. the starter sticker pack).
+  const grant = d.prepare("INSERT OR IGNORE INTO inventory (user_id, item_id, source) SELECT id, ?, 'starter' FROM users");
+  for (const it of STARTER_ITEMS) grant.run(it);
 }
 
 // node:sqlite returns null-prototype objects; React wants plain ones.

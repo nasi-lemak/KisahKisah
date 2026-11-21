@@ -14,6 +14,8 @@ import { filmById, reviewById } from "@/lib/queries";
 import { COUNTRY_BY_CODE, identifyPlatform } from "@/lib/regions";
 import { CHAIN_BY_ID, makeTicketCode, webhookSecret } from "@/lib/cinema";
 import { redeemTicketCode } from "@/lib/purchases";
+import { reportScore } from "@/lib/scores";
+import { bonusesFor, eventById, activeOccurrence, today } from "@/lib/events";
 
 export type FormState = { error?: string; ok?: string } | undefined;
 
@@ -117,6 +119,11 @@ export async function logFilm(_: FormState, form: FormData): Promise<FormState> 
       reviewId = Number(r.lastInsertRowid);
       if (body.length >= 40) award(user.id, POINTS.review, "review", `film:${film.id}`, `Reviewed ${film.title}`);
       if (body.length >= 400) award(user.id, POINTS.longReview, "long_review", `film:${film.id}`, "Long-form bonus");
+    }
+    for (const e of bonusesFor(film)) {
+      const key = `${e.id}@${e.occurrence.start}`;
+      const used = one<{ n: number }>("SELECT COUNT(*) n FROM points_ledger WHERE user_id = ? AND reason = 'event' AND ref LIKE ?", user.id, `${key}#%`)?.n ?? 0;
+      if (used < e.bonus!.maxLogs) award(user.id, e.bonus!.points, "event", `${key}#film:${film.id}`, `${e.icon} ${e.name} bonus: ${film.title}`);
     }
   });
   checkAchievements(user.id);
@@ -281,9 +288,9 @@ export async function buyItem(itemId: string): Promise<FormState> {
   return result;
 }
 
-export async function equipItem(itemId: string | null, slot: "avatar" | "frame" | "banner" | "title") {
+export async function equipItem(itemId: string | null, slot: "avatar" | "frame" | "banner" | "title" | "theme") {
   const user = await requireUser();
-  const cols = { avatar: "avatar_item", frame: "frame_item", banner: "banner_item", title: "title_item" } as const;
+  const cols = { avatar: "avatar_item", frame: "frame_item", banner: "banner_item", title: "title_item", theme: "theme_item" } as const;
   if (!Object.hasOwn(cols, slot)) return;
   const col = cols[slot];
   if (itemId === null) {
@@ -410,4 +417,94 @@ export async function myLists(): Promise<{ id: number; title: string }[]> {
 
 export async function addToListForm(form: FormData) {
   await addToList(Number(form.get("list_id")), Number(form.get("film_id")));
+}
+
+// ── Stickers ─────────────────────────────────────────────────────────
+
+export async function stickReview(reviewId: number, stickerId: string) {
+  const user = await requireUser();
+  const r = reviewById(reviewId);
+  const item = ITEM_BY_ID[stickerId];
+  if (!r || !item || item.type !== "sticker") return;
+  if (!one("SELECT 1 x FROM inventory WHERE user_id = ? AND item_id = ?", user.id, stickerId)) return;
+  const current = one<{ sticker_id: string }>("SELECT sticker_id FROM review_stickers WHERE review_id = ? AND user_id = ?", reviewId, user.id);
+  if (current?.sticker_id === stickerId) {
+    run("DELETE FROM review_stickers WHERE review_id = ? AND user_id = ?", reviewId, user.id);
+  } else {
+    run(
+      "INSERT INTO review_stickers (review_id, user_id, sticker_id) VALUES (?,?,?) ON CONFLICT(review_id, user_id) DO UPDATE SET sticker_id = excluded.sticker_id",
+      reviewId, user.id, stickerId,
+    );
+    if (!current && r.user_id !== user.id) notify(r.user_id, "sticker", "🏷️", `${user.display_name} stuck a sticker on your review`, `${item.name} on ${r.film_title}`);
+    checkAchievements(user.id);
+  }
+  refresh();
+}
+
+// ── Scores around the world ─────────────────────────────────────────
+
+export async function reportScoreAction(_: FormState, form: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const filmId = Number(form.get("film_id"));
+  const platformId = str(form, "platform", 40);
+  const res = reportScore(user.id, filmId, platformId, Number(form.get("value")), str(form, "url", 500));
+  if (!res.ok) return { error: res.error };
+  award(user.id, 2, "score_report", `${filmId}:${platformId}`, "Reported a score from another platform", { silent: true });
+  checkAchievements(user.id);
+  refresh();
+  return { ok: "Thanks! Your report is in." };
+}
+
+// ── Events ───────────────────────────────────────────────────────────
+
+export async function claimEventItem(eventId: string, itemId: string): Promise<FormState> {
+  const user = await requireUser();
+  const e = eventById(eventId);
+  const item = ITEM_BY_ID[itemId];
+  if (!e || !item) return { error: "Unknown item." };
+  const occ = activeOccurrence(e, today());
+  if (!occ) return { error: `${e.name} isn't running right now. This item is vaulted until it returns.` };
+  const offer = e.offers.find((o) => o.item === itemId);
+  if (!offer) return { error: "That item isn't part of this event." };
+  if (one("SELECT 1 x FROM inventory WHERE user_id = ? AND item_id = ?", user.id, itemId)) return { error: "You already have this one." };
+  const res = tx((): FormState => {
+    if (offer.price > 0) {
+      const fresh = one<{ points: number }>("SELECT points FROM users WHERE id = ?", user.id)!;
+      if (fresh.points < offer.price) return { error: `Not enough KP. You need ${offer.price - fresh.points} more.` };
+      award(user.id, -offer.price, "purchase", `${eventId}@${occ.start}:${itemId}`, `${e.name}: ${item.name}`);
+    }
+    grantItem(user.id, itemId, `event:${eventId}`);
+    run("INSERT OR IGNORE INTO event_claims (user_id, event_id, occurrence, item_id, price) VALUES (?,?,?,?,?)", user.id, eventId, occ.start, itemId, offer.price);
+    return { ok: `${item.name} added to your inventory!` };
+  });
+  if (res?.ok) checkAchievements(user.id);
+  refresh();
+  return res;
+}
+
+// ── Rewind ───────────────────────────────────────────────────────────
+
+export async function viewedRewind() {
+  const user = await currentUser();
+  if (!user) return;
+  if (unlock(user.id, "rewound")) refresh();
+}
+
+// ── Advertising inquiries ───────────────────────────────────────────
+
+export async function submitAdInquiry(_: FormState, form: FormData): Promise<FormState> {
+  const company = str(form, "company", 120);
+  const name = str(form, "contact_name", 120);
+  const email = str(form, "email", 200);
+  const title = str(form, "title", 200);
+  const pkg = str(form, "package", 40);
+  const markets = form.getAll("markets").map(String).filter((m) => COUNTRY_BY_CODE[m] || m === "GLOBAL").slice(0, 40);
+  if (!company || !name || !title) return { error: "Company, your name and the title you're promoting are required." };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: "Please enter a valid email." };
+  if (!markets.length) return { error: "Pick at least one market." };
+  run(
+    "INSERT INTO ad_inquiries (company, contact_name, email, title, release_date, markets, package, message) VALUES (?,?,?,?,?,?,?,?)",
+    company, name, email, title, str(form, "release_date", 10) || null, markets.join(","), pkg || "unsure", str(form, "message", 3000),
+  );
+  return { ok: "Terima kasih! Our partnerships team will reply within two working days." };
 }

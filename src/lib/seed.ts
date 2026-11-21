@@ -1,5 +1,4 @@
 import type { DatabaseSync } from "node:sqlite";
-import { CATALOG } from "./catalog";
 import { hashPassword } from "./password";
 import { STARTER_ITEMS } from "./shop";
 
@@ -11,6 +10,8 @@ const USERS = [
   { username: "migs", name: "Migs Reyes", country: "PH", bio: "Cinemalaya kid. Heneral Luna changed my life.", points: 410, avatar: "av_jeepney", frame: null, banner: "bn_sunset", title: null, owns: ["av_jeepney", "bn_sunset"] },
   { username: "linh", name: "Linh Trần", country: "VN", bio: "Phở first, films second. Tết box office is my Olympics.", points: 330, avatar: "av_pho", frame: "fr_jade", banner: null, title: "ti_setia", owns: ["av_pho", "fr_jade", "ti_setia"] },
   { username: "weijie", name: "Wei Jie", country: "SG", bio: "NS survivor. Anthony Chen stan. Sub-titles always on.", points: 720, avatar: "av_boba", frame: null, banner: "bn_lantern", title: "ti_ninja", owns: ["av_boba", "bn_lantern", "ti_ninja"] },
+  { username: "camille", name: "Camille", country: "FR", bio: "Parisienne who fell for Southeast Asian cinema at Cannes. Apichatpong forever.", points: 380, avatar: "av_lotus", frame: null, banner: "bn_sunset", title: "ti_subtitle", owns: ["av_lotus", "bn_sunset", "ti_subtitle"] },
+  { username: "tunde", name: "Tunde", country: "NG", bio: "Lagos. Nollywood, K-dramas and anything with a heist.", points: 290, avatar: "av_tuktuk", frame: null, banner: null, title: null, owns: ["av_tuktuk"] },
   { username: "jiwoo", name: "Ji-woo", country: "KR", bio: "Visiting from Seoul. Will defend Park Chan-wook in any court.", points: 950, avatar: "av_lantern", frame: "fr_songket", banner: null, title: null, owns: ["av_lantern", "fr_songket"] },
 ];
 
@@ -55,6 +56,10 @@ const REVIEWS: ReviewSeed[] = [
   { user: "linh", film: "the-third-wife-2018", rating: 4, daysAgo: 15, body: "Beautiful and suffocating at the same time. The silk-worm imagery will stay with me. Not an easy watch, but an important one.", game: { type: "guess_rating" } },
   { user: "aisyah", film: "upin-ipin-keris-siamang-tunggal-2019", rating: 4, daysAgo: 16, body: "Betul betul betul! My nephews made me watch it twice. The animation is a huge leap and the gibbon is the real MVP. Malaysian animation boleh!",
     game: { type: "trivia", question: "What are Upin & Ipin's famous three words?", options: ["Boleh boleh boleh", "Betul betul betul", "Jom jom jom", "Lagi lagi lagi"], answer: 1 } },
+  { user: "camille", film: "uncle-boonmee-2010", rating: 5, daysAgo: 3, body: "I saw this at Cannes the year it won the Palme d'Or and it changed what I thought cinema could be. Ghosts at the dinner table, a catfish princess, red-eyed monkey spirits: it's all so gentle. Now I'm working through every Southeast Asian film on this site.",
+    game: { type: "guess_rating" }, links: ["https://www.senscritique.com/film/oncle_boonmee/"] },
+  { user: "tunde", film: "squid-game-2021", rating: 4, daysAgo: 2, body: "Binged all of it in one weekend in Lagos with my cousins shouting at the screen. The marbles episode broke all of us. Nollywood, take notes: this is how you do a cliffhanger.",
+    game: { type: "trivia", question: "Which game do players face in the first round?", options: ["Tug of war", "Red Light, Green Light", "Marbles", "Glass bridge"], answer: 1 } },
 ];
 
 const COMMENTS: [string, number, string][] = [
@@ -97,10 +102,24 @@ const EXTRA_LOGS: [string, string, number, number][] = [
   ["nong", "pee-mak-2013", 4, 20], ["nong", "shutter-2004", 3.5, 35], ["nong", "uncle-boonmee-2010", 3, 66], ["nong", "your-name-2016", 5, 100],
   ["jiwoo", "oldboy-2003", 5, 50], ["jiwoo", "exhuma-2024", 4, 22], ["jiwoo", "train-to-busan-2016", 4, 44], ["jiwoo", "yi-yi-2000", 5, 120],
   ["weijie", "ah-boys-to-men-2012", 3, 40], ["weijie", "crazy-rich-asians-2018", 3.5, 60], ["weijie", "perfect-days-2023", 5, 14],
-  ["migs", "four-sisters-and-a-wedding-2013", 4, 30], ["linh", "scent-of-green-papaya-1993", 4.5, 28], ["linh", "mai-2024", 3.5, 21],
+  ["migs", "four-sisters-and-a-wedding-2013", 4, 30], ["migs", "breaking-bad-2008", 5, 12],
+  // series
+  ["aisyah", "upin-ipin-series-2007", 4, 9], ["aisyah", "squid-game-2021", 4, 75], ["aisyah", "crash-landing-on-you-2019", 4.5, 110],
+  ["budi", "cigarette-girl-2023", 5, 15], ["budi", "dark-2017", 4.5, 60],
+  ["nong", "girl-from-nowhere-2018", 4.5, 8], ["nong", "crash-landing-on-you-2019", 4, 95],
+  ["jiwoo", "squid-game-2021", 4, 70], ["jiwoo", "midnight-diner-2009", 5, 30],
+  ["weijie", "phua-chu-kang-1997", 4, 25], ["weijie", "fleabag-2016", 5, 55],
+  ["linh", "someday-or-one-day-2019", 4.5, 40],
+  // the world
+  ["aisyah", "pans-labyrinth-2006", 4.5, 100], ["aisyah", "paddington-2-2017", 5, 140],
+  ["camille", "amelie-2001", 4, 90], ["camille", "cinema-paradiso-1988", 5, 70], ["camille", "in-the-mood-for-love-2000", 5, 50], ["camille", "ilo-ilo-2013", 4.5, 20],
+  ["camille", "the-third-wife-2018", 4, 25], ["camille", "a-separation-2011", 5, 110], ["camille", "roma-2018", 4.5, 130], ["camille", "dark-2017", 4, 33], ["camille", "fleabag-2016", 4.5, 44],
+  ["tunde", "the-wedding-party-2016", 4.5, 60], ["tunde", "everything-everywhere-2022", 5, 40], ["tunde", "mad-max-fury-road-2015", 4.5, 80], ["tunde", "money-heist-2017", 4, 50],
+  ["tunde", "city-of-god-2002", 5, 100], ["tunde", "star-wars-1977", 4, 120], ["tunde", "the-raid-2011", 4.5, 18], ["tunde", "breaking-bad-2008", 5, 140], ["linh", "scent-of-green-papaya-1993", 4.5, 28], ["linh", "mai-2024", 3.5, 21],
 ];
 
 const FOLLOWS: [string, string][] = [
+  ["camille", "aisyah"], ["camille", "nong"], ["tunde", "budi"], ["tunde", "jiwoo"], ["aisyah", "camille"],
   ["aisyah", "budi"], ["aisyah", "nong"], ["aisyah", "jiwoo"], ["budi", "aisyah"], ["nong", "aisyah"], ["jiwoo", "weijie"],
   ["weijie", "aisyah"], ["migs", "aisyah"], ["linh", "nong"], ["linh", "aisyah"],
 ];
@@ -114,12 +133,7 @@ function dateTimeAgo(n: number): string {
 }
 
 export function seed(d: DatabaseSync) {
-  const insFilm = d.prepare(
-    "INSERT INTO films (slug, title, original_title, year, country, director, genres, motif, synopsis) VALUES (?,?,?,?,?,?,?,?,?)",
-  );
-  for (const f of CATALOG) {
-    insFilm.run(f.slug, f.title, f.originalTitle ?? null, f.year, f.country, f.director, f.genres.join(","), f.motif, f.synopsis);
-  }
+  // Films are inserted by syncCatalog() in db.ts before seeding.
   const filmId = (slug: string) => (d.prepare("SELECT id FROM films WHERE slug = ?").get(slug) as { id: number }).id;
 
   const hash = hashPassword("kisah123");
@@ -161,6 +175,15 @@ export function seed(d: DatabaseSync) {
   reviewIds.forEach((rid, i) => {
     USERS.forEach((u, j) => {
       if ((i * 7 + j * 3) % 4 !== 0 && REVIEWS[i].user !== u.username) insLike.run(rid, uid[u.username]);
+    });
+  });
+
+  // Sticker reactions with the free starter pack
+  const insSticker = d.prepare("INSERT OR IGNORE INTO review_stickers (review_id, user_id, sticker_id) VALUES (?,?,?)");
+  const starterStickers = ["st_fire", "st_cry", "st_mindblown", "st_popcorn"];
+  reviewIds.forEach((rid, i) => {
+    USERS.forEach((u, j) => {
+      if ((i + j) % 3 === 0 && REVIEWS[i].user !== u.username) insSticker.run(rid, uid[u.username], starterStickers[(i * 2 + j) % 4]);
     });
   });
 

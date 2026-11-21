@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { currentUser, userByUsername } from "@/lib/auth";
 import { countryBreakdown, diary, favorites, listsByUser, reviewsByUser } from "@/lib/queries";
 import { achievementProgress } from "@/lib/rewards";
-import { COUNTRIES, country } from "@/lib/regions";
+import { COUNTRIES, REGIONS, country, regionOf, type RegionId } from "@/lib/regions";
 import { Poster, Stars, Empty } from "@/components/ui";
 import { ReviewCard } from "@/components/ReviewCard";
 import { ListCard } from "@/components/ListCard";
@@ -27,6 +27,7 @@ export default async function ProfilePage({ params }: { params: Params }) {
   const ach = achievementProgress(u.id).filter((a) => a.unlockedAt).sort((a, b) => (b.unlockedAt! > a.unlockedAt! ? 1 : -1));
   const byCountry = countryBreakdown(u.id);
   const seaVisited = new Set(byCountry.map((c) => c.country));
+  const regionsVisited = new Set(byCountry.map((c) => regionOf(c.country)));
   const isMe = viewer?.id === u.id;
 
   return (
@@ -130,9 +131,26 @@ export default async function ProfilePage({ params }: { params: Params }) {
           </div>
         </section>
 
+        <section>
+          <h2 className="section-title">World passport · {regionsVisited.size}/{Object.keys(REGIONS).length} regions</h2>
+          <div className="grid grid-cols-4 gap-2">
+            {(Object.keys(REGIONS) as RegionId[]).map((r) => (
+              <Link
+                key={r}
+                href={`/films?region=${r}`}
+                className={`flex flex-col items-center rounded-lg border p-2 text-center ${regionsVisited.has(r) ? "border-jade/60 bg-jade/10" : "border-line opacity-40 grayscale"}`}
+                title={REGIONS[r].name}
+              >
+                <span className="text-2xl">{REGIONS[r].icon}</span>
+                <span className="mt-0.5 line-clamp-1 text-[0.6rem] uppercase tracking-wider text-muted">{REGIONS[r].name.replace("The ", "")}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
         {byCountry.length > 0 && (
           <section>
-            <h2 className="section-title">Films by country</h2>
+            <h2 className="section-title">Titles by country</h2>
             <div className="space-y-1.5">
               {byCountry.slice(0, 8).map((b) => {
                 const c = country(b.country);

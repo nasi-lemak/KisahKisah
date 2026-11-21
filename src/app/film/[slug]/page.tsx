@@ -11,6 +11,8 @@ import { ListCard } from "@/components/ListCard";
 import { LogForm } from "@/components/LogForm";
 import { FavoriteButton, SignInPrompt } from "@/components/forms";
 import { addToListForm, toggleWatchlist } from "@/app/actions";
+import { ScoresPanel } from "@/components/ScoresPanel";
+import { bonusesFor } from "@/lib/events";
 
 type Params = Promise<{ slug: string }>;
 
@@ -38,6 +40,7 @@ export default async function FilmPage({ params, searchParams }: { params: Param
   const inLists = listsContainingFilm(film.id);
   const allFilms = all<{ id: number; title: string; year: number }>("SELECT id, title, year FROM films ORDER BY title");
   const today = new Date().toISOString().slice(0, 10);
+  const bonuses = bonusesFor(film);
 
   return (
     <div className="space-y-10">
@@ -52,7 +55,8 @@ export default async function FilmPage({ params, searchParams }: { params: Param
           </h1>
           {film.original_title && film.original_title !== film.title && <div className="mt-1 text-lg text-muted">{film.original_title}</div>}
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-            <span>Directed by <span className="text-text">{film.director}</span></span>
+            {film.kind === "series" && <span className="rounded bg-lotus/20 px-1.5 py-0.5 text-xs font-bold uppercase tracking-wider text-lotus">TV series</span>}
+            <span>{film.kind === "series" ? "Created by" : "Directed by"} <span className="text-text">{film.director}</span></span>
             <span>·</span>
             <Flag code={film.country} withName />
           </div>
@@ -62,6 +66,12 @@ export default async function FilmPage({ params, searchParams }: { params: Param
             ))}
           </div>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed">{film.synopsis}</p>
+          {bonuses.map((e) => (
+            <Link key={e.id} href={`/events/${e.id}`} className="mt-3 flex w-fit items-center gap-2 rounded-lg border border-saffron/40 bg-saffron/10 px-3 py-1.5 text-sm">
+              <span>{e.icon}</span>
+              <span><b>{e.name}</b>: log this for +{e.bonus!.points} bonus KP</span>
+            </Link>
+          ))}
 
           {/* Review elsewhere */}
           <div className="mt-8 space-y-4">
@@ -148,6 +158,8 @@ export default async function FilmPage({ params, searchParams }: { params: Param
           )}
         </aside>
       </div>
+
+      <ScoresPanel film={film} signedIn={!!user} />
 
       {user && (
         <section id="log" className="card scroll-mt-24 p-6">

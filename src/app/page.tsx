@@ -7,12 +7,18 @@ import { Poster, KP } from "@/components/ui";
 import { ReviewCard } from "@/components/ReviewCard";
 import { ListCard } from "@/components/ListCard";
 import { CheckinButton } from "@/components/forms";
+import { activeEvents, upcomingEvents } from "@/lib/events";
+import { EventCard } from "@/components/EventBanner";
 
 export default async function Home() {
   const user = await currentUser();
   const films = listFilms({ sort: "popular" });
   const sea = listFilms({ region: "sea", sort: "popular" }).slice(0, 12);
   const east = listFilms({ region: "east", sort: "rating" }).slice(0, 6);
+  const world = listFilms({ sort: "popular" }).filter((f) => !["sea"].includes(COUNTRIES.find((c) => c.code === f.country)?.region ?? "")).slice(0, 6);
+  const series = listFilms({ kind: "series", sort: "popular" }).slice(0, 6);
+  const live = activeEvents();
+  const soon = upcomingEvents(undefined, 4 - Math.min(live.length, 4));
   const reviews = user ? feedReviews(user.id, 6) : [];
   const popular = popularReviews(6, user?.id ?? 0);
   const lists = recentLists(4);
@@ -51,8 +57,8 @@ export default async function Home() {
                 Every film has a <span className="text-saffron">kisah</span>.
               </h1>
               <p className="mt-4 text-lg text-muted">
-                Log what you watch, write reviews, build catalogues and collect avatars, starting with the cinema of Southeast Asia.
-                Earn points at the cinema. Hunt for secrets. Play mini games on reviews.
+                Log the films and series you watch, compare scores from Douban to Rotten Tomatoes, collect avatars, play mini games and get your year back in Kisah Rewind.
+                Southeast Asian cinema in the spotlight; the whole world on the shelf.
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
                 <Link href="/register" className="btn btn-primary">Join free (+100 KP)</Link>
@@ -64,9 +70,25 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Around the region */}
+      {/* Events */}
       <section>
-        <h2 className="section-title">Jalan-jalan · around the region</h2>
+        <div className="section-title flex items-baseline justify-between">
+          <span>Events & limited drops</span>
+          <Link href="/events" className="normal-case tracking-normal hover:text-text">Calendar →</Link>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {live.slice(0, 4).map((e) => (
+            <EventCard key={e.id} e={e} note={`Live · ${e.daysLeft}d left`} />
+          ))}
+          {soon.map((e) => (
+            <EventCard key={e.id} e={e} note={`In ${e.daysUntil} days`} />
+          ))}
+        </div>
+      </section>
+
+      {/* Around the world */}
+      <section>
+        <h2 className="section-title">Jalan-jalan · around the world</h2>
         <div className="flex flex-wrap gap-2">
           {COUNTRIES.filter((c) => counts[c.code]).map((c) => (
             <Link key={c.code} href={`/films?country=${c.code}`} className={`chip hover:border-saffron ${c.region === "sea" ? "" : "opacity-80"}`}>
@@ -87,6 +109,40 @@ export default async function Home() {
             <Poster key={f.id} film={f} />
           ))}
         </div>
+      </section>
+
+      <section>
+        <div className="section-title flex items-baseline justify-between">
+          <span>Trending worldwide</span>
+          <Link href="/films?sort=popular" className="normal-case tracking-normal hover:text-text">More →</Link>
+        </div>
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+          {world.map((f) => (
+            <Poster key={f.id} film={f} />
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+        <div>
+          <div className="section-title flex items-baseline justify-between">
+            <span>📺 Series to binge</span>
+            <Link href="/films?kind=series" className="normal-case tracking-normal hover:text-text">All series →</Link>
+          </div>
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+            {series.map((f) => (
+              <Poster key={f.id} film={f} size="sm" />
+            ))}
+          </div>
+        </div>
+        <Link href={user ? "/rewind" : "/register"} className="card flex flex-col justify-between overflow-hidden p-5 story-bg-1 transition hover:brightness-110">
+          <div>
+            <div className="text-3xl">⏪</div>
+            <h3 className="mt-1 font-display text-xl font-bold text-white">Kisah Rewind {new Date().getFullYear()}</h3>
+            <p className="mt-1 text-sm text-white/85">Your year in films & series, story-style: top genres, countries, your film personality, and a card to share.</p>
+          </div>
+          <span className="mt-4 font-semibold text-white">{user ? "Play my Rewind →" : "Join to get yours →"}</span>
+        </Link>
       </section>
 
       {reviews.length > 0 && (

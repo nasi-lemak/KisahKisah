@@ -87,6 +87,9 @@ export default async function ProfileLayout({ children, params }: { children: Re
               {label}
             </Link>
           ))}
+          <Link href={`/rewind/${u.username}/${new Date().getFullYear()}`} className="ml-auto shrink-0 px-3 py-2.5 text-sm font-semibold text-saffron hover:brightness-110">
+            ⏪ Rewind {new Date().getFullYear()}
+          </Link>
         </nav>
       </div>
       {children}

@@ -2,7 +2,7 @@ import "server-only";
 import { all, one, run, tx } from "./db";
 import { ACHIEVEMENT_BY_ID, ACHIEVEMENTS, satisfied, type Stats } from "./achievements";
 import { ITEM_BY_ID } from "./shop";
-import { SEA_CODES } from "./regions";
+import { SEA_CODES, regionOf } from "./regions";
 
 /** Points awarded for everyday activity. */
 export const POINTS = {
@@ -45,8 +45,8 @@ export function grantItem(userId: number, itemId: string, source: string): boole
 }
 
 export function computeStats(userId: number): Stats {
-  const logged = all<{ slug: string; country: string; year: number; genres: string }>(
-    "SELECT DISTINCT f.slug, f.country, f.year, f.genres FROM logs l JOIN films f ON f.id = l.film_id WHERE l.user_id = ?",
+  const logged = all<{ slug: string; country: string; year: number; genres: string; kind: string }>(
+    "SELECT DISTINCT f.slug, f.country, f.year, f.genres, f.kind FROM logs l JOIN films f ON f.id = l.film_id WHERE l.user_id = ?",
     userId,
   );
   const byCountry: Record<string, number> = {};
@@ -83,6 +83,16 @@ export function computeStats(userId: number): Stats {
     ).length,
     eggsFound: n("SELECT COUNT(*) n FROM user_achievements WHERE user_id = ? AND achievement_id LIKE 'egg\\_%' ESCAPE '\\' AND achievement_id != 'egg_hunter'", userId),
     loggedSlugs: new Set(logged.map((f) => f.slug)),
+    regions: new Set(logged.map((f) => regionOf(f.country)).filter(Boolean)).size,
+    seriesLogged: logged.filter((f) => f.kind === "series").length,
+    eventsJoined: n(
+      `SELECT COUNT(*) n FROM (
+         SELECT event_id || '@' || occurrence k FROM event_claims WHERE user_id = ?
+         UNION SELECT substr(ref, 1, instr(ref, '#') - 1) FROM points_ledger WHERE user_id = ? AND reason = 'event')`,
+      userId, userId,
+    ),
+    scoresReported: n("SELECT COUNT(*) n FROM external_scores WHERE user_id = ? AND source = 'community'", userId),
+    stickersGiven: n("SELECT COUNT(*) n FROM review_stickers WHERE user_id = ?", userId),
   };
 }
 

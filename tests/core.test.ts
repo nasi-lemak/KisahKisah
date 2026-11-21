@@ -31,7 +31,7 @@ test("identifyPlatform recognises review hosts and rejects non-http URLs", () =>
 
 test("JustWatch link is localised to the viewer's country", () => {
   assert.match(justWatchLink("Mai", "VN")!, /justwatch\.com\/vn\//);
-  assert.match(justWatchLink("Mai", null)!, /justwatch\.com\/my\//);
+  assert.match(justWatchLink("Mai", null)!, /justwatch\.com\/us\//);
 });
 
 test("cinema points: promo multiplier, local-film bonus, currency check, cap", () => {
@@ -75,6 +75,7 @@ const empty: Stats = {
   filmsLogged: 0, countries: 0, seaCountries: 0, byCountry: {}, seaHorror: 0, decades: 0, rewatches: 0, fiveStars: 0,
   midnightLogs: 0, reviews: 0, longestReview: 0, likesReceived: 0, bigLists: 0, cinemaVisits: 0, cinemaChains: 0,
   localCinemaVisits: 0, gamesWon: 0, following: 0, itemsBought: 0, legendaryOwned: 0, eggsFound: 0, loggedSlugs: new Set(),
+  regions: 0, seriesLogged: 0, eventsJoined: 0, scoresReported: 0, stickersGiven: 0,
 };
 
 test("achievements unlock from stats and never twice", () => {
@@ -90,4 +91,99 @@ test("every achievement reward points to a real item and ids are unique", async 
   const ids = ACHIEVEMENTS.map((a) => a.id);
   assert.equal(new Set(ids).size, ids.length);
   for (const a of ACHIEVEMENTS) if (a.reward) assert.ok(ITEM_BY_ID[a.reward], `${a.id} → ${a.reward}`);
+});
+
+// ── v2: events, rewind, scores ──────────────────────────────────────
+import { activeEvents, activeOccurrence, allEvents, bonusesFor, eventById, nextOccurrence, nextOfferFor, offerFor, occurrenceIn, parsePreviewDate } from "../src/lib/events.ts";
+import { longestStreak, pickArchetype } from "../src/lib/rewind-core.ts";
+import { normaliseScore, scoringPlatformsFor, identifyPlatform as idp } from "../src/lib/regions.ts";
+import { parseOmdb, parseTmdb } from "../scripts/score-sources.mjs";
+
+test("Space Opera Day is live on May 4–5 only, with a sci-fi bonus", () => {
+  const e = eventById("space-opera-day")!;
+  assert.deepEqual(occurrenceIn(e, 2027), { start: "2027-05-04", end: "2027-05-05" });
+  assert.ok(activeOccurrence(e, "2027-05-04"));
+  assert.ok(activeOccurrence(e, "2027-05-05"));
+  assert.equal(activeOccurrence(e, "2027-05-06"), null);
+  const ids = activeEvents("2027-05-04").map((x) => x.id);
+  assert.ok(ids.includes("space-opera-day"));
+  assert.ok(bonusesFor({ slug: "star-wars-1977", country: "US", genres: "Sci-Fi,Action" }, "2027-05-04").some((x) => x.id === "space-opera-day"));
+  assert.ok(!bonusesFor({ slug: "ola-bola-2016", country: "MY", genres: "Sports" }, "2027-05-04").some((x) => x.id === "space-opera-day"));
+});
+
+test("events that wrap the new year (Rewind season) and lunar-dated events", () => {
+  const rewind = eventById("rewind-season")!;
+  assert.ok(activeOccurrence(rewind, "2027-01-10"), "Jan 10 is inside the Dec–Jan window");
+  assert.equal(activeOccurrence(rewind, "2027-01-16"), null);
+  const lny = eventById("lunar-new-year")!;
+  assert.deepEqual(occurrenceIn(lny, 2027), { start: "2027-02-06", end: "2027-02-20" });
+  assert.equal(nextOccurrence(lny, "2027-03-01")?.start, "2028-01-26");
+});
+
+test("limited items are only offered while their event is live", () => {
+  assert.equal(offerFor("st_rocket", "2027-05-04")?.price, 0);
+  assert.equal(offerFor("st_rocket", "2027-06-01"), null);
+  assert.equal(nextOfferFor("st_rocket", "2027-06-01")?.start, "2028-05-04");
+});
+
+test("every event offer and featured title points to something real", async () => {
+  const { ITEM_BY_ID } = await import("../src/lib/shop.ts");
+  const { CATALOG } = await import("../src/lib/catalog.ts");
+  const slugs = new Set(CATALOG.map((f) => f.slug));
+  const ids = new Set<string>();
+  for (const e of allEvents()) {
+    assert.ok(!ids.has(e.id), `duplicate event ${e.id}`);
+    ids.add(e.id);
+    for (const o of e.offers) assert.ok(ITEM_BY_ID[o.item], `${e.id} offers unknown ${o.item}`);
+    for (const f of e.featured) assert.ok(slugs.has(f), `${e.id} features unknown ${f}`);
+  }
+  // every event-exclusive item is offered by its event
+  for (const item of Object.values(ITEM_BY_ID)) {
+    if (item.event) assert.ok(eventById(item.event)?.offers.some((o) => o.item === item.id), `${item.id} not offered by ${item.event}`);
+  }
+});
+
+test("catalogue slugs are unique and series are marked", async () => {
+  const { CATALOG } = await import("../src/lib/catalog.ts");
+  assert.equal(new Set(CATALOG.map((f) => f.slug)).size, CATALOG.length);
+  assert.ok(CATALOG.filter((f) => f.kind === "series").length >= 10);
+});
+
+test("preview dates are validated", () => {
+  assert.equal(parsePreviewDate("2026-05-04"), "2026-05-04");
+  assert.equal(parsePreviewDate("2026-02-30"), null);
+  assert.equal(parsePreviewDate("<script>"), null);
+});
+
+test("rewind: streaks and archetypes", () => {
+  assert.equal(longestStreak(["2026-01-01", "2026-01-02", "2026-01-02", "2026-01-03", "2026-01-10"]), 3);
+  assert.equal(longestStreak([]), 0);
+  const base = { total: 10, horror: 0, series: 0, korean: 0, sea: 0, countries: 2, regions: 1, cinema: 0, reviews: 0, midnight: 0, avgRating: 3.5 };
+  assert.equal(pickArchetype({ ...base, horror: 4 }).id, "hantu");
+  assert.equal(pickArchetype({ ...base, series: 6 }).id, "binge");
+  assert.equal(pickArchetype({ ...base, regions: 4 }).id, "globe");
+  assert.equal(pickArchetype({ ...base, sea: 7 }).id, "local");
+  assert.equal(pickArchetype({ ...base }).id, "wanderer");
+  assert.equal(pickArchetype({ ...base, total: 0 }).id, "blank");
+});
+
+test("scores: normalisation, relevant platforms, parsers", () => {
+  assert.equal(normaliseScore(8.5, 10), 85);
+  assert.equal(normaliseScore(4, 5), 80);
+  assert.equal(normaliseScore(120, 100), 100);
+  assert.deepEqual(scoringPlatformsFor("KR").map((p) => p.id).slice(0, 3), ["watcha", "naver", "mydramalist"]);
+  assert.ok(scoringPlatformsFor("FR").some((p) => p.id === "allocine"));
+  assert.ok(!scoringPlatformsFor("MY").some((p) => p.id.startsWith("wiki")), "wikis have no scores");
+  assert.equal(idp("https://www.allocine.fr/film/fichefilm_gen_cfilm=1.html")?.id, "allocine");
+  assert.deepEqual(
+    parseOmdb({ Response: "True", imdbRating: "8.5", imdbVotes: "1,234", imdbID: "tt1", Ratings: [{ Source: "Rotten Tomatoes", Value: "99%" }, { Source: "Metacritic", Value: "96/100" }] }),
+    [
+      { platform: "imdb", value: 8.5, votes: 1234, url: "https://www.imdb.com/title/tt1/" },
+      { platform: "rottentomatoes", value: 99, votes: null, url: null },
+      { platform: "metacritic", value: 96, votes: null, url: null },
+    ],
+  );
+  assert.deepEqual(parseOmdb({ Response: "False" }), []);
+  assert.deepEqual(parseTmdb({ results: [{ id: 7, vote_average: 8.46, vote_count: 99 }] }, "series"), [{ platform: "tmdb", value: 8.5, votes: 99, url: "https://www.themoviedb.org/tv/7" }]);
+  assert.deepEqual(parseTmdb({ results: [] }, "film"), []);
 });

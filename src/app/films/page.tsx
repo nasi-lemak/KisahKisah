@@ -6,7 +6,7 @@ import { GENRES } from "@/lib/catalog";
 import { Poster, Stars, Empty } from "@/components/ui";
 import { SearchQuip } from "@/components/SearchQuip";
 
-export const metadata: Metadata = { title: "Films" };
+export const metadata: Metadata = { title: "Films & TV" };
 
 type SP = Promise<Record<string, string | undefined>>;
 
@@ -17,11 +17,13 @@ export default async function FilmsPage({ searchParams }: { searchParams: SP }) 
     country: sp.country && country(sp.country) ? sp.country.toUpperCase() : undefined,
     region: sp.region && sp.region in REGIONS ? (sp.region as RegionId) : undefined,
     genre: sp.genre && (GENRES as readonly string[]).includes(sp.genre) ? sp.genre : undefined,
+    kind: sp.kind === "film" || sp.kind === "series" ? sp.kind : undefined,
     sort: (["popular", "rating", "newest", "oldest", "title"] as const).find((s) => s === sp.sort) ?? "popular",
   };
   const films = listFilms(filter);
   const c = country(filter.country);
-  const heading = c ? `${c.flag} Films from ${c.name}` : filter.region ? REGIONS[filter.region].name : filter.q ? `Results for “${filter.q}”` : "All films";
+  const noun = filter.kind === "series" ? "Series" : filter.kind === "film" ? "Films" : "Films & series";
+  const heading = c ? `${c.flag} ${noun} from ${c.name}` : filter.region ? `${REGIONS[filter.region].icon} ${noun} from ${REGIONS[filter.region].name}` : filter.q ? `Results for “${filter.q}”` : noun;
 
   const qs = (patch: Record<string, string | undefined>) => {
     const next = { ...sp, ...patch };
@@ -84,6 +86,17 @@ export default async function FilmsPage({ searchParams }: { searchParams: SP }) 
         <button className="btn btn-primary">Filter</button>
       </form>
 
+      <div className="flex flex-wrap gap-1.5">
+        {([[undefined, "All"], ["film", "🎬 Films"], ["series", "📺 Series"]] as const).map(([k, label]) => (
+          <Link key={label} href={qs({ kind: k })} className={`chip ${filter.kind === k ? "border-saffron text-saffron" : ""}`}>{label}</Link>
+        ))}
+        <span className="mx-1 w-px bg-line" />
+        {(Object.keys(REGIONS) as RegionId[]).filter((r) => r !== "sea").map((r) => (
+          <Link key={r} href={qs({ region: r, country: undefined })} className={`chip ${filter.region === r ? "border-saffron text-saffron" : ""}`}>
+            {REGIONS[r].icon} {REGIONS[r].name}
+          </Link>
+        ))}
+      </div>
       <div className="flex flex-wrap gap-1.5">
         <Link href={qs({ region: "sea", country: undefined })} className={`chip ${filter.region === "sea" ? "border-saffron text-saffron" : ""}`}>🌏 Southeast Asia</Link>
         {COUNTRIES.filter((c) => c.region === "sea").map((x) => (

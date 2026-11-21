@@ -2,8 +2,9 @@ import Link from "next/link";
 import type { Review, ListSummary } from "@/lib/queries";
 import { identifyPlatform } from "@/lib/regions";
 import { ITEM_BY_ID } from "@/lib/shop";
+import { parseStickers } from "@/lib/queries";
 import { toggleLike } from "@/app/actions";
-import { Poster, Stars, UserChip, timeAgo } from "./ui";
+import { AvatarGlyph, Poster, Stars, UserChip, timeAgo } from "./ui";
 
 const GAME_BADGE: Record<string, string> = {
   trivia: "❓ Kuiz",
@@ -75,6 +76,14 @@ export function ReviewCard({ r, viewerId, showFilm = true }: { r: Review; viewer
         <div className="mt-3 flex flex-wrap items-center gap-4">
           <LikeButton r={r} viewerId={viewerId} />
           <Link href={`/review/${r.id}#comments`} className="text-sm text-muted hover:text-text">💬 {r.comment_count}</Link>
+          {parseStickers(r.sticker_summary).slice(0, 3).map((st) =>
+            ITEM_BY_ID[st.id] ? (
+              <span key={st.id} className="inline-flex items-center gap-0.5 text-xs text-muted" title={ITEM_BY_ID[st.id].name}>
+                <AvatarGlyph value={ITEM_BY_ID[st.id].value} px={28} />
+                {st.count}
+              </span>
+            ) : null,
+          )}
           {GAME_BADGE[r.game_type] && (
             <Link href={`/review/${r.id}`} className="chip border-saffron/50 py-0.5 text-xs text-saffron">
               {GAME_BADGE[r.game_type]}: play

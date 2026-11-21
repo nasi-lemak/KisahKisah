@@ -2,12 +2,19 @@
 
 > *Kisah* (Malay): a story, a tale. **Every film has a kisah.**
 
-A social film diary in the spirit of Letterboxd, built **Southeast Asia first**. Anyone, anywhere, can use it. Log what you watch, review it, build catalogues, earn points (at the cinema too), collect avatars, play mini games on people's reviews, and hunt for hidden easter eggs.
+A social diary for **films and TV series** in the spirit of Letterboxd. **Southeast Asian cinema is in the spotlight, and the whole world is on the shelf**: anyone, anywhere, is welcome. Log what you watch, compare scores from Douban to Rotten Tomatoes, build catalogues, earn points (at the cinema too), collect avatars, themes and stickers, play mini games on people's reviews, join seasonal events, get your year back in **Kisah Rewind**, and hunt for hidden easter eggs.
 
 ## Features
 
 | | |
 |---|---|
+| 🌏 **Global, SEA-first** | 7 world regions and 31 countries, 70+ films & series from Kuala Lumpur to Lagos. SEA titles, festivals and cinemas get first-class treatment. |
+| 📺 **Films & TV series** | Series are first-class: browse tabs, "Created by", series badges, binge achievements, and they count in Rewind. |
+| 📊 **Scores around the world** | Each title shows KisahKisah's score next to the platforms that matter for it (Watcha/Naver for Korea, Douban for China, AlloCiné for France, IMDb/RT/Metacritic/TMDB everywhere), all scaled to 100, plus a combined **World score**. Scores come from APIs (`npm run scores:sync` with OMDb/TMDB keys) or member reports, which need a proof link and are shown as a median. |
+| ⏪ **Kisah Rewind** | A Spotify-Wrapped-style story for your year: titles, ≈hours, top genres, countries, favourite filmmaker, best-rated, busiest month, streak, a film-personality archetype and a top-% badge. Shareable URL plus a downloadable 1080×1920 card. |
+| 🎪 **Events & limited drops** | A yearly calendar: Space Opera Day (May 4), Hantu Week, Lunar New Year, Hari Raya, Songkran, Mid-Autumn, Deepavali, SEA national days, the festive season and Rewind season. Each has free stickers, a limited theme, and bonus KP for logging matching titles; when it ends the items are vaulted. Includes a time machine (`/events?preview=2026-05-04`). |
+| 📣 **Sponsored campaigns** | Studios can buy a launch as an event: themes, sticker packs, frames, banner, logging bonus, all labelled "Sponsored". Packages are on `/advertise` with lead capture; the full plan is in [`docs/PROMOTIONS.md`](docs/PROMOTIONS.md). A fictional demo campaign is always live. |
+| 🏷️ **Stickers & themes** | Discord-style sticker reactions on reviews, plus equippable site themes that recolour the whole app. |
 | 📔 **Diary & reviews** | Log films with half-star ratings, likes, rewatches and dates. Write reviews with spoiler blur, likes and comment threads. |
 | 🌏 **Regional review platforms** | Every film links to the platforms its *home audience* uses, searched by its original-script title: Watcha Pedia and Naver for Korean films, Douban and Maoyan for Chinese, Filmarks and Eiga.com for Japanese, MyDramaList for much of Asia, and local-language Wikipedia for SEA films. IMDb, Letterboxd and TMDB for everything. A JustWatch "where to watch" link is localised to your home country. |
 | 🔗 **Cross-posting** | Attach links to your reviews on other platforms. Known hosts get a branded chip. |
@@ -16,7 +23,7 @@ A social film diary in the spirit of Letterboxd, built **Southeast Asia first**.
 | 🏪 **Kedai (shop)** | Spend KP on avatars (Harimau Malaya, Wayang Kulit, Naga…), animated frames (Batik, Songket, Night Market Neon), profile banners and titles. Some items are earn-only, unlocked through achievements and secrets. |
 | 🧩 **Mini games on review pages** | Reviewers attach a game: **Teka Bintang** (guess my rating), **Kuiz** (trivia), **Emoji Riddle**, or **Popcorn Catch** (a 20-second canvas arcade game). Readers get one attempt each and win KP. Answers stay server-side. |
 | 🎟️ **Cinema integration** | Link a cinema membership for automatic credit via a signed webhook, or claim points with an e-ticket code. Watching a local film in its home country earns ×2. Includes a demo box office to try it end to end. |
-| 🏆 **Achievements** | 35 achievements, from *ASEAN Explorer* and *Hantu Hunter* to film-specific hidden ones. Some grant exclusive cosmetics. |
+| 🏆 **Achievements** | 42 achievements, including *Globetrotter*, *Binge Mode* and *Festival Goer*, from *ASEAN Explorer* and *Hantu Hunter* to film-specific hidden ones. Some grant exclusive cosmetics. |
 | 🥚 **Easter eggs** | Several hidden ones. Hints: try a famous cheat code, click things repeatedly, type the most important question in Asia, stay for the post-credits scene, and look for a tiny cup. Spoilers are in [`src/components/EasterEggs.tsx`](src/components/EasterEggs.tsx). |
 
 ## Quick start
@@ -28,14 +35,16 @@ npm install
 npm run dev          # http://localhost:3000
 ```
 
-The database (`data/kisahkisah.db`) is created and seeded on first request with a catalogue of ~50 films and a small demo community.
-Sign in as **aisyah**, **budi**, **nong**, **migs**, **linh**, **weijie** or **jiwoo**. The password for all is `kisah123`.
+The database (`data/kisahkisah.db`) is created and seeded on first request with 70+ films & series and a small demo community from around the world.
+Sign in as **aisyah**, **budi**, **nong**, **migs**, **linh**, **weijie**, **jiwoo**, **camille** or **tunde**. The password for all is `kisah123`.
+Existing databases are migrated automatically, and new catalogue titles are added on boot.
 
 ```bash
 npm test             # unit tests (platform links, cinema points, signatures, ticket codes, achievements)
 npm run lint         # TypeScript type-check
 npm run build && npm start
 npm run db:reset     # wipe the local DB; it re-seeds on next start
+OMDB_API_KEY=… TMDB_API_KEY=… npm run scores:sync   # pull IMDb/RT/Metacritic/TMDB scores (add -- --dry-run first)
 ```
 
 ### Configuration
@@ -46,6 +55,7 @@ Copy `.env.example` to `.env.local`:
 |---|---|
 | `DATABASE_PATH` | SQLite file location (default `./data/kisahkisah.db`). |
 | `CINEMA_WEBHOOK_SECRET` | HMAC secret shared with cinema partners. **Set this in production.** It also signs ticket-code checksums. |
+| `OMDB_API_KEY`, `TMDB_API_KEY` | Optional, for `npm run scores:sync`. Respect each provider's terms. |
 | `DISABLE_DEMO_CINEMA=1` | Hides the demo box office, which lets any signed-in user mint test tickets. Set this anywhere real points matter. |
 
 ## Cinema partner API
@@ -84,6 +94,10 @@ src/
     shop.ts            Cosmetic items
     cinema.ts          Chains, points maths, webhook signatures, ticket codes (pure)
     games.ts           Mini-game rules & server-side judging
+    events.ts          Event calendar, sponsored campaigns, offers, bonuses (pure)
+    packages.ts        Advertising packages shown on /advertise
+    scores.ts          Scores around the world (API + community median)
+    rewind.ts          Kisah Rewind stats (+ rewind-core.ts, pure)
     rewards.ts         Points ledger, item grants, achievement evaluation
     db.ts schema.ts seed.ts queries.ts auth.ts password.ts purchases.ts
 tests/                 node:test unit tests
@@ -94,10 +108,14 @@ tests/                 node:test unit tests
 - **Another country or platform:** add it to `COUNTRIES` / `PLATFORMS` in `regions.ts`. Films from that country pick it up automatically.
 - **More films:** append to `CATALOG` (or wire up a TMDB import). Posters are generated from the slug, so no artwork is needed.
 - **An achievement:** add an entry with a `progress(stats)` function to `achievements.ts`. Unlocks, points, rewards and toasts are handled for you.
-- **A cosmetic:** add it to `ITEMS` in `shop.ts`. Frames and banners are CSS classes in `globals.css`.
+- **A cosmetic:** add it to `ITEMS` in `shop.ts`. Frames and banners are CSS classes in `globals.css`; themes are `[data-theme]` blocks there.
+- **An event or sponsored campaign:** add an entry to `allEvents()` in `events.ts` with its date rule, offers (free or KP), bonus and featured titles. Give event-exclusive items `event: "<id>"`. A test checks every offer and featured title exists.
 
 ## Notes & next steps
 
 - Auth is username/password (scrypt) with httpOnly session cookies. Server actions get Next's built-in origin checks. There's no login rate limiting yet.
 - SQLite fits a single instance. For scale, port `schema.ts` to Postgres; queries are plain SQL.
-- Ideas: TMDB catalogue import, Bahasa/Thai/Vietnamese/Tagalog UI, a "cinema date" social feature, seasonal events (Hari Raya, Songkran, Tết, Mid-Autumn) with limited cosmetics.
+- Rewind hours are estimates (2h per film, 8h per series) until runtimes and episode counts are tracked.
+- Lunar/Islamic festival dates are approximate and flagged in code. Confirm them yearly.
+- `scores:sync` is unit-tested against sample payloads but hasn't been run against the live OMDb/TMDB APIs from this environment.
+- Ideas: TMDB catalogue import with real posters and runtimes, a localised UI (Bahasa, Thai, Vietnamese, Tagalog, Korean, French…), an admin CMS for campaigns, geo-targeting, a "cinema date" social feature.

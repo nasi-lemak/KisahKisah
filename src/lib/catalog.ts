@@ -3,8 +3,12 @@
  * Synopses are our own one-liners. Posters are generated (see poster.ts), so
  * no third-party artwork ships with the app.
  */
+export type Kind = "film" | "series";
+
 export type CatalogFilm = {
   slug: string;
+  /** Defaults to "film". Series use `director` for the creator. */
+  kind?: Kind;
   title: string;
   originalTitle?: string;
   year: number;
@@ -17,7 +21,7 @@ export type CatalogFilm = {
 
 export const GENRES = [
   "Drama", "Comedy", "Horror", "Action", "Thriller", "Romance", "Animation",
-  "Family", "History", "Sports", "Sci-Fi", "Fantasy", "Crime", "Documentary", "Musical",
+  "Family", "History", "Sports", "Sci-Fi", "Fantasy", "Crime", "Documentary", "Musical", "Mystery",
 ] as const;
 
 export const CATALOG: CatalogFilm[] = [
@@ -81,4 +85,35 @@ export const CATALOG: CatalogFilm[] = [
   { slug: "3-idiots-2009", title: "3 Idiots", year: 2009, country: "IN", director: "Rajkumar Hirani", genres: ["Comedy", "Drama"], motif: "🎓", synopsis: "Two friends search for the engineering-college classmate who taught them to chase excellence." },
   // 🌍 Beyond
   { slug: "crazy-rich-asians-2018", title: "Crazy Rich Asians", year: 2018, country: "US", director: "Jon M. Chu", genres: ["Romance", "Comedy"], motif: "💍", synopsis: "A New York professor visits her boyfriend's family in Singapore and learns how rich they are." },
+  // 🇪🇺 Europe
+  { slug: "amelie-2001", title: "Amélie", originalTitle: "Le Fabuleux Destin d'Amélie Poulain", year: 2001, country: "FR", director: "Jean-Pierre Jeunet", genres: ["Comedy", "Romance"], motif: "🥄", synopsis: "A shy Montmartre waitress secretly rearranges the lives of the people around her." },
+  { slug: "run-lola-run-1998", title: "Run Lola Run", originalTitle: "Lola rennt", year: 1998, country: "DE", director: "Tom Tykwer", genres: ["Thriller", "Crime"], motif: "🏃‍♀️", synopsis: "Twenty minutes, 100,000 marks and three chances to save her boyfriend." },
+  { slug: "pans-labyrinth-2006", title: "Pan's Labyrinth", originalTitle: "El laberinto del fauno", year: 2006, country: "ES", director: "Guillermo del Toro", genres: ["Fantasy", "Drama", "History"], motif: "🗝️", synopsis: "In Franco's Spain, a girl escapes into a dark fairy tale with three impossible tasks." },
+  { slug: "cinema-paradiso-1988", title: "Cinema Paradiso", originalTitle: "Nuovo Cinema Paradiso", year: 1988, country: "IT", director: "Giuseppe Tornatore", genres: ["Drama", "Romance"], motif: "🎞️", synopsis: "A filmmaker remembers the village projectionist who taught him to love the movies." },
+  { slug: "let-the-right-one-in-2008", title: "Let the Right One In", originalTitle: "Låt den rätte komma in", year: 2008, country: "SE", director: "Tomas Alfredson", genres: ["Horror", "Romance", "Drama"], motif: "❄️", synopsis: "A bullied boy befriends the strange girl next door, who only comes out at night." },
+  { slug: "paddington-2-2017", title: "Paddington 2", year: 2017, country: "GB", director: "Paul King", genres: ["Family", "Comedy"], motif: "🧸", synopsis: "A polite bear is framed for the theft of a pop-up book and wins over an entire prison." },
+  // 🌎 Americas
+  { slug: "star-wars-1977", title: "Star Wars", year: 1977, country: "US", director: "George Lucas", genres: ["Sci-Fi", "Action", "Fantasy"], motif: "🌌", synopsis: "A farm boy, a smuggler and a princess take on a galactic empire." },
+  { slug: "the-godfather-1972", title: "The Godfather", year: 1972, country: "US", director: "Francis Ford Coppola", genres: ["Crime", "Drama"], motif: "🌹", synopsis: "The reluctant youngest son of a crime family becomes its most ruthless head." },
+  { slug: "everything-everywhere-2022", title: "Everything Everywhere All at Once", year: 2022, country: "US", director: "Daniel Kwan, Daniel Scheinert", genres: ["Sci-Fi", "Comedy", "Action"], motif: "🥯", synopsis: "A laundromat owner doing her taxes must save the multiverse, and her daughter." },
+  { slug: "roma-2018", title: "Roma", year: 2018, country: "MX", director: "Alfonso Cuarón", genres: ["Drama"], motif: "🧺", synopsis: "A year in the life of a live-in housekeeper in 1970s Mexico City." },
+  { slug: "city-of-god-2002", title: "City of God", originalTitle: "Cidade de Deus", year: 2002, country: "BR", director: "Fernando Meirelles", genres: ["Crime", "Drama"], motif: "📷", synopsis: "A boy with a camera grows up amid the gang wars of a Rio favela." },
+  // 🌍 Middle East, Africa & Oceania
+  { slug: "a-separation-2011", title: "A Separation", originalTitle: "جدایی نادر از سیمین", year: 2011, country: "IR", director: "Asghar Farhadi", genres: ["Drama"], motif: "⚖️", synopsis: "A Tehran couple's divorce spirals into a moral dispute with no clean answers." },
+  { slug: "the-wedding-party-2016", title: "The Wedding Party", year: 2016, country: "NG", director: "Kemi Adetiba", genres: ["Comedy", "Romance"], motif: "💃", synopsis: "Everything that can go wrong at a lavish Lagos wedding, does." },
+  { slug: "mad-max-fury-road-2015", title: "Mad Max: Fury Road", year: 2015, country: "AU", director: "George Miller", genres: ["Action", "Sci-Fi"], motif: "🔥", synopsis: "A drifter and a rebel commander flee across the wasteland in a war rig." },
+
+  // 📺 Series
+  { slug: "girl-from-nowhere-2018", kind: "series", title: "Girl from Nowhere", originalTitle: "เด็กใหม่", year: 2018, country: "TH", director: "Nadao Bangkok", genres: ["Thriller", "Mystery", "Horror"], motif: "😈", synopsis: "A mysterious new student exposes the lies and cruelty of every school she joins." },
+  { slug: "cigarette-girl-2023", kind: "series", title: "Cigarette Girl", originalTitle: "Gadis Kretek", year: 2023, country: "ID", director: "Kamila Andini, Ifa Isfansyah", genres: ["Romance", "Drama", "History"], motif: "🚬", synopsis: "A son searches for the woman his dying father loved in 1960s Java's clove-cigarette trade." },
+  { slug: "upin-ipin-series-2007", kind: "series", title: "Upin & Ipin", year: 2007, country: "MY", director: "Les' Copaque Production", genres: ["Animation", "Family", "Comedy"], motif: "👦", synopsis: "Twin brothers grow up in Kampung Durian Runtuh with their sister, Opah and friends." },
+  { slug: "phua-chu-kang-1997", kind: "series", title: "Phua Chu Kang Pte Ltd", year: 1997, country: "SG", director: "Mediacorp", genres: ["Comedy"], motif: "🥾", synopsis: "Singapore's best contractor in Singapore, JB and some say Batam. Use your brain!" },
+  { slug: "squid-game-2021", kind: "series", title: "Squid Game", originalTitle: "오징어 게임", year: 2021, country: "KR", director: "Hwang Dong-hyuk", genres: ["Thriller", "Drama"], motif: "🦑", synopsis: "Hundreds of debtors play deadly versions of children's games for a fortune." },
+  { slug: "crash-landing-on-you-2019", kind: "series", title: "Crash Landing on You", originalTitle: "사랑의 불시착", year: 2019, country: "KR", director: "Lee Jeong-hyo", genres: ["Romance", "Comedy"], motif: "🪂", synopsis: "A South Korean heiress paraglides into North Korea, and into an officer's life." },
+  { slug: "someday-or-one-day-2019", kind: "series", title: "Someday or One Day", originalTitle: "想見你", year: 2019, country: "TW", director: "Huang Tien-jen", genres: ["Romance", "Mystery", "Fantasy"], motif: "📼", synopsis: "A grieving woman is transported to 1998 by an old cassette tape." },
+  { slug: "midnight-diner-2009", kind: "series", title: "Midnight Diner", originalTitle: "深夜食堂", year: 2009, country: "JP", director: "Joji Matsuoka", genres: ["Drama"], motif: "🍱", synopsis: "A tiny Tokyo diner open from midnight to 7am, and the regulars who bring their stories." },
+  { slug: "dark-2017", kind: "series", title: "Dark", year: 2017, country: "DE", director: "Baran bo Odar, Jantje Friese", genres: ["Sci-Fi", "Mystery", "Thriller"], motif: "🕳️", synopsis: "A child's disappearance unravels secrets across four families and three generations." },
+  { slug: "money-heist-2017", kind: "series", title: "Money Heist", originalTitle: "La casa de papel", year: 2017, country: "ES", director: "Álex Pina", genres: ["Crime", "Thriller"], motif: "🎭", synopsis: "A mastermind called the Professor plans the biggest heist in Spanish history." },
+  { slug: "fleabag-2016", kind: "series", title: "Fleabag", year: 2016, country: "GB", director: "Phoebe Waller-Bridge", genres: ["Comedy", "Drama"], motif: "🐹", synopsis: "A messy, grieving Londoner talks straight to camera as she wrecks her life." },
+  { slug: "breaking-bad-2008", kind: "series", title: "Breaking Bad", year: 2008, country: "US", director: "Vince Gilligan", genres: ["Crime", "Drama", "Thriller"], motif: "🧪", synopsis: "A chemistry teacher with a terminal diagnosis turns to cooking meth." },
 ];

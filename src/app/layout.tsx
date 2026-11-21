@@ -7,18 +7,22 @@ import { Avatar, KP } from "@/components/ui";
 import { Toaster } from "@/components/Toaster";
 import { EasterEggs, LogoEgg } from "@/components/EasterEggs";
 import { logout } from "./actions";
+import { ITEM_BY_ID } from "@/lib/shop";
+import { activeEvents } from "@/lib/events";
+import { EventBanner } from "@/components/EventBanner";
 
 export const metadata: Metadata = {
   title: { default: "KisahKisah · Every film has a kisah", template: "%s · KisahKisah" },
-  description: "A social film diary for Southeast Asia and beyond. Log, review, collect, play.",
+  description: "A social diary for films & series, with Southeast Asia in the spotlight and the whole world on the shelf. Log, review, collect, play.",
 };
 
 export const dynamic = "force-dynamic";
 
 const NAV = [
-  { href: "/films", label: "Films" },
+  { href: "/films", label: "Films & TV" },
   { href: "/lists", label: "Catalogues" },
   { href: "/community", label: "Community" },
+  { href: "/events", label: "Events" },
   { href: "/kedai", label: "Kedai" },
   { href: "/cinemas", label: "Cinemas" },
 ];
@@ -26,10 +30,12 @@ const NAV = [
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
   const notes = user ? unseenNotifications(user.id) : [];
+  const theme = user?.theme_item ? ITEM_BY_ID[user.theme_item]?.value : undefined;
+  const live = activeEvents();
 
   return (
     <html lang="en">
-      <body className="min-h-screen">
+      <body className="min-h-screen" data-theme={theme}>
         <div className="batik-strip" />
         <header className="sticky top-0 z-40 border-b border-line bg-ink/90 backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
@@ -68,6 +74,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                       [`/u/${user.username}/diary`, "Diary"],
                       [`/u/${user.username}/lists`, "My catalogues"],
                       [`/u/${user.username}/watchlist`, "Watchlist"],
+                      ["/rewind", "⏪ My Rewind"],
                       ["/achievements", "Achievements"],
                       ["/kedai/inventory", "Inventory & equip"],
                       ["/settings", "Settings"],
@@ -97,6 +104,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             ))}
           </nav>
         </header>
+        <EventBanner events={live} />
 
         <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
 
@@ -107,14 +115,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 Kisah<span className="text-saffron">Kisah</span>
               </div>
               <p className="mt-2">
-                <em>Kisah</em> (Malay): a story, a tale. Made for film lovers across Southeast Asia, and everyone else who wants to come along.
+                <em>Kisah</em> (Malay): a story, a tale. Made in Southeast Asia for film & TV lovers everywhere. Selamat datang, welcome, 환영합니다, bienvenue.
               </p>
             </div>
             <div className="flex flex-col gap-1">
               <Link href="/achievements" className="hover:text-text">Achievements</Link>
               <Link href="/community" className="hover:text-text">Leaderboard</Link>
               <Link href="/cinemas" className="hover:text-text">Cinema partners</Link>
+              <Link href="/events" className="hover:text-text">Events calendar</Link>
+              <Link href="/rewind" className="hover:text-text">Kisah Rewind</Link>
               <Link href="/about" className="hover:text-text">How points work</Link>
+              <Link href="/advertise" className="hover:text-text">Advertise</Link>
             </div>
             <div>
               <p>Ratings live everywhere: Douban, Watcha, Filmarks, Letterboxd, IMDb. We link you to all of them.</p>

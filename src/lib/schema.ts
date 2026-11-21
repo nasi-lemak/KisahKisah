@@ -203,3 +203,54 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 CREATE INDEX IF NOT EXISTS notifications_user ON notifications(user_id, seen);
 `;
+
+export const SCHEMA_V2 = /* sql */ `
+-- Scores from other platforms: synced from APIs, or reported by the community with a proof link.
+CREATE TABLE IF NOT EXISTS external_scores (
+  id INTEGER PRIMARY KEY,
+  film_id INTEGER NOT NULL REFERENCES films(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL,
+  value REAL NOT NULL,
+  votes INTEGER,
+  source TEXT NOT NULL,            -- 'api' | 'community'
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  url TEXT,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS external_scores_api ON external_scores(film_id, platform) WHERE source = 'api';
+CREATE UNIQUE INDEX IF NOT EXISTS external_scores_user ON external_scores(film_id, platform, user_id) WHERE source = 'community';
+
+-- Discord-style sticker reactions: one sticker per user per review.
+CREATE TABLE IF NOT EXISTS review_stickers (
+  review_id INTEGER NOT NULL REFERENCES reviews(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  sticker_id TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (review_id, user_id)
+);
+
+-- Limited-time items claimed or bought during an event occurrence.
+CREATE TABLE IF NOT EXISTS event_claims (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  event_id TEXT NOT NULL,
+  occurrence TEXT NOT NULL,        -- start date of the occurrence, e.g. 2026-05-04
+  item_id TEXT NOT NULL,
+  price INTEGER NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, event_id, occurrence, item_id)
+);
+
+-- Leads from the /advertise page.
+CREATE TABLE IF NOT EXISTS ad_inquiries (
+  id INTEGER PRIMARY KEY,
+  company TEXT NOT NULL,
+  contact_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  title TEXT NOT NULL,
+  release_date TEXT,
+  markets TEXT NOT NULL,
+  package TEXT NOT NULL,
+  message TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+`;
