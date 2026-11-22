@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { activeEvents, allEvents, nextOccurrence, occurrenceIn, parsePreviewDate, today, upcomingEvents } from "@/lib/events";
+import { activeEvents, allEvents, nextOccurrence, occurrenceIn, parsePreviewDate, today, upcomingEvents, visibleTo } from "@/lib/events";
 import { EventCard } from "@/components/EventBanner";
+import { audience } from "@/lib/geo";
 import { Empty } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Events & limited drops" };
@@ -12,12 +13,13 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
   const sp = await searchParams;
   const preview = parsePreviewDate(sp.preview);
   const date = preview ?? today();
-  const live = activeEvents(date);
-  const upcoming = upcomingEvents(date, 6);
+  const who = await audience();
+  const live = activeEvents(date, who);
+  const upcoming = upcomingEvents(date, 6, who);
   const year = Number(date.slice(0, 4));
   const calendar = allEvents()
     .map((e) => ({ e, o: occurrenceIn(e, year) ?? nextOccurrence(e, `${year}-01-01`) }))
-    .filter((x) => x.o && x.e.kind === "house")
+    .filter((x) => x.o && x.e.kind === "house" && visibleTo(x.e, who))
     .sort((a, b) => a.o!.start.localeCompare(b.o!.start));
 
   return (

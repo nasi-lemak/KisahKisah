@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { Campaign } from "@/lib/portal";
 import { campaignReport } from "@/lib/portal";
-import { slotsFor } from "@/lib/workflow";
+import { campaignEventId, slotsFor } from "@/lib/workflow";
+import { AnalyticsPanel } from "../AnalyticsPanel";
 import { toShopItem, type CustomItemRow } from "@/lib/custom-items";
 import { ItemPreview } from "../ItemPreview";
 import { today } from "@/lib/events";
@@ -89,7 +90,7 @@ export function CampaignReport({ c }: { c: Campaign }) {
           </tbody>
         </table>
       )}
-      <p className="text-xs text-muted">Banner impressions and page views need analytics that aren't connected yet.</p>
+      <AnalyticsPanel eventId={campaignEventId(c.id)} from={c.starts_on} to={c.ends_on} />
     </div>
   );
 }

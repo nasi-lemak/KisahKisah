@@ -9,7 +9,11 @@ import { syncCustomItems, type CustomItemRow } from "@/lib/custom-items";
 import { validateGradient, validateTheme } from "@/lib/asset-spec";
 import { eventById } from "@/lib/events";
 import type { ItemType, Rarity } from "@/lib/shop";
-import { canTransition, campaignReadiness, campaignEventId, slotsFor, type ItemStatus } from "@/lib/workflow";
+import { canTransition, campaignReadiness, campaignEventId, slotsFor, slugify, validateSchedule, type ItemStatus } from "@/lib/workflow";
+import { GENRES } from "@/lib/catalog";
+import { COUNTRY_BY_CODE } from "@/lib/regions";
+
+const GENRE_LIST: string[] = [...GENRES];
 import { addItemComment, campaignById, campaignItems, notifyContributors, orgMembers, snapshotVersion } from "@/lib/portal";
 import { notify } from "@/lib/rewards";
 import { redirect } from "next/navigation";
@@ -230,4 +234,49 @@ export async function markPayoutPaid(id: number, reference: string) {
   run("UPDATE payouts SET status = 'paid', paid_at = datetime('now'), reference = ? WHERE id = ?", reference.slice(0, 80), id);
   notify(p.user_id, "brief", "✅", "Payment sent", `${p.currency} ${(p.amount / 100).toFixed(2)}${reference ? ` · ref ${reference}` : ""}`);
   revalidatePath("/admin/artists");
+}
+
+// ── House events (seasonal calendar) ─────────────────────────────────
+
+export async function saveHouseEvent(_: { error?: string; ok?: string } | undefined, form: FormData): Promise<{ error?: string; ok?: string }> {
+  await requireStaff();
+  const s = (k: string, max = 200) => String(form.get(k) ?? "").trim().slice(0, max);
+  const name = s("name", 60);
+  if (!name) return { error: "Give the event a name." };
+  const repeat = s("repeat") === "once" ? "once" : "yearly";
+  const rawStart = s("starts", 10);
+  const rawEnd = s("ends", 10);
+  // Yearly events are stored as month-day; the form sends full dates.
+  const starts = repeat === "yearly" && rawStart.length === 10 ? rawStart.slice(5) : rawStart;
+  const ends = repeat === "yearly" && rawEnd.length === 10 ? rawEnd.slice(5) : rawEnd;
+  const problems = validateSchedule(repeat, starts, ends);
+  if (problems.length) return { error: problems.join(" ") };
+  const hex = (k: string, d: string) => (/^#[0-9a-f]{6}$/i.test(s(k, 7)) ? s(k, 7) : d);
+  const genres = form.getAll("bonus_genres").map(String).filter((g) => GENRE_LIST.includes(g)).join(",");
+  const countries = form.getAll("bonus_countries").map(String).filter((c) => COUNTRY_BY_CODE[c]).join(",");
+  const markets = form.getAll("markets").map(String).filter((c) => c === "GLOBAL" || COUNTRY_BY_CODE[c]);
+  const featured = s("featured", 400).split(/[\s,]+/).filter((x) => /^[a-z0-9-]+$/.test(x)).slice(0, 8).join(",");
+  const points = Math.max(0, Math.min(100, Math.round(Number(form.get("bonus_points")) || 0)));
+  const maxLogs = Math.max(1, Math.min(10, Math.round(Number(form.get("bonus_max")) || 3)));
+  const fields = [name, s("icon", 8) || "🎉", s("tagline", 140), s("blurb", 600), hex("color1", "#f5a524"), hex("color2", "#19b38a"), repeat, starts, ends, points, maxLogs, genres, countries, featured, markets.includes("GLOBAL") ? "" : markets.join(","), form.get("enabled") === "on" ? 1 : 0];
+  let id = s("id", 60);
+  if (id) {
+    if (!one("SELECT 1 x FROM house_events WHERE id = ?", id)) return { error: "Event not found." };
+    run(
+      `UPDATE house_events SET name=?, icon=?, tagline=?, blurb=?, color1=?, color2=?, repeat=?, starts=?, ends=?, bonus_points=?, bonus_max=?,
+         bonus_genres=?, bonus_countries=?, featured=?, markets=?, enabled=?, updated_at=datetime('now') WHERE id = ?`,
+      ...fields, id,
+    );
+  } else {
+    id = `he-${slugify(name)}`;
+    if (one("SELECT 1 x FROM house_events WHERE id = ?", id) || eventById(id)) id = `${id}-${randomBytes(2).toString("hex")}`;
+    run(
+      `INSERT INTO house_events (name, icon, tagline, blurb, color1, color2, repeat, starts, ends, bonus_points, bonus_max, bonus_genres, bonus_countries, featured, markets, enabled, id)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      ...fields, id,
+    );
+  }
+  syncCustomItems();
+  revalidatePath("/", "layout");
+  redirect(`/admin/events/${id}?saved=1`);
 }

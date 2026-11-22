@@ -17,7 +17,7 @@ import { COUNTRY_BY_CODE, identifyPlatform } from "@/lib/regions";
 import { CHAIN_BY_ID, makeTicketCode, webhookSecret } from "@/lib/cinema";
 import { redeemTicketCode } from "@/lib/purchases";
 import { reportScore } from "@/lib/scores";
-import { bonusesFor, eventById, activeOccurrence, today } from "@/lib/events";
+import { bonusesFor, eventById, activeOccurrence, today, visibleTo } from "@/lib/events";
 
 export type FormState = { error?: string; ok?: string } | undefined;
 
@@ -122,7 +122,7 @@ export async function logFilm(_: FormState, form: FormData): Promise<FormState> 
       if (body.length >= 40) award(user.id, POINTS.review, "review", `film:${film.id}`, `Reviewed ${film.title}`);
       if (body.length >= 400) award(user.id, POINTS.longReview, "long_review", `film:${film.id}`, "Long-form bonus");
     }
-    for (const e of bonusesFor(film)) {
+    for (const e of bonusesFor(film, undefined, user.home_country)) {
       const key = `${e.id}@${e.occurrence.start}`;
       const used = one<{ n: number }>("SELECT COUNT(*) n FROM points_ledger WHERE user_id = ? AND reason = 'event' AND ref LIKE ?", user.id, `${key}#%`)?.n ?? 0;
       if (used < e.bonus!.maxLogs) award(user.id, e.bonus!.points, "event", `${key}#film:${film.id}`, `${e.icon} ${e.name} bonus: ${film.title}`);
@@ -561,6 +561,7 @@ export async function claimEventItem(eventId: string, itemId: string): Promise<F
   if (!e || !item) return { error: "Unknown item." };
   const occ = activeOccurrence(e, today());
   if (!occ) return { error: `${e.name} isn't running right now. This item is vaulted until it returns.` };
+  if (!visibleTo(e, user.home_country)) return { error: `${e.name} is only running in ${e.markets!.join(", ")}.` };
   const offer = e.offers.find((o) => o.item === itemId);
   if (!offer) return { error: "That item isn't part of this event." };
   if (one("SELECT 1 x FROM inventory WHERE user_id = ? AND item_id = ?", user.id, itemId)) return { error: "You already have this one." };

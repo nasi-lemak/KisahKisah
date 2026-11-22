@@ -5,12 +5,12 @@ import { buyBundle, claimEventItem } from "@/app/actions";
 import { toast } from "./Toaster";
 import { rain } from "./EasterEggs";
 
-export function ClaimButton({ eventId, itemId, price, owned, affordable, live, signedIn }: {
-  eventId: string; itemId: string; price: number; owned: boolean; affordable: boolean; live: boolean; signedIn: boolean;
+export function ClaimButton({ eventId, itemId, price, owned, affordable, live, signedIn, lockedLabel = "🔒 Not live yet" }: {
+  eventId: string; itemId: string; price: number; owned: boolean; affordable: boolean; live: boolean; signedIn: boolean; lockedLabel?: string;
 }) {
   const [pending, start] = useTransition();
   if (owned) return <span className="block rounded-md bg-jade/15 py-1.5 text-center text-sm font-semibold text-jade">✓ Claimed</span>;
-  if (!live) return <span className="block rounded-md bg-raised py-1.5 text-center text-xs text-muted">🔒 Not live yet</span>;
+  if (!live) return <span className="block rounded-md bg-raised py-1.5 text-center text-xs text-muted">{lockedLabel}</span>;
   if (!signedIn) return <a href={`/login?next=/events/${eventId}`} className="btn btn-ghost w-full justify-center py-1.5 text-sm">Sign in to claim</a>;
   return (
     <button

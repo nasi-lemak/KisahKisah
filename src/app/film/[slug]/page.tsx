@@ -15,6 +15,7 @@ import { ScoresPanel } from "@/components/ScoresPanel";
 import { FranchisePanel } from "@/components/FranchisePanel";
 import { franchisesFor, positionIn } from "@/lib/franchises";
 import { bonusesFor } from "@/lib/events";
+import { audience } from "@/lib/geo";
 
 type Params = Promise<{ slug: string }>;
 
@@ -42,7 +43,7 @@ export default async function FilmPage({ params, searchParams }: { params: Param
   const inLists = listsContainingFilm(film.id);
   const allFilms = all<{ id: number; title: string; year: number }>("SELECT id, title, year FROM films ORDER BY title");
   const today = new Date().toISOString().slice(0, 10);
-  const bonuses = bonusesFor(film);
+  const bonuses = bonusesFor(film, undefined, await audience());
 
   return (
     <div className="space-y-10">

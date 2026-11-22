@@ -56,6 +56,8 @@ export type SiteEvent = {
   featured: string[]; // film slugs
   /** Countries this is especially for (shown as flags; still open to everyone). */
   spotlight?: string[];
+  /** Targeting: only shown and claimable in these countries. Empty/undefined or "GLOBAL" = everywhere. */
+  markets?: string[];
   sponsor?: { name: string; disclosure: string; url?: string };
   promo?: PromoTitle;
   /** Free text: what makes this event fun. */
@@ -276,16 +278,31 @@ export function eventById(id: string): SiteEvent | undefined {
 
 export type ActiveEvent = SiteEvent & { occurrence: Occurrence; daysLeft: number };
 
-export function activeEvents(date = today()): ActiveEvent[] {
+/** Who's looking: a country code, null when unknown, or "all" (staff / internal checks). */
+export type Audience = string | null | "all";
+
+export function isTargeted(e: Pick<SiteEvent, "markets">): boolean {
+  return !!e.markets?.length && !e.markets.includes("GLOBAL");
+}
+
+/** Untargeted events are for everyone; targeted ones only for viewers in their markets. */
+export function visibleTo(e: Pick<SiteEvent, "markets">, audience: Audience): boolean {
+  if (audience === "all" || !isTargeted(e)) return true;
+  return !!audience && e.markets!.includes(audience);
+}
+
+export function activeEvents(date = today(), audience: Audience = "all"): ActiveEvent[] {
   return allEvents()
+    .filter((e) => visibleTo(e, audience))
     .map((e) => ({ e, o: activeOccurrence(e, date) }))
     .filter((x): x is { e: SiteEvent; o: Occurrence } => !!x.o)
     .map(({ e, o }) => ({ ...e, occurrence: o, daysLeft: daysBetween(date, o.end) }))
     .sort((a, b) => (a.kind === b.kind ? a.daysLeft - b.daysLeft : a.kind === "sponsored" ? -1 : 1));
 }
 
-export function upcomingEvents(date = today(), limit = 8): (SiteEvent & { occurrence: Occurrence; daysUntil: number })[] {
+export function upcomingEvents(date = today(), limit = 8, audience: Audience = "all"): (SiteEvent & { occurrence: Occurrence; daysUntil: number })[] {
   return allEvents()
+    .filter((e) => visibleTo(e, audience))
     .filter((e) => !activeOccurrence(e, date))
     .map((e) => ({ e, o: nextOccurrence(e, date) }))
     .filter((x): x is { e: SiteEvent; o: Occurrence } => !!x.o)
@@ -295,9 +312,9 @@ export function upcomingEvents(date = today(), limit = 8): (SiteEvent & { occurr
 }
 
 /** Which active events give a bonus for logging this title? */
-export function bonusesFor(film: { slug: string; country: string; genres: string }, date = today()) {
+export function bonusesFor(film: { slug: string; country: string; genres: string }, date = today(), audience: Audience = "all") {
   const genres = film.genres.split(",");
-  return activeEvents(date).filter((e) => {
+  return activeEvents(date, audience).filter((e) => {
     const b = e.bonus;
     if (!b) return false;
     return (

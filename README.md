@@ -64,6 +64,8 @@ Copy `.env.example` to `.env.local`:
 | `ADMIN_USERNAMES` | Comma-separated usernames given admin access (item editor, inquiries). |
 | `UPLOAD_DIR` | Where uploaded artwork is stored (default `./data/uploads`). |
 | `NEXT_PUBLIC_SITE_URL` | Public URL for share links and link-preview images. |
+| `GEO_HEADER` | Request header holding the visitor's 2-letter country, for campaign targeting. If unset, `cf-ipcountry`, `x-vercel-ip-country`, `cloudfront-viewer-country` and `x-country-code` are tried. Signed-in members use their home country. |
+| `ANALYTICS_SALT` | Salt for the daily-rotating hash that counts unique viewers. Defaults to one derived from `CINEMA_WEBHOOK_SECRET`. |
 | `DISABLE_DEMO_CINEMA=1` | Hides the demo box office, which lets any signed-in user mint test tickets. Set this anywhere real points matter. |
 
 ## Adding cosmetics without code (admin)
@@ -88,7 +90,20 @@ Everyone contributes through the same pipeline: upload → automatic checks → 
 2. The partner joins via the link, fills in the brief (title, tagline, synopsis, colours, preferred dates), and fills each upload slot their package includes (e.g. 4 stickers + theme + decoration for Premiere). They never set prices or publish.
 3. They submit each item, then the campaign, confirming they hold the licence and accept the "Sponsored" label.
 4. Staff review each item: approve, or request changes with a note the partner sees. When everything's approved, *Publish items & schedule* turns the campaign into a **sponsored event** with its own page, banner and limited drops for those dates. No code needed.
-5. Both sides see a report: fans who claimed, items claimed, equipped right now, sticker uses, KP spent.
+5. Both sides see a report: fans who claimed, items claimed, equipped right now, sticker uses, KP spent, plus **impressions, daily viewers, clicks, click-through and event page views**, by day and by country.
+
+**Targeting.** In the brief, partners choose their markets (🌏 Global or specific countries). A targeted campaign's banner, cards, logging bonus and drops only appear for members whose home country is in those markets, or for signed-out visitors whose CDN country header matches. Everyone can still open the event page, but people outside the markets see a notice instead of claim buttons, and the server refuses their claims. Staff see everything.
+
+**Privacy-friendly measurement.** Banners and cards count an impression when at least half is on screen for one second. Clicks and event page views are counted too. Only daily aggregate counters per event and country are stored. Unique viewers are counted with a salted hash that changes every day and is deleted after two days, so nobody can be followed across days. No cookies are set, and visitors with Do Not Track or Global Privacy Control turned on aren't counted. Bots are filtered out.
+
+## Seasonal events without code (admin)
+
+**Admin → Events** lists events made in the admin and the built-in calendar, with each event's next dates. *New event* takes a name, icon, colours, tagline and description, then:
+- **When:** every year on the same dates (it can wrap into the new year), or a one-off window. Lunar and Islamic holidays move each year, so make them one-off and add next year's once the date is confirmed.
+- **Logging bonus:** KP per title for chosen genres or countries, capped per member.
+- **Featured titles** and **markets**: leave markets empty to run everywhere.
+
+A live preview shows the banner, the card and the next occurrence. Saving takes effect at once, with no deploy. Untick *Enabled* to pause an event. Attach limited items to it from **Admin → Items**. Each event's page shows the same performance panel sponsors get.
 
 **Artists** at `/artists`
 1. Apply with a portfolio link; staff approve in **Admin → Artists & payouts**.
@@ -158,4 +173,4 @@ tests/                 node:test unit tests
 - Rewind hours are estimates (2h per film, 8h per series) until runtimes and episode counts are tracked.
 - Lunar/Islamic festival dates are approximate and flagged in code. Confirm them yearly.
 - `scores:sync` is unit-tested against sample payloads but hasn't been run against the live OMDb/TMDB APIs from this environment.
-- Ideas: TMDB catalogue import with real posters and runtimes, a localised UI (Bahasa, Thai, Vietnamese, Tagalog, Korean, French…), an admin CMS for campaigns, geo-targeting, a "cinema date" social feature.
+- Ideas: TMDB catalogue import with real posters and runtimes, a localised UI (Bahasa, Thai, Vietnamese, Tagalog, Korean, French…), release-day watchlist reminders, a "cinema date" social feature.

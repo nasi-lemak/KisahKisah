@@ -2,7 +2,7 @@ import "server-only";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { SCHEMA, SCHEMA_NOTIFICATIONS, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6 } from "./schema";
+import { SCHEMA, SCHEMA_NOTIFICATIONS, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7 } from "./schema";
 import { syncCustomItems } from "./custom-items";
 import { CATALOG } from "./catalog";
 import { STARTER_ITEMS } from "./shop";
@@ -26,6 +26,7 @@ export function db(): DatabaseSync {
   d.exec(SCHEMA_V4);
   d.exec(SCHEMA_V5);
   d.exec(SCHEMA_V6);
+  d.exec(SCHEMA_V7);
   // Seed exactly once, even if several build workers open the file together.
   let seeded = false;
   d.exec("BEGIN IMMEDIATE");

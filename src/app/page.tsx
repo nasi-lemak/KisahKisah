@@ -8,6 +8,7 @@ import { ReviewCard } from "@/components/ReviewCard";
 import { ListCard } from "@/components/ListCard";
 import { CheckinButton } from "@/components/forms";
 import { activeEvents, upcomingEvents } from "@/lib/events";
+import { audience } from "@/lib/geo";
 import { EventCard } from "@/components/EventBanner";
 
 export default async function Home() {
@@ -17,8 +18,9 @@ export default async function Home() {
   const east = listFilms({ region: "east", sort: "rating" }).slice(0, 6);
   const world = listFilms({ sort: "popular" }).filter((f) => !["sea"].includes(COUNTRIES.find((c) => c.code === f.country)?.region ?? "")).slice(0, 6);
   const series = listFilms({ kind: "series", sort: "popular" }).slice(0, 6);
-  const live = activeEvents();
-  const soon = upcomingEvents(undefined, 4 - Math.min(live.length, 4));
+  const who = await audience();
+  const live = activeEvents(undefined, who);
+  const soon = upcomingEvents(undefined, 4 - Math.min(live.length, 4), who);
   const reviews = user ? feedReviews(user.id, 6) : [];
   const popular = popularReviews(6, user?.id ?? 0);
   const lists = recentLists(4);

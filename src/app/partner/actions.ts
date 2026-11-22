@@ -37,11 +37,13 @@ export async function updateCampaignBrief(_: State, form: FormData): Promise<Sta
   const country = COUNTRY_BY_CODE[s("country", 2).toUpperCase()] ? s("country", 2).toUpperCase() : c.country;
   const date = (k: string) => (/^\d{4}-\d{2}-\d{2}$/.test(s(k, 10)) ? s(k, 10) : null);
   if (!s("title", 120)) return { error: "The title can't be empty." };
+  const markets = form.getAll("markets").map(String).filter((m) => m === "GLOBAL" || COUNTRY_BY_CODE[m]);
+  if (!markets.length) return { error: "Pick at least one market (or Global)." };
   run(
     `UPDATE campaigns SET title = ?, tagline = ?, synopsis = ?, release_date = ?, motif = ?, country = ?, color1 = ?, color2 = ?,
-       starts_on = ?, ends_on = ?, updated_at = datetime('now') WHERE id = ?`,
+       starts_on = ?, ends_on = ?, markets = ?, updated_at = datetime('now') WHERE id = ?`,
     s("title", 120), s("tagline", 140), s("synopsis", 600), date("release_date"), s("motif", 8) || "🎬", country,
-    hex("color1", c.color1), hex("color2", c.color2), date("starts_on"), date("ends_on"), c.id,
+    hex("color1", c.color1), hex("color2", c.color2), date("starts_on"), date("ends_on"), markets.includes("GLOBAL") ? "GLOBAL" : markets.join(","), c.id,
   );
   revalidatePath(`/partner/campaigns/${c.id}`);
   return { ok: "Brief saved." };

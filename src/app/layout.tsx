@@ -14,6 +14,7 @@ import { activeEvents } from "@/lib/events";
 import { EventBanner } from "@/components/EventBanner";
 import { ItemRegistry } from "@/components/ItemRegistry";
 import { syncCustomItems } from "@/lib/custom-items";
+import { audience } from "@/lib/geo";
 import { artistProfile, orgsForUser } from "@/lib/portal";
 import { themeStyle } from "@/components/ui";
 
@@ -38,7 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const user = await currentUser();
   const notes = user ? unseenNotifications(user.id) : [];
   const theme = user?.theme_item ? ITEM_BY_ID[user.theme_item]?.value : undefined;
-  const live = activeEvents();
+  const live = activeEvents(undefined, await audience());
   const custom = syncCustomItems();
 
   return (

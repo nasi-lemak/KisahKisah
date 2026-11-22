@@ -5,6 +5,7 @@ import { inventory, ledger, lifetimePoints } from "@/lib/queries";
 import { BUNDLES, ITEMS, ITEM_BY_ID, RARITY_STYLE, bundlePrice, type ItemType, type ShopItem } from "@/lib/shop";
 import { ACHIEVEMENTS } from "@/lib/achievements";
 import { activeEvents, nextOfferFor } from "@/lib/events";
+import { audience } from "@/lib/geo";
 import { levelFromXp } from "@/lib/levels";
 import { BuyButton } from "@/components/forms";
 import { BundleButton, ClaimButton } from "@/components/EventBits";
@@ -56,7 +57,7 @@ export default async function KedaiPage() {
   const owned = new Set(user ? inventory(user.id) : []);
   const history = user ? ledger(user.id, 10) : [];
   const source = new Map(ACHIEVEMENTS.filter((a) => a.reward).map((a) => [a.reward!, a]));
-  const live = activeEvents().filter((e) => e.offers.length);
+  const live = activeEvents(undefined, await audience()).filter((e) => e.offers.length);
   const vaulted = ITEMS.filter((i) => i.event && !i.retired && !live.some((e) => e.offers.some((o) => o.item === i.id)));
   const avatar = user?.avatar_item;
   const name = user?.display_name ?? "Your Name";

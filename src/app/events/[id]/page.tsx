@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { currentUser } from "@/lib/auth";
-import { activeOccurrence, eventById, nextOccurrence, parsePreviewDate, today } from "@/lib/events";
+import { activeOccurrence, eventById, isTargeted, nextOccurrence, parsePreviewDate, today, visibleTo } from "@/lib/events";
+import { audience } from "@/lib/geo";
+import { TrackOnView } from "@/components/Track";
 import { eventClaimCount, filmsBySlugs, inventory } from "@/lib/queries";
 import { ITEM_BY_ID } from "@/lib/shop";
 import { country } from "@/lib/regions";
@@ -30,6 +32,9 @@ export default async function EventPage({ params, searchParams }: { params: Para
   const owned = new Set(user ? inventory(user.id) : []);
   const featured = filmsBySlugs(e.featured);
   const claimed = shown ? eventClaimCount(e.id, shown.start) : 0;
+  const who = await audience();
+  const canSee = who === "all" || visibleTo(e, who);
+  const markets = isTargeted(e) ? e.markets!.map((m) => country(m)?.flag ?? m).join(" ") : null;
 
   return (
     <div className="space-y-8">
@@ -48,11 +53,21 @@ export default async function EventPage({ params, searchParams }: { params: Para
               <span className="rounded-full bg-white/15 px-3 py-1">Next: {fmt(shown.start)}{e.approximate ? " (date approximate)" : ""}</span>
             ) : null}
             {claimed > 0 && <span className="text-white/80">{claimed} member{claimed === 1 ? "" : "s"} joined</span>}
-            {e.spotlight && <span className="text-white/80">Spotlight: {e.spotlight.map((c) => country(c)?.flag).join(" ")} · open to everyone</span>}
+            {markets ? (
+              <span className="text-white/80">🎯 Running in {markets}</span>
+            ) : (
+              e.spotlight && <span className="text-white/80">Spotlight: {e.spotlight.map((c) => country(c)?.flag).join(" ")} · open to everyone</span>
+            )}
           </div>
         </div>
       </section>
 
+      <TrackOnView eventId={e.id} metric="view" />
+      {!canSee && liveNow && (
+        <p className="rounded-xl border border-saffron/40 bg-saffron/10 p-3 text-sm">
+          This campaign runs in {e.markets!.map((m) => country(m)?.name ?? m).join(", ")} only, so its drops can't be claimed from your country.
+        </p>
+      )}
       <p className="max-w-3xl text-muted">{e.blurb}</p>
 
       {e.promo && (
@@ -86,7 +101,8 @@ export default async function EventPage({ params, searchParams }: { params: Para
                   <div className="mt-auto w-full pt-1">
                     <ClaimButton
                       eventId={e.id} itemId={item.id} price={o.price} owned={owned.has(item.id)}
-                      affordable={(user?.points ?? 0) >= o.price} live={!!liveNow} signedIn={!!user}
+                      affordable={(user?.points ?? 0) >= o.price} live={!!liveNow && canSee} signedIn={!!user}
+                      lockedLabel={liveNow && !canSee ? "🌏 Not in your region" : undefined}
                     />
                   </div>
                 </div>

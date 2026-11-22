@@ -83,8 +83,9 @@ export function campaignEventId(id: number) {
 /** A scheduled campaign becomes a sponsored event, labelled "Sponsored". */
 export function campaignToEvent(c: {
   id: number; title: string; tagline: string; synopsis: string; release_date: string | null; motif: string; country: string;
-  starts_on: string; ends_on: string; color1: string; color2: string; org_name: string; featured: string;
+  starts_on: string; ends_on: string; color1: string; color2: string; org_name: string; featured: string; markets?: string;
 }): SiteEvent {
+  const markets = (c.markets ?? "").split(",").map((m) => m.trim().toUpperCase()).filter((m) => /^[A-Z]{2}$|^GLOBAL$/.test(m));
   return {
     id: campaignEventId(c.id), kind: "sponsored", name: c.title, icon: c.motif || "🎬",
     tagline: c.tagline, rule: { kind: "once", start: c.starts_on, end: c.ends_on }, colors: [c.color1, c.color2],
@@ -92,6 +93,7 @@ export function campaignToEvent(c: {
     promo: { title: c.title, tagline: c.tagline, motif: c.motif || "🎬", country: c.country, releaseDate: c.release_date ?? c.starts_on, synopsis: c.synopsis },
     offers: [], featured: c.featured ? c.featured.split(",").filter(Boolean) : [],
     blurb: `Limited drops for ${c.title}. Claim them before they're vaulted.`,
+    markets: markets.length && !markets.includes("GLOBAL") ? markets : undefined,
   };
 }
 
@@ -101,4 +103,66 @@ export type BriefStatus = "open" | "assigned" | "in_review" | "done" | "cancelle
 
 export function formatFee(amountCents: number, currency: string): string {
   return `${currency} ${(amountCents / 100).toLocaleString("en", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
+// ── House events created in the admin ────────────────────────────────
+
+export type HouseEventRow = {
+  id: string; name: string; icon: string; tagline: string; blurb: string; color1: string; color2: string;
+  repeat: "yearly" | "once"; starts: string; ends: string; bonus_points: number; bonus_max: number;
+  bonus_genres: string; bonus_countries: string; featured: string; markets: string; enabled: number;
+};
+
+const list = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
+
+export function bonusLabel(genres: string[], countries: string[], countryName: (c: string) => string = (c) => c): string {
+  const parts = [
+    ...(genres.length ? [`${genres.map((g) => g.toLowerCase()).join(" or ")} title`] : []),
+    ...(countries.length ? [`title from ${countries.map(countryName).join(" or ")}`] : []),
+  ];
+  return parts.length ? `Log a ${parts.join(", or a ")}` : "";
+}
+
+export function houseToEvent(r: HouseEventRow, countryName?: (c: string) => string): SiteEvent {
+  const genres = list(r.bonus_genres);
+  const countries = list(r.bonus_countries);
+  const markets = list(r.markets);
+  return {
+    id: r.id, kind: "house", name: r.name, icon: r.icon || "🎉", tagline: r.tagline, blurb: r.blurb,
+    rule: r.repeat === "yearly" ? { kind: "fixed", start: r.starts, end: r.ends } : { kind: "once", start: r.starts, end: r.ends },
+    colors: [r.color1, r.color2], offers: [],
+    bonus: r.bonus_points > 0 && (genres.length || countries.length)
+      ? { label: bonusLabel(genres, countries, countryName), points: r.bonus_points, maxLogs: r.bonus_max, genres, countries }
+      : undefined,
+    featured: list(r.featured),
+    markets: markets.length && !markets.includes("GLOBAL") ? markets : undefined,
+  };
+}
+
+const MMDD = /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+const YMD = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+
+function realDate(ymd: string): boolean {
+  const t = Date.parse(`${ymd}T00:00:00Z`);
+  return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === ymd;
+}
+
+/** Problems with an event's schedule, or [] if it's fine. Yearly events may wrap the new year. */
+export function validateSchedule(repeat: string, starts: string, ends: string): string[] {
+  if (repeat === "yearly") {
+    const ok = (d: string) => MMDD.test(d) && realDate(`2024-${d}`); // leap year allows 02-29
+    return [
+      ...(ok(starts) ? [] : ["Start must be a month and day."]),
+      ...(ok(ends) ? [] : ["End must be a month and day."]),
+    ];
+  }
+  if (repeat === "once") {
+    if (!YMD.test(starts) || !realDate(starts) || !YMD.test(ends) || !realDate(ends)) return ["Pick real start and end dates."];
+    return ends < starts ? ["The end date is before the start date."] : [];
+  }
+  return ["Choose yearly or one-off."];
+}
+
+export function slugify(name: string): string {
+  return name.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "event";
 }

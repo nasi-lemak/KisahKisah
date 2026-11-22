@@ -430,3 +430,47 @@ CREATE TABLE IF NOT EXISTS item_versions (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 `;
+
+export const SCHEMA_V7 = /* sql */ `
+-- Privacy-friendly analytics: daily totals per country, no personal data.
+CREATE TABLE IF NOT EXISTS analytics_daily (
+  event_id TEXT NOT NULL,
+  day TEXT NOT NULL,
+  metric TEXT NOT NULL,
+  country TEXT NOT NULL,
+  count INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (event_id, day, metric, country)
+);
+-- One row per viewer per day, keyed by a hash with a salt that changes daily,
+-- so viewers can't be followed across days or identified.
+CREATE TABLE IF NOT EXISTS analytics_uniques (
+  event_id TEXT NOT NULL,
+  day TEXT NOT NULL,
+  metric TEXT NOT NULL,
+  hash TEXT NOT NULL,
+  PRIMARY KEY (event_id, day, metric, hash)
+);
+
+-- Seasonal/house events managed in the admin (no code change).
+CREATE TABLE IF NOT EXISTS house_events (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  icon TEXT NOT NULL DEFAULT '🎉',
+  tagline TEXT NOT NULL DEFAULT '',
+  blurb TEXT NOT NULL DEFAULT '',
+  color1 TEXT NOT NULL DEFAULT '#f5a524',
+  color2 TEXT NOT NULL DEFAULT '#19b38a',
+  repeat TEXT NOT NULL DEFAULT 'yearly',
+  starts TEXT NOT NULL,
+  ends TEXT NOT NULL,
+  bonus_points INTEGER NOT NULL DEFAULT 0,
+  bonus_max INTEGER NOT NULL DEFAULT 3,
+  bonus_genres TEXT NOT NULL DEFAULT '',
+  bonus_countries TEXT NOT NULL DEFAULT '',
+  featured TEXT NOT NULL DEFAULT '',
+  markets TEXT NOT NULL DEFAULT '',
+  enabled INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+`;

@@ -9,7 +9,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="space-y-6">
       <nav className="glass flex flex-wrap items-center gap-1 p-1.5 text-sm font-semibold">
         <span className="px-3 font-display">🛠️ Admin</span>
-        {[["/admin", "Overview"], ["/admin/items", "Items"], ["/admin/items/new", "＋ New item"], ["/admin/inquiries", "Inquiries"], ["/admin/campaigns", "Campaigns"], ["/admin/briefs", "Briefs"], ["/admin/artists", "Artists & payouts"], ["/specs", "Specs"]].map(([href, label]) => (
+        {[["/admin", "Overview"], ["/admin/items", "Items"], ["/admin/items/new", "＋ New item"], ["/admin/inquiries", "Inquiries"], ["/admin/campaigns", "Campaigns"], ["/admin/events", "Events"], ["/admin/briefs", "Briefs"], ["/admin/artists", "Artists & payouts"], ["/specs", "Specs"]].map(([href, label]) => (
           <Link key={href} href={href} className="rounded-lg px-3 py-1.5 text-muted hover:bg-raised hover:text-text">{label}</Link>
         ))}
       </nav>

@@ -5,7 +5,7 @@ import { submitCampaign, updateCampaignBrief } from "@/app/partner/actions";
 import { scheduleCampaign } from "@/app/admin/actions";
 import { Notice, Submit, useKeptAction } from "../forms";
 
-type C = { id: number; title: string; tagline: string; synopsis: string; release_date: string | null; motif: string; country: string; color1: string; color2: string; starts_on: string | null; ends_on: string | null; featured?: string };
+type C = { markets?: string; id: number; title: string; tagline: string; synopsis: string; release_date: string | null; motif: string; country: string; color1: string; color2: string; starts_on: string | null; ends_on: string | null; featured?: string };
 
 export function CampaignBriefForm({ c, countries, locked }: { c: C; countries: { code: string; name: string; flag: string }[]; locked: boolean }) {
   const [state, action, pending] = useKeptAction(updateCampaignBrief);
@@ -61,6 +61,18 @@ export function CampaignBriefForm({ c, countries, locked }: { c: C; countries: {
             <input id="cb-end" type="date" name="ends_on" className="input" defaultValue={c.ends_on ?? ""} />
           </div>
         </div>
+        <fieldset>
+          <legend className="label">Markets: where fans will see it</legend>
+          <div className="flex flex-wrap gap-1.5">
+            <label className="chip cursor-pointer"><input type="checkbox" name="markets" value="GLOBAL" defaultChecked={(c.markets ?? "").split(",").includes("GLOBAL")} /> 🌏 Global</label>
+            {countries.map((x) => (
+              <label key={x.code} className="chip cursor-pointer">
+                <input type="checkbox" name="markets" value={x.code} defaultChecked={(c.markets ?? "").split(",").includes(x.code)} /> {x.flag} {x.name}
+              </label>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-muted">Fans outside these countries won't see the banner or be able to claim the drops.</p>
+        </fieldset>
         <div className="flex flex-wrap gap-4 text-sm">
           <label className="flex items-center gap-2"><input type="color" name="color1" defaultValue={c.color1} onChange={(e) => setV({ ...v, color1: e.target.value })} className="h-8 w-10 rounded border border-line bg-transparent" /> Main colour</label>
           <label className="flex items-center gap-2"><input type="color" name="color2" defaultValue={c.color2} onChange={(e) => setV({ ...v, color2: e.target.value })} className="h-8 w-10 rounded border border-line bg-transparent" /> Second colour</label>
