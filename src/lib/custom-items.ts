@@ -1,7 +1,7 @@
 import "server-only";
 import { all } from "./db";
 import { ITEM_BY_ID, registerItems, type ShopItem } from "./shop";
-import { registerExtraEvents, registerExtraOffers, type Offer } from "./events";
+import { registerDateOverrides, registerExtraEvents, registerExtraOffers, type Offer } from "./events";
 import { campaignToEvent, houseToEvent, type HouseEventRow } from "./workflow";
 import { country } from "./regions";
 import { toShopItem, type CustomItemRow } from "./custom-item-map";
@@ -27,6 +27,7 @@ export function syncCustomItems(): ShopItem[] {
     (offers[r.event!] ??= []).push({ item: r.id, price: r.event_price ?? 0 });
   }
   registerExtraOffers(offers);
+  registerDateOverrides(all<{ event_id: string; year: number; start: string; days: number }>("SELECT event_id, year, start, days FROM event_dates"));
   // Scheduled partner campaigns run as sponsored events; admin-made house events join the calendar.
   registerExtraEvents([
     ...all<HouseEventRow>("SELECT * FROM house_events WHERE enabled = 1").map((r) => houseToEvent(r, (c) => country(c)?.name ?? c)),

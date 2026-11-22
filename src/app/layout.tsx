@@ -47,7 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="min-h-screen" data-theme={theme} style={themeStyle(user?.theme_item)}>
         <ItemRegistry items={custom} />
         <div className="batik-strip" />
-        <header className="sticky top-0 z-40 border-b border-line bg-ink/90 backdrop-blur">
+        <header className="sticky top-0 z-40 border-b print:hidden border-line bg-ink/90 backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
             <Link href="/" className="flex items-center gap-2 font-display text-xl font-bold tracking-tight">
               <LogoEgg />
@@ -117,11 +117,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             ))}
           </nav>
         </header>
-        <EventBanner events={live} />
+        <div className="print:hidden"><EventBanner events={live} /></div>
 
         <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
 
-        <footer className="mt-16 border-t border-line">
+        <footer className="mt-16 border-t border-line print:hidden">
           <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 text-sm text-muted sm:grid-cols-3">
             <div>
               <div className="font-display text-lg font-bold text-text">

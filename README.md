@@ -64,6 +64,7 @@ Copy `.env.example` to `.env.local`:
 | `OMDB_API_KEY` | Optional, for `npm run scores:sync`. Respect each provider's terms. |
 | `RESEND_API_KEY`, `MAIL_FROM` | Email delivery (verification, password resets, reminders). Without them, mail lands in the dev outbox at **Admin → Outbox**. |
 | `CRON_SECRET` | Turns on `/api/cron`. Call it hourly with `Authorization: Bearer <secret>` (GET or POST) to send release reminders and clean up expired sessions and links. Staff can also press **Run now** on the admin overview. |
+| `BILLING_NAME`, `BILLING_ADDRESS`, `BILLING_TAX_ID`, `BILLING_EMAIL`, `BILLING_BANK` | Your company details and bank instructions, printed on order forms and invoices. |
 | `TRUST_PROXY=1` | Set only behind a proxy you control, so `X-Forwarded-For` can be used for per-IP rate limits. Without it, per-IP limits are skipped and per-account limits still apply. |
 | `ADMIN_USERNAMES` | Comma-separated usernames given admin access (item editor, inquiries). |
 | `UPLOAD_DIR` | Where uploaded artwork is stored (default `./data/uploads`). |
@@ -115,6 +116,10 @@ Everyone contributes through the same pipeline: upload → automatic checks → 
 **Release reminders.** Sponsored events with a future release date, and catalogue titles with an upcoming release (from TMDB, including new seasons), show **🔔 Notify me**. On release day the scheduled job sends an in-app notification, plus an email to members with a confirmed address. Reminders more than 14 days late are dropped rather than sent. Partners see sign-ups, by country, and reminders sent in their report.
 
 **Cinema ticket bonus.** Partners link their title's KisahKisah page in the brief. Staff set the commercial terms on the campaign: extra KP on partner-cinema tickets (a percentage of the normal ticket points) and an optional exclusive item. Ticket holders in the campaign's markets get them while it runs. That item is then removed from the free drops. The event and film pages advertise the bonus, and the report shows bonus tickets, KP paid, items given, and a breakdown by cinema.
+
+**Official Kuiz.** In the brief, partners write up to 5 multiple-choice questions, each with an optional fun fact. Staff set the KP reward and can fix questions until the first play. While the campaign runs, fans in its markets play once: points scale with right answers, with a 25% bonus for a perfect score. Answers stay on the server until a fan submits. The report shows plays, average score, perfect scores, KP paid, and how many fans got each question right.
+
+**Order forms & invoices.** On the campaign's admin page, *Create order* starts from the package's list price, set in `PACKAGE_PRICES` in `src/lib/billing-core.ts`. Staff then edit the lines, discount, tax (e.g. "SST 8%"), payment terms and validity, and send it. The partner adds billing details and signs with their name and title. The order is locked once signed, and editing a sent order sends it back to draft. Staff issue invoices as a percentage of the order (e.g. 50% deposit, then the balance), capped at what's left. Tax is split pro rata so the instalments add up exactly. Invoices are then marked paid with a reference, or voided. Order forms and invoices print or save cleanly as PDF at `/billing/<number>`, visible only to staff and the partner team. Numbers run per year (`KK-Q-2026-0001`, `KK-INV-2026-0001`). The terms in `DEFAULT_TERMS` are a template: have counsel review them for each market. Scheduling shows a warning if the order isn't signed; pilots can go ahead without one.
 
 **Targeting.** In the brief, partners choose their markets (🌏 Global or specific countries). A targeted campaign's banner, cards, logging bonus and drops only appear for members whose home country is in those markets, or for signed-out visitors whose CDN country header matches. Everyone can still open the event page, but people outside the markets see a notice instead of claim buttons, and the server refuses their claims. Staff see everything.
 
@@ -195,6 +200,6 @@ tests/                 node:test unit tests
 - Auth is username or email plus password (scrypt) with httpOnly session cookies, rate limits, email confirmation and resets (see Accounts & security). Server actions get Next's built-in origin checks. Two-factor sign-in isn't built yet.
 - SQLite fits a single instance. For scale, port `schema.ts` to Postgres; queries are plain SQL.
 - Rewind hours use TMDB runtimes where linked, else estimates (2h per film, 8h per season).
-- Lunar/Islamic festival dates are approximate and flagged in code. Confirm them yearly.
+- Lunar and Islamic festival dates in code are estimates. Confirm each year's real dates in **Admin → Events → Moving festivals**: confirmed dates replace the estimates everywhere (and can add years the code doesn't have), and the "approx." labels disappear.
 - `scores:sync` is unit-tested against sample payloads but hasn't been run against the live OMDb/TMDB APIs from this environment.
 - Ideas: a localised UI (Bahasa, Thai, Vietnamese, Tagalog, Korean, French…), a "cinema date" social feature.

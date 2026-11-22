@@ -7,7 +7,7 @@ import { all, one, run } from "@/lib/db";
 import { readiness, type CustomData, type Draft } from "@/lib/custom-item-map";
 import { syncCustomItems, type CustomItemRow } from "@/lib/custom-items";
 import { validateGradient, validateTheme } from "@/lib/asset-spec";
-import { eventById } from "@/lib/events";
+import { allEvents, eventById } from "@/lib/events";
 import type { ItemType, Rarity } from "@/lib/shop";
 import { canTransition, campaignReadiness, campaignEventId, slotsFor, slugify, validateSchedule, type ItemStatus } from "@/lib/workflow";
 import { GENRES } from "@/lib/catalog";
@@ -297,4 +297,26 @@ export async function saveTicketBonus(_: { error?: string; ok?: string } | undef
   syncCustomItems();
   revalidatePath("/", "layout");
   return { ok: pct || item ? `Saved: +${pct}% KP${item ? " and the item" : ""} on partner-cinema tickets during the campaign.` : "Saved. No ticket bonus." };
+}
+
+// ── Confirm a moving festival's date for a year ───────────────────────
+
+export async function confirmEventDate(_: { error?: string; ok?: string } | undefined, form: FormData): Promise<{ error?: string; ok?: string }> {
+  const user = await requireStaff();
+  const id = String(form.get("event_id") ?? "");
+  const e = allEvents().find((x) => x.id === id);
+  if (!e || e.rule.kind !== "dated") return { error: "Only moving (lunar or Islamic) festivals need confirming." };
+  const start = String(form.get("start") ?? "");
+  const year = Number(start.slice(0, 4));
+  const days = Math.max(1, Math.min(31, Math.round(Number(form.get("days")) || e.rule.days)));
+  if (validateSchedule("once", start, start).length) return { error: "Pick a real start date." };
+  if (year < new Date().getUTCFullYear() - 1 || year > new Date().getUTCFullYear() + 5) return { error: "Pick a date within the next few years." };
+  run(
+    `INSERT INTO event_dates (event_id, year, start, days, note, confirmed_by) VALUES (?,?,?,?,?,?)
+     ON CONFLICT(event_id, year) DO UPDATE SET start = excluded.start, days = excluded.days, note = excluded.note, confirmed_by = excluded.confirmed_by, confirmed_at = datetime('now')`,
+    id, year, start, days, String(form.get("note") ?? "").slice(0, 200), user.id,
+  );
+  syncCustomItems();
+  revalidatePath("/", "layout");
+  return { ok: `${e.name} ${year}: ${start}, ${days} days. Confirmed.` };
 }

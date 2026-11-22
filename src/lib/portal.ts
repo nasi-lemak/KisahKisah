@@ -1,5 +1,6 @@
 import "server-only";
 import { campaignSignups } from "./reminders";
+import { quizStats } from "./quiz";
 import { all, one, run } from "./db";
 import type { User } from "./auth";
 import type { CustomItemRow } from "./custom-item-map";
@@ -14,7 +15,7 @@ export type Campaign = {
   status: CampaignStatus; tagline: string; synopsis: string; release_date: string | null; motif: string; country: string;
   color1: string; color2: string; starts_on: string | null; ends_on: string | null; featured: string;
   licence_confirmed: number; licence_at: string | null; created_at: string; updated_at: string;
-  film_slug: string | null; ticket_bonus_pct: number; ticket_item: string | null;
+  film_slug: string | null; ticket_bonus_pct: number; ticket_item: string | null; quiz_reward: number;
 };
 
 const CAMPAIGN_SELECT = "SELECT c.*, o.name org_name FROM campaigns c JOIN orgs o ON o.id = c.org_id";
@@ -47,7 +48,7 @@ export function orgMembers(orgId: number): { id: number; username: string; displ
   return all("SELECT u.id, u.username, u.display_name FROM org_members m JOIN users u ON u.id = m.user_id WHERE m.org_id = ?", orgId);
 }
 
-/** What the sponsor sees after (and during) a campaign. Impressions need tracking that isn't built yet. */
+/** What the sponsor sees during and after a campaign. */
 export function campaignReport(c: Campaign) {
   const items = campaignItems(c.id).filter((i) => i.status === "live" || i.status === "retired");
   const ids = items.map((i) => i.id);
@@ -73,7 +74,7 @@ export function campaignReport(c: Campaign) {
     "SELECT chain_id, COUNT(*) n, SUM(points) points FROM campaign_ticket_bonuses WHERE campaign_id = ? GROUP BY chain_id ORDER BY n DESC", c.id,
   );
   return {
-    tickets, byChain, reminders: campaignSignups(c.id, c.film_slug),
+    tickets, byChain, reminders: campaignSignups(c.id, c.film_slug), quiz: quizStats(c.id),
     uniqueClaimers: n("SELECT COUNT(DISTINCT user_id) n FROM event_claims WHERE event_id = ?", eventId),
     totalClaims: perItem.reduce((a, x) => a + x.claims, 0),
     kpSpent: n("SELECT COALESCE(SUM(price), 0) n FROM event_claims WHERE event_id = ?", eventId),

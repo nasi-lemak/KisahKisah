@@ -1,4 +1,10 @@
 import Link from "next/link";
+import { BillingPanel } from "@/components/billing/BillingPanel";
+import { orderForCampaign } from "@/lib/billing";
+import { QuizEditor } from "@/components/partner/QuizEditor";
+import { quizFor, quizStats } from "@/lib/quiz";
+import { QUIZ_MAX_QUESTIONS } from "@/lib/quiz-core";
+import { saveQuizReward } from "@/app/quiz-actions";
 import { notFound } from "next/navigation";
 import { all } from "@/lib/db";
 import { campaignById, campaignItems, orgMembers } from "@/lib/portal";
@@ -54,6 +60,23 @@ export default async function AdminCampaign({ params }: { params: Promise<{ id: 
       </section>
 
       <section className="glass space-y-3 p-5">
+        <h2 className="font-display text-lg font-bold">📄 Order &amp; invoices</h2>
+        <BillingPanel campaignId={c.id} mode="staff" />
+      </section>
+
+      <section className="glass space-y-3 p-5">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="font-display text-lg font-bold">❓ Official Kuiz</h2>
+          <form action={saveQuizReward.bind(null, c.id)} className="ml-auto flex items-center gap-2 text-sm">
+            <label htmlFor="quiz-reward">Reward for a full score base (KP)</label>
+            <input id="quiz-reward" name="quiz_reward" type="number" min={0} max={100} defaultValue={c.quiz_reward} className="input w-20 py-1" />
+            <button className="chip">Save</button>
+          </form>
+        </div>
+        <QuizEditor campaignId={c.id} rows={quizFor(c.id)} max={QUIZ_MAX_QUESTIONS} locked={c.status === "scheduled" && quizStats(c.id).plays > 0} />
+      </section>
+
+      <section className="glass space-y-3 p-5">
         <h2 className="font-display text-lg font-bold">🎟️ Cinema ticket bonus</h2>
         <TicketBonusForm
           c={c}
@@ -66,6 +89,7 @@ export default async function AdminCampaign({ params }: { params: Promise<{ id: 
         <section className="glass space-y-3 p-5">
           <h2 className="font-display text-lg font-bold">Schedule</h2>
           <ul className="text-sm">{ready.map((r) => <li key={r.label}>{r.pass ? "✅" : "⬜"} {r.label}</li>)}</ul>
+          {orderForCampaign(c.id)?.status !== "accepted" && <p className="text-xs text-saffron">⚠️ No signed order yet. Fine for pilots; otherwise get it signed before scheduling.</p>}
           <ScheduleForm c={c} />
           {c.status === "submitted" && (
             <form action={async (fd: FormData) => { "use server"; await returnCampaign(c.id, String(fd.get("note") ?? "")); }} className="flex gap-2 border-t border-line pt-3">

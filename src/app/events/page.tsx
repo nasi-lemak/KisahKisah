@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { activeEvents, allEvents, nextOccurrence, occurrenceIn, parsePreviewDate, today, upcomingEvents, visibleTo } from "@/lib/events";
+import { activeEvents, allEvents, isApproximate, nextOccurrence, occurrenceIn, parsePreviewDate, today, upcomingEvents, visibleTo } from "@/lib/events";
 import { EventCard } from "@/components/EventBanner";
 import { audience } from "@/lib/geo";
 import { Empty } from "@/components/ui";
@@ -63,7 +63,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
         <h2 className="section-title">Coming up</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {upcoming.map((e) => (
-            <EventCard key={e.id} e={e} note={`${fmt(e.occurrence.start)}${e.approximate ? " (approx.)" : ""} · in ${e.daysUntil} days`} />
+            <EventCard key={e.id} e={e} note={`${fmt(e.occurrence.start)}${isApproximate(e, Number(e.occurrence.start.slice(0, 4))) ? " (approx.)" : ""} · in ${e.daysUntil} days`} />
           ))}
         </div>
       </section>
@@ -80,7 +80,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
               <span className="text-lg">{e.icon}</span>
               <span className="font-semibold">{e.name}</span>
               <span className="hidden truncate text-muted sm:inline">{e.tagline}</span>
-              {e.approximate && <span className="ml-auto shrink-0 text-[0.65rem] text-muted">date approx.</span>}
+              {isApproximate(e, Number(o!.start.slice(0, 4))) && <span className="ml-auto shrink-0 text-[0.65rem] text-muted">date approx.</span>}
             </Link>
           ))}
         </div>

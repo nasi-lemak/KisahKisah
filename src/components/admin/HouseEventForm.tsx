@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { saveHouseEvent } from "@/app/admin/actions";
+import { confirmEventDate, saveHouseEvent } from "@/app/admin/actions";
 import { nextOccurrence, activeOccurrence, today, type SiteEvent } from "@/lib/events";
 import { bonusLabel, houseToEvent, validateSchedule, type HouseEventRow } from "@/lib/workflow";
 import { Notice, Submit, useKeptAction } from "../forms";
@@ -150,6 +150,20 @@ export function HouseEventForm({ initial, genres, countries }: { initial: HouseE
         <Notice state={state} />
         <Submit pending={pending}>{initial ? "Save event" : "Create event"}</Submit>
       </aside>
+    </form>
+  );
+}
+
+export function ConfirmDateForm({ eventId, year, start, days }: { eventId: string; year: number; start: string; days: number }) {
+  const [state, action, pending] = useKeptAction(confirmEventDate);
+  return (
+    <form onSubmit={action} className="flex flex-wrap items-end gap-2">
+      <input type="hidden" name="event_id" value={eventId} />
+      <input type="date" name="start" defaultValue={start} min={`${year}-01-01`} max={`${year}-12-31`} className="input w-40 py-1" aria-label={`${eventId} ${year} start date`} />
+      <input type="number" name="days" defaultValue={days} min={1} max={31} className="input w-16 py-1" aria-label="Days" />
+      <input name="note" placeholder="Source, e.g. JAKIM announcement" className="input w-56 py-1" aria-label="Source of the date" />
+      <Submit pending={pending} className="chip">Confirm</Submit>
+      <Notice state={state} />
     </form>
   );
 }

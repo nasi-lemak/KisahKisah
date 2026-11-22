@@ -95,8 +95,10 @@ export function occurrenceIn(e: SiteEvent, year: number): Occurrence | null {
       return { start, end };
     }
     case "dated": {
-      const s = r.starts[year];
-      return s ? { start: s, end: addDays(s, r.days - 1) } : null;
+      // Staff-confirmed dates (Admin → Events) win over the approximate dates in code.
+      const o = DATE_OVERRIDES[e.id]?.[year];
+      const s = o?.start ?? r.starts[year];
+      return s ? { start: s, end: addDays(s, (o?.days ?? r.days) - 1) } : null;
     }
     case "once":
       return Number(r.start.slice(0, 4)) === year ? { start: r.start, end: r.end } : null;
@@ -254,6 +256,19 @@ function baseEvents(): SiteEvent[] {
 }
 
 /** Offers added from the admin (custom items attached to an event). */
+const DATE_OVERRIDES: Record<string, Record<number, { start: string; days: number }>> = Object.create(null);
+
+/** Confirmed dates for moving festivals, loaded from the database. */
+export function registerDateOverrides(rows: { event_id: string; year: number; start: string; days: number }[]) {
+  for (const k of Object.keys(DATE_OVERRIDES)) delete DATE_OVERRIDES[k];
+  for (const r of rows) (DATE_OVERRIDES[r.event_id] ??= {})[r.year] = { start: r.start, days: r.days };
+}
+
+/** Is this event's date for that year still a guess? */
+export function isApproximate(e: Pick<SiteEvent, "id" | "approximate">, year: number): boolean {
+  return !!e.approximate && !DATE_OVERRIDES[e.id]?.[year];
+}
+
 const EXTRA_OFFERS: Record<string, Offer[]> = Object.create(null);
 
 /** Events created outside code (scheduled partner campaigns). */

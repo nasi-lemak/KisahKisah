@@ -1,13 +1,17 @@
 import Link from "next/link";
 import { all } from "@/lib/db";
+import { occurrenceIn } from "@/lib/events";
 import { allEvents, activeOccurrence, nextOccurrence, today } from "@/lib/events";
 import type { HouseEventRow } from "@/lib/workflow";
+import { ConfirmDateForm } from "@/components/admin/HouseEventForm";
 
 const fmt = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 
 export default function AdminEvents() {
   const rows = all<HouseEventRow>("SELECT * FROM house_events ORDER BY updated_at DESC");
   const dbIds = new Set(rows.map((r) => r.id));
+  const thisYear = new Date().getUTCFullYear();
+  const confirmed = new Map(all<{ event_id: string; year: number; start: string; days: number; note: string }>("SELECT event_id, year, start, days, note FROM event_dates").map((r) => [`${r.event_id}:${r.year}`, r]));
   const builtIn = allEvents().filter((e) => !dbIds.has(e.id) && !e.id.startsWith("cmp-"));
   const when = (id: string) => {
     const e = allEvents().find((x) => x.id === id);
@@ -35,6 +39,27 @@ export default function AdminEvents() {
             <span className="text-xs text-muted">{r.enabled ? when(r.id) : "paused"}</span>
           </Link>
         ))}
+      </section>
+      <section className="glass space-y-3 p-5">
+        <h2 className="font-display text-lg font-bold">Moving festivals: confirm each year&apos;s dates</h2>
+        <p className="text-xs text-muted">Lunar and Islamic festivals move every year and can differ by country. The code has estimates; confirm the real dates once announced (for example by JAKIM or MUIS). Confirmed dates replace the estimates everywhere, and you can add years the code doesn&apos;t know yet.</p>
+        <table className="w-full text-sm">
+          <thead><tr className="text-left text-xs uppercase tracking-widest text-muted"><th className="py-1">Festival</th><th>Year</th><th>Status</th><th>Set the dates</th></tr></thead>
+          <tbody>
+            {allEvents().filter((e) => e.rule.kind === "dated").flatMap((e) => [thisYear, thisYear + 1].map((y) => {
+              const o = occurrenceIn(e, y);
+              const c = confirmed.get(`${e.id}:${y}`);
+              return (
+                <tr key={`${e.id}-${y}`} className="border-t border-line align-middle">
+                  <td className="py-2">{e.icon} {e.name}</td>
+                  <td>{y}</td>
+                  <td className="text-xs">{c ? <span className="text-jade">✓ confirmed {c.start}{c.note ? ` · ${c.note}` : ""}</span> : o ? <span className="text-saffron">estimate {o.start}</span> : <span className="text-red-300">no date</span>}</td>
+                  <td><ConfirmDateForm eventId={e.id} year={y} start={o?.start ?? `${y}-01-01`} days={e.rule.kind === "dated" ? (c?.days ?? e.rule.days) : 1} /></td>
+                </tr>
+              );
+            }))}
+          </tbody>
+        </table>
       </section>
       <section className="space-y-2">
         <h2 className="font-display text-lg font-bold">Built in</h2>

@@ -126,7 +126,8 @@ Reach is measured without cookies or personal data: daily aggregate counters plu
    - Bonus rules (which titles/genres/countries), featured titles
 5. **Build:** items are created in **Admin → Items**: upload, automatic checks, preview, approve, publish, and attach to the campaign's event. Scheduling the campaign in **Admin → Campaigns** creates the event window. House events are made in **Admin → Events**.
 6. **QA:** preview with the time machine, test claims on staging, check labels.
-7. **Launch → mid-flight report → wrap report.**
+7. **Paperwork:** order form from the package price → partner signs online → deposit invoice → balance invoice at launch (Admin → Campaigns → Order & invoices).
+8. **Launch → mid-flight report → wrap report.**
 
 ## 10. What's built vs. what's next
 
@@ -147,9 +148,9 @@ Reach is measured without cookies or personal data: daily aggregate counters plu
 5. ~~Impression and click tracking~~ **Built**: privacy-friendly impressions, daily viewers, clicks, CTR and page views in the campaign report, by day and country.
 6. ~~Release-day reminders and the "notify me" button~~ **Built**: in-app and email on release day; sign-ups by country in the report.
 7. ~~Partner-cinema ticket bonus wired to a campaign~~ **Built**: +% KP and an exclusive ticket-holder item on partner-cinema tickets for the linked title, during the campaign, in its markets; reported by cinema.
-8. Official campaign Kuiz on event pages
+8. ~~Official campaign Kuiz on event pages~~ **Built**: partner-written questions, played once per fan for KP, per-question results in the report.
 9. ~~House events created in the admin~~ **Built**: yearly or one-off windows, logging bonuses, featured titles, markets, pause/resume and a live preview (`/admin/events`).
-10. Contracts, invoicing, and confirming festival dates per market each year
+10. ~~Contracts, invoicing, and confirming festival dates each year~~ **Built**: order forms with e-signature, instalment invoices with tax, printable documents; yearly date confirmation for moving festivals in the admin. Next: per-market festival dates, online card payments.
 
 ## 11. Risks
 

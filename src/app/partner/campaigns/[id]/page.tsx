@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { BillingPanel } from "@/components/billing/BillingPanel";
+import { QuizEditor } from "@/components/partner/QuizEditor";
+import { quizFor } from "@/lib/quiz";
+import { QUIZ_MAX_QUESTIONS } from "@/lib/quiz-core";
 import { all } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
@@ -31,6 +35,17 @@ export default async function PartnerCampaign({ params }: { params: Promise<{ id
       <section className="glass space-y-3 p-5">
         <h2 className="font-display text-xl font-bold">1 · The brief</h2>
         <CampaignBriefForm c={c} countries={COUNTRIES} locked={locked} films={all<{ slug: string; title: string; year: number }>("SELECT slug, title, year FROM films ORDER BY title")} />
+      </section>
+
+      <section className="glass space-y-3 p-5">
+        <h2 className="font-display text-xl font-bold">📄 Order form &amp; invoices</h2>
+        <BillingPanel campaignId={c.id} mode="partner" />
+      </section>
+
+      <section className="glass space-y-3 p-5">
+        <h2 className="font-display text-xl font-bold">Official Kuiz <span className="text-sm font-normal text-muted">(optional)</span></h2>
+        <p className="text-sm text-muted">Up to {QUIZ_MAX_QUESTIONS} multiple-choice questions fans play once on your event page for KP. Keep them spoiler-free and fun.</p>
+        <QuizEditor campaignId={c.id} rows={quizFor(c.id)} max={QUIZ_MAX_QUESTIONS} locked={locked} />
       </section>
 
       <section className="glass space-y-3 p-5">

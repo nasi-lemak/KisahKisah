@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { currentUser } from "@/lib/auth";
-import { activeOccurrence, eventById, isTargeted, nextOccurrence, parsePreviewDate, today, visibleTo } from "@/lib/events";
+import { activeOccurrence, eventById, isApproximate, isTargeted, nextOccurrence, parsePreviewDate, today, visibleTo } from "@/lib/events";
 import { audience } from "@/lib/geo";
 import { TrackOnView } from "@/components/Track";
 import { eventClaimCount, filmsBySlugs, inventory } from "@/lib/queries";
@@ -15,6 +15,8 @@ import { NotifyButton } from "@/components/NotifyButton";
 import { reminderState } from "@/lib/reminders";
 import { canSignUp } from "@/lib/reminders-core";
 import { campaignById } from "@/lib/portal";
+import { publicQuiz, quizPlay } from "@/lib/quiz";
+import { CampaignQuiz } from "@/components/CampaignQuiz";
 
 type Params = Promise<{ id: string }>;
 
@@ -59,7 +61,7 @@ export default async function EventPage({ params, searchParams }: { params: Para
             {liveNow ? (
               <span className="rounded-full bg-jade px-3 py-1 font-bold text-ink">● LIVE until {fmt(liveNow.end)}</span>
             ) : shown ? (
-              <span className="rounded-full bg-white/15 px-3 py-1">Next: {fmt(shown.start)}{e.approximate ? " (date approximate)" : ""}</span>
+              <span className="rounded-full bg-white/15 px-3 py-1">Next: {fmt(shown.start)}{isApproximate(e, Number(shown.start.slice(0, 4))) ? " (date approximate)" : ""}</span>
             ) : null}
             {claimed > 0 && <span className="text-white/80">{claimed} member{claimed === 1 ? "" : "s"} joined</span>}
             {markets ? (
@@ -123,6 +125,17 @@ export default async function EventPage({ params, searchParams }: { params: Para
               );
             })}
           </div>
+        </section>
+      )}
+
+      {cmp && liveNow && canSee && publicQuiz(cmp.id).length > 0 && (
+        <section className="card space-y-3 p-5">
+          <h2 className="font-display text-xl font-bold">❓ Official {cmp.title} Kuiz</h2>
+          {user ? (
+            <CampaignQuiz campaignId={cmp.id} questions={publicQuiz(cmp.id)} reward={cmp.quiz_reward} played={quizPlay(user.id, cmp.id) ?? null} />
+          ) : (
+            <Link href={`/login?next=/events/${e.id}`} className="btn btn-ghost">Sign in to play for KP</Link>
+          )}
         </section>
       )}
 

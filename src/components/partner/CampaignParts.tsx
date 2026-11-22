@@ -122,6 +122,24 @@ export function CampaignReport({ c }: { c: Campaign }) {
           )}
         </div>
       )}
+      {r.quiz.perQuestion.length > 0 && (
+        <div className="space-y-2 rounded-xl bg-black/20 p-3 text-sm">
+          <div className="flex flex-wrap gap-4">
+            <b>❓ Kuiz</b>
+            <span>{r.quiz.plays} plays</span>
+            <span>{Math.round(r.quiz.avg * 100)}% average</span>
+            <span>{r.quiz.perfect} perfect scores</span>
+            <span>{r.quiz.points} KP paid</span>
+          </div>
+          {r.quiz.perQuestion.map((q, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <span className="min-w-0 flex-1 truncate text-muted">{i + 1}. {q.question}</span>
+              <span className="h-2 w-32 overflow-hidden rounded bg-black/30"><span className="block h-full bg-jade" style={{ width: `${q.rate * 100}%` }} /></span>
+              <span className="w-10 text-right">{Math.round(q.rate * 100)}%</span>
+            </div>
+          ))}
+        </div>
+      )}
       <AnalyticsPanel eventId={campaignEventId(c.id)} from={c.starts_on} to={c.ends_on} />
     </div>
   );

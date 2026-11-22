@@ -534,3 +534,79 @@ CREATE TABLE IF NOT EXISTS job_runs (
   last_result TEXT NOT NULL DEFAULT ''
 );
 `;
+
+export const SCHEMA_V10 = `
+-- Official campaign Kuiz: written by the partner in the brief, played once per fan.
+CREATE TABLE IF NOT EXISTS campaign_quiz (
+  id INTEGER PRIMARY KEY,
+  campaign_id INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+  position INTEGER NOT NULL DEFAULT 0,
+  question TEXT NOT NULL,
+  options TEXT NOT NULL,          -- JSON array of 2–4 strings
+  answer INTEGER NOT NULL,        -- index into options
+  explanation TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS campaign_quiz_campaign ON campaign_quiz(campaign_id, position);
+
+CREATE TABLE IF NOT EXISTS quiz_plays (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  campaign_id INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+  correct INTEGER NOT NULL,
+  total INTEGER NOT NULL,
+  points INTEGER NOT NULL,
+  answers TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, campaign_id)
+);
+
+-- Commercial paperwork: one order form per campaign, invoices against it.
+CREATE TABLE IF NOT EXISTS orders (
+  id INTEGER PRIMARY KEY,
+  campaign_id INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+  number TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL DEFAULT 'draft',      -- draft → sent → accepted (or cancelled)
+  currency TEXT NOT NULL DEFAULT 'USD',
+  lines TEXT NOT NULL DEFAULT '[]',          -- JSON [{label, qty, unit}] in minor units
+  discount INTEGER NOT NULL DEFAULT 0,       -- minor units
+  tax_rate REAL NOT NULL DEFAULT 0,          -- e.g. 0.08
+  tax_label TEXT NOT NULL DEFAULT '',
+  payment_terms TEXT NOT NULL DEFAULT '50% on signature, 50% on campaign launch. Net 14 days.',
+  notes TEXT NOT NULL DEFAULT '',
+  terms TEXT NOT NULL DEFAULT '',            -- snapshot of the terms at sending
+  valid_until TEXT,
+  sent_at TEXT,
+  accepted_at TEXT,
+  accepted_by INTEGER REFERENCES users(id),
+  accepted_name TEXT,
+  accepted_title TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS invoices (
+  id INTEGER PRIMARY KEY,
+  order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  number TEXT NOT NULL UNIQUE,
+  label TEXT NOT NULL,
+  amount INTEGER NOT NULL,                   -- minor units, tax included
+  tax INTEGER NOT NULL DEFAULT 0,
+  issued_on TEXT NOT NULL,
+  due_on TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'unpaid',     -- unpaid → paid (or void)
+  paid_at TEXT,
+  payment_ref TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Confirmed dates for moving (lunar/Islamic) festivals, per year.
+CREATE TABLE IF NOT EXISTS event_dates (
+  event_id TEXT NOT NULL,
+  year INTEGER NOT NULL,
+  start TEXT NOT NULL,
+  days INTEGER NOT NULL,
+  note TEXT NOT NULL DEFAULT '',
+  confirmed_by INTEGER REFERENCES users(id),
+  confirmed_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (event_id, year)
+);
+`;
