@@ -29,9 +29,11 @@ export type User = {
   role: "member" | "staff" | "admin";
   last_checkin: string | null;
   created_at: string;
+  email: string | null;
+  email_verified_at: string | null;
 };
 
-const USER_COLS = "u.id, u.username, u.display_name, u.bio, u.home_country, u.points, u.avatar_item, u.frame_item, u.banner_item, u.title_item, u.theme_item, u.effect_item, u.namestyle_item, u.accent1, u.accent2, u.showcases, u.pinned_review_id, u.role, u.last_checkin, u.created_at";
+const USER_COLS = "u.id, u.username, u.display_name, u.bio, u.home_country, u.points, u.avatar_item, u.frame_item, u.banner_item, u.title_item, u.theme_item, u.effect_item, u.namestyle_item, u.accent1, u.accent2, u.showcases, u.pinned_review_id, u.role, u.last_checkin, u.created_at, u.email, u.email_verified_at";
 
 export async function createSession(userId: number) {
   const token = randomBytes(32).toString("base64url");
@@ -85,4 +87,14 @@ export async function requireStaff(): Promise<User> {
   const u = await requireUser("/admin");
   if (u.role !== "staff" && u.role !== "admin") redirect("/");
   return u;
+}
+
+/** After a password change: sign out every other device. */
+export async function revokeOtherSessions(userId: number) {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value ?? "";
+  run("DELETE FROM sessions WHERE user_id = ? AND token != ?", userId, token);
+}
+
+export function revokeAllSessions(userId: number) {
+  run("DELETE FROM sessions WHERE user_id = ?", userId);
 }

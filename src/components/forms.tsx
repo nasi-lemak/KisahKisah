@@ -46,7 +46,7 @@ export function LoginForm({ next }: { next: string }) {
     <form action={action} className="space-y-4">
       <input type="hidden" name="next" value={next} />
       <div>
-        <label className="label" htmlFor="username">Username</label>
+        <label className="label" htmlFor="username">Username or email</label>
         <input id="username" name="username" className="input" autoComplete="username" required />
       </div>
       <div>
@@ -73,6 +73,11 @@ export function RegisterForm({ countries, next }: { countries: { code: string; n
           <label className="label" htmlFor="display_name">Display name</label>
           <input id="display_name" name="display_name" className="input" />
         </div>
+      </div>
+      <div>
+        <label className="label" htmlFor="email">Email</label>
+        <input id="email" name="email" type="email" className="input" autoComplete="email" required />
+        <p className="mt-1 text-xs text-muted">For password resets and release reminders. Never shown on your profile.</p>
       </div>
       <div>
         <label className="label" htmlFor="password">Password</label>

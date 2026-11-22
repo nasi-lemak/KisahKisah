@@ -474,3 +474,33 @@ CREATE TABLE IF NOT EXISTS house_events (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 `;
+
+export const SCHEMA_V8 = `
+-- Failed sign-ins and other throttled requests (pruned after a day).
+CREATE TABLE IF NOT EXISTS auth_attempts (
+  key TEXT NOT NULL,
+  at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS auth_attempts_key ON auth_attempts(key, at);
+
+-- Email verification and password reset links. Only a hash of the token is stored.
+CREATE TABLE IF NOT EXISTS auth_tokens (
+  token_hash TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  purpose TEXT NOT NULL,
+  email TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  used_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS outbox (
+  id INTEGER PRIMARY KEY,
+  to_addr TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  body TEXT NOT NULL,
+  sent_at TEXT,
+  error TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+`;

@@ -15,6 +15,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <LoginForm next={next} />
       </div>
       <p className="text-center text-sm text-muted">
+        <Link href="/forgot" className="text-saffron">Forgot your password?</Link>
+      </p>
+      <p className="text-center text-sm text-muted">
         New here? <Link href={`/register?next=${encodeURIComponent(next)}`} className="font-semibold text-saffron">Create an account</Link>
       </p>
       <p className="text-center text-xs text-muted">Demo accounts: aisyah, budi, nong, migs, linh, weijie, jiwoo. Password: kisah123</p>

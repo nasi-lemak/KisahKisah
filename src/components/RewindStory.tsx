@@ -9,7 +9,7 @@ import { toast } from "./Toaster";
 
 type Title = { slug: string; title: string; year: number; country: string; motif: string; kind: string };
 export type RewindData = {
-  year: number; logs: number; titles: number; films: number; series: number; hours: number; rewatches: number;
+  year: number; logs: number; titles: number; films: number; series: number; hours: number; hoursEstimated?: boolean; rewatches: number;
   reviews: number; likes: number; earned: number; achievements: number; cinemaTrips: number; midnight: number;
   avgRating: number | null;
   topGenres: { genre: string; count: number }[];
@@ -133,7 +133,7 @@ function buildSlides(d: RewindData, who: { display_name: string }): React.ReactN
         <br />≈ {d.hours} hours in front of a screen*
         {d.rewatches > 0 && <><br />🔁 and {d.rewatches} comfort rewatch{d.rewatches === 1 ? "" : "es"}</>}
       </p>
-      <p className="mt-8 text-xs text-white/50">*estimated: 2h per film, 8h per series</p>
+      <p className="mt-8 text-xs text-white/50">{d.hoursEstimated ? "*real runtimes where we have them, otherwise 2h per film and 8h per season" : "*from each title's runtime"}</p>
     </div>,
   );
   if (d.topGenres[0]) {

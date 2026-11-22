@@ -60,13 +60,32 @@ Copy `.env.example` to `.env.local`:
 |---|---|
 | `DATABASE_PATH` | SQLite file location (default `./data/kisahkisah.db`). |
 | `CINEMA_WEBHOOK_SECRET` | HMAC secret shared with cinema partners. **Set this in production.** It also signs ticket-code checksums. |
-| `OMDB_API_KEY`, `TMDB_API_KEY` | Optional, for `npm run scores:sync`. Respect each provider's terms. |
+| `TMDB_API_KEY` | TMDB v3 key or v4 read token. Turns on real posters, runtimes, episodes and cast, **Admin → Catalogue**, and "add a missing title" from film search. Also used by `npm run scores:sync`. |
+| `OMDB_API_KEY` | Optional, for `npm run scores:sync`. Respect each provider's terms. |
+| `RESEND_API_KEY`, `MAIL_FROM` | Email delivery (verification, password resets, reminders). Without them, mail lands in the dev outbox at **Admin → Outbox**. |
+| `TRUST_PROXY=1` | Set only behind a proxy you control, so `X-Forwarded-For` can be used for per-IP rate limits. Without it, per-IP limits are skipped and per-account limits still apply. |
 | `ADMIN_USERNAMES` | Comma-separated usernames given admin access (item editor, inquiries). |
 | `UPLOAD_DIR` | Where uploaded artwork is stored (default `./data/uploads`). |
 | `NEXT_PUBLIC_SITE_URL` | Public URL for share links and link-preview images. |
 | `GEO_HEADER` | Request header holding the visitor's 2-letter country, for campaign targeting. If unset, `cf-ipcountry`, `x-vercel-ip-country`, `cloudfront-viewer-country` and `x-country-code` are tried. Signed-in members use their home country. |
 | `ANALYTICS_SALT` | Salt for the daily-rotating hash that counts unique viewers. Defaults to one derived from `CINEMA_WEBHOOK_SECRET`. |
 | `DISABLE_DEMO_CINEMA=1` | Hides the demo box office, which lets any signed-in user mint test tickets. Set this anywhere real points matter. |
+
+## Accounts & security
+
+- **Sign-up** needs an email (never shown publicly). A confirmation link is emailed; confirming unlocks password resets by email and release reminders.
+- **Passwords** are hashed with scrypt; common passwords and ones containing the username are refused.
+- **Rate limits:** 5 failed sign-ins per account per 15 minutes (and 30 per IP with `TRUST_PROXY=1`), sign-ups and reset requests per IP, reset emails per account. Unknown usernames take as long to reject as wrong passwords, and "forgot password" answers the same whether or not an account exists.
+- **Reset links** last 1 hour, work once, and are stored only as a hash. Resetting signs out every device and clears the lockout. Changing your password in **Settings** signs out other devices and emails you. **Sign out everywhere** is in Settings too.
+- Sign in with username or email.
+
+## Real film & TV data (TMDB)
+
+With `TMDB_API_KEY` set:
+- **Admin → Catalogue → Match catalogue to TMDB** links the hand-made titles to TMDB (same title and year) and fills in posters, runtimes, episode counts and cast, 25 per run. Titles that don't match aren't re-checked for 30 days.
+- **Film search** shows "Not here yet? From TMDB" results; any signed-in member can add one (20 per hour), which creates its page at once. Staff can search and import from the admin page.
+- Posters load from TMDB's image CDN over the drawn poster, which shows if an image fails. Rewind uses real runtimes (one series log counts as one season) and only falls back to estimates for titles without them.
+- The footer carries TMDB's required attribution.
 
 ## Adding cosmetics without code (admin)
 
@@ -168,9 +187,9 @@ tests/                 node:test unit tests
 
 ## Notes & next steps
 
-- Auth is username/password (scrypt) with httpOnly session cookies. Server actions get Next's built-in origin checks. There's no login rate limiting yet.
+- Auth is username or email plus password (scrypt) with httpOnly session cookies, rate limits, email confirmation and resets (see Accounts & security). Server actions get Next's built-in origin checks. Two-factor sign-in isn't built yet.
 - SQLite fits a single instance. For scale, port `schema.ts` to Postgres; queries are plain SQL.
-- Rewind hours are estimates (2h per film, 8h per series) until runtimes and episode counts are tracked.
+- Rewind hours use TMDB runtimes where linked, else estimates (2h per film, 8h per season).
 - Lunar/Islamic festival dates are approximate and flagged in code. Confirm them yearly.
 - `scores:sync` is unit-tested against sample payloads but hasn't been run against the live OMDb/TMDB APIs from this environment.
-- Ideas: TMDB catalogue import with real posters and runtimes, a localised UI (Bahasa, Thai, Vietnamese, Tagalog, Korean, French…), release-day watchlist reminders, a "cinema date" social feature.
+- Ideas: a localised UI (Bahasa, Thai, Vietnamese, Tagalog, Korean, French…), release-day watchlist reminders, a "cinema date" social feature.

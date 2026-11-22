@@ -259,4 +259,7 @@ export function seed(d: DatabaseSync) {
   insWatch.run(uid.aisyah, filmId("exhuma-2024"));
   insWatch.run(uid.aisyah, filmId("rrr-2022"));
   insWatch.run(uid.budi, filmId("tiger-stripes-2023"));
+
+  // Demo accounts have verified example addresses so reminders and resets can be tried.
+  d.exec("UPDATE users SET email = username || '@example.com', email_verified_at = datetime('now') WHERE email IS NULL");
 }

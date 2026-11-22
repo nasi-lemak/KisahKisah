@@ -55,7 +55,7 @@ export function ReviewCard({ r, viewerId, showFilm = true }: { r: Review; viewer
     <article className="card flex gap-4 p-4">
       {showFilm && (
         <div className="w-16 shrink-0 sm:w-20">
-          <Poster film={{ slug: r.film_slug, title: r.film_title, year: r.film_year, country: r.film_country, motif: r.film_motif }} size="sm" />
+          <Poster film={{ slug: r.film_slug, title: r.film_title, year: r.film_year, country: r.film_country, motif: r.film_motif, poster_path: r.film_poster }} size="sm" />
         </div>
       )}
       <div className="min-w-0 flex-1">

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PosterImage } from "./PosterImage";
 import { ITEM_BY_ID, DEFAULT_AVATAR, type ShopItem } from "@/lib/shop";
 import { country } from "@/lib/regions";
 import { levelStyle } from "@/lib/levels";
@@ -9,7 +10,7 @@ import { ProfileHover } from "./ProfileHover";
 export { posterColors } from "@/lib/poster";
 import { posterColors } from "@/lib/poster";
 
-type PosterFilm = { slug: string; title: string; year: number; country: string; motif: string; kind?: string };
+type PosterFilm = { slug: string; title: string; year: number; country: string; motif: string; kind?: string; poster_path?: string | null };
 
 export function Poster({ film, size = "md", link = true }: { film: PosterFilm; size?: "sm" | "md" | "lg"; link?: boolean }) {
   const [a, b] = posterColors(film.slug);
@@ -33,6 +34,10 @@ export function Poster({ film, size = "md", link = true }: { film: PosterFilm; s
           </div>
         )}
       </div>
+      {film.poster_path && <PosterImage path={film.poster_path} size={size === "lg" ? "w780" : size === "sm" ? "w185" : "w342"} />}
+      {film.kind === "series" && film.poster_path && (
+        <div className="absolute right-1.5 top-1.5 z-10 rounded bg-black/60 px-1 text-[0.55rem] font-bold uppercase tracking-wider text-white/90">Series</div>
+      )}
     </div>
   );
   return link ? (

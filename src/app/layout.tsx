@@ -145,6 +145,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </div>
             <div>
               <p>Ratings live everywhere: Douban, Watcha, Filmarks, Letterboxd, IMDb. We link you to all of them.</p>
+              <p className="mt-2 text-xs">Posters and title data from TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
               <p className="mt-3 flex items-center gap-2">
                 © {new Date().getFullYear()} KisahKisah
                 <Link href="/kopitiam" aria-label="." className="opacity-20 transition-opacity hover:opacity-100" title="kopi?">

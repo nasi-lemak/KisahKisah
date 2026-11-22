@@ -6,6 +6,9 @@ import { redirect } from "next/navigation";
 import { createSession, destroySession, requireUser, userByUsername, currentUser } from "@/lib/auth";
 import { all, one, run, tx } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import { clearAttempts, clientIp, limited, limitedByIp, loginKey, noteAttempt } from "@/lib/security";
+import { minutes, normalizeEmail, passwordProblem, validEmail } from "@/lib/security-core";
+import { sendVerification } from "@/lib/account-mail";
 import { award, checkAchievements, grantItem, notify, POINTS, unlock } from "@/lib/rewards";
 import { BUNDLES, ITEM_BY_ID, STARTER_ITEMS, bundlePrice } from "@/lib/shop";
 import { SHOWCASES } from "@/lib/profile";
@@ -36,33 +39,61 @@ export async function register(_: FormState, form: FormData): Promise<FormState>
   const username = str(form, "username", 40).toLowerCase();
   const displayName = str(form, "display_name", 60) || username;
   const password = String(form.get("password") ?? "");
+  const email = normalizeEmail(str(form, "email", 254));
   const homeCountry = str(form, "home_country", 2).toUpperCase();
+  const ip = await clientIp();
+  const gate = limitedByIp("register", ip, 10, 60);
+  if (gate.blocked) return { error: `Too many new accounts from your network. Try again in ${minutes(gate.retryAfterMs)}.` };
   if (!/^[a-z0-9_]{3,20}$/.test(username)) return { error: "Username: 3–20 letters, numbers or underscores." };
-  if (password.length < 8) return { error: "Password must be at least 8 characters." };
+  if (!validEmail(email)) return { error: "Enter a valid email address. We use it for password resets and reminders." };
+  const pw = passwordProblem(password, username);
+  if (pw) return { error: pw };
   if (!COUNTRY_BY_CODE[homeCountry]) return { error: "Pick your home country." };
   if (userByUsername(username)) return { error: "That username is taken. Cuba lagi!" };
+  if (one("SELECT 1 x FROM users WHERE email = ? COLLATE NOCASE", email)) return { error: "That email already has an account. Sign in, or reset your password." };
 
+  noteAttempt(ip && `register:ip:${ip}`);
   const id = tx(() => {
     const r = run(
-      "INSERT INTO users (username, display_name, password_hash, home_country) VALUES (?,?,?,?)",
-      username, displayName, hashPassword(password), homeCountry,
+      "INSERT INTO users (username, display_name, password_hash, home_country, email) VALUES (?,?,?,?,?)",
+      username, displayName, hashPassword(password), homeCountry, email,
     );
     const uid = Number(r.lastInsertRowid);
     for (const it of STARTER_ITEMS) grantItem(uid, it, "starter");
     award(uid, POINTS.welcome, "welcome", "welcome", "Selamat datang! Welcome bonus", { silent: true });
     notify(uid, "welcome", "🎉", "Selamat datang ke KisahKisah!", `Here's ${POINTS.welcome} KP to spend in the Kedai.`);
+    notify(uid, "verify", "📧", "Confirm your email", `We sent a link to ${email}. Confirming lets you reset your password and get release reminders. Resend it from Settings.`);
     return uid;
   });
+  await sendVerification(id, email, displayName);
   await createSession(id);
   redirect(safeNext(str(form, "next")) === "/" ? "/films" : safeNext(str(form, "next")));
 }
 
+// A real-looking hash so unknown usernames take as long to reject as wrong passwords.
+let dummyHash = "";
+
 export async function login(_: FormState, form: FormData): Promise<FormState> {
-  const username = str(form, "username", 40);
+  const username = str(form, "username", 254).toLowerCase();
   const password = String(form.get("password") ?? "");
-  const row = one<{ id: number; password_hash: string }>("SELECT id, password_hash FROM users WHERE username = ?", username);
-  if (!row || !verifyPassword(password, row.password_hash)) return { error: "Wrong username or password." };
-  await createSession(row.id);
+  const ip = await clientIp();
+  // Sign in with username or email. Failures count per account, however it was named.
+  const row = one<{ id: number; password_hash: string }>("SELECT id, password_hash FROM users WHERE username = ? OR email = ? COLLATE NOCASE", username, username);
+  const userKey = row ? loginKey(row.id) : `login:u:${username}`;
+  const ipKey = ip && `login:ip:${ip}`;
+  for (const [key, limit] of [[userKey, 5], [ipKey, 30]] as const) {
+    if (!key) continue;
+    const gate = limited(key, limit, 15);
+    if (gate.blocked) return { error: `Too many sign-in attempts. Try again in ${minutes(gate.retryAfterMs)}, or reset your password.` };
+  }
+  dummyHash ||= hashPassword(randomBytes(8).toString("hex"));
+  const ok = verifyPassword(password, row?.password_hash ?? dummyHash) && !!row;
+  if (!ok) {
+    noteAttempt(userKey, ipKey);
+    return { error: "Wrong username or password." };
+  }
+  clearAttempts(userKey);
+  await createSession(row!.id);
   redirect(safeNext(str(form, "next")));
 }
 

@@ -7,6 +7,8 @@ export type Film = {
   id: number; slug: string; title: string; original_title: string | null; year: number;
   country: string; director: string; genres: string; motif: string; synopsis: string; kind: "film" | "series";
   seasons: number | null; status: "ended" | "ongoing" | "limited" | null;
+  tmdb_id: number | null; imdb_id: string | null; poster_path: string | null; backdrop_path: string | null;
+  runtime: number | null; episodes: number | null; cast_names: string;
 };
 export type FilmWithStats = Film & { avg_rating: number | null; log_count: number; review_count: number };
 
@@ -82,14 +84,14 @@ export type Review = {
   id: number; user_id: number; film_id: number; rating: number | null; body: string; spoiler: number;
   game_type: string; game_config: string; external_links: string; created_at: string;
   username: string; display_name: string; avatar_item: string; frame_item: string | null; title_item: string | null; namestyle_item: string | null;
-  film_slug: string; film_title: string; film_year: number; film_country: string; film_motif: string;
+  film_slug: string; film_title: string; film_year: number; film_country: string; film_motif: string; film_poster: string | null;
   like_count: number; comment_count: number; liked: number;
   film_kind: string; sticker_summary: string | null; my_sticker: string | null;
 };
 
 const REVIEW_SELECT = `
   SELECT r.*, u.username, u.display_name, u.avatar_item, u.frame_item, u.title_item, u.namestyle_item,
-    f.slug film_slug, f.title film_title, f.year film_year, f.country film_country, f.motif film_motif, f.kind film_kind,
+    f.slug film_slug, f.title film_title, f.year film_year, f.country film_country, f.motif film_motif, f.kind film_kind, f.poster_path film_poster,
     (SELECT GROUP_CONCAT(sticker_id || ':' || c) FROM (SELECT sticker_id, COUNT(*) c FROM review_stickers WHERE review_id = r.id GROUP BY sticker_id ORDER BY c DESC LIMIT 6)) sticker_summary,
     (SELECT sticker_id FROM review_stickers WHERE review_id = r.id AND user_id = ?1) my_sticker,
     (SELECT COUNT(*) FROM review_likes WHERE review_id = r.id) like_count,
@@ -143,7 +145,7 @@ export type LogEntry = {
 
 export function diary(userId: number, limit = 200): LogEntry[] {
   return all<LogEntry>(
-    `SELECT l.id, l.watched_on, l.rating, l.liked, l.rewatch, l.cinema_chain, f.id film_id, f.slug, f.title, f.year, f.country, f.motif,
+    `SELECT l.id, l.watched_on, l.rating, l.liked, l.rewatch, l.cinema_chain, f.id film_id, f.slug, f.title, f.year, f.country, f.motif, f.poster_path,
        (SELECT r.id FROM reviews r WHERE r.user_id = l.user_id AND r.film_id = l.film_id ORDER BY r.created_at DESC LIMIT 1) review_id
      FROM logs l JOIN films f ON f.id = l.film_id WHERE l.user_id = ? ORDER BY l.watched_on DESC, l.id DESC LIMIT ?`,
     userId, limit,

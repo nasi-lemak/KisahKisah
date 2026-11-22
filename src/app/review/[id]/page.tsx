@@ -34,7 +34,7 @@ export default async function ReviewPage({ params }: { params: Params }) {
   const title = r.title_item ? ITEM_BY_ID[r.title_item]?.value : null;
   const stickerCatalog = Object.fromEntries(ITEMS.filter((i) => i.type === "sticker").map((i) => [i.id, { id: i.id, name: i.name, value: i.value }]));
   const owned = user ? inventory(user.id).filter((id) => stickerCatalog[id]).map((id) => stickerCatalog[id]) : [];
-  const film = { slug: r.film_slug, title: r.film_title, year: r.film_year, country: r.film_country, motif: r.film_motif };
+  const film = { slug: r.film_slug, title: r.film_title, year: r.film_year, country: r.film_country, motif: r.film_motif, poster_path: r.film_poster };
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">

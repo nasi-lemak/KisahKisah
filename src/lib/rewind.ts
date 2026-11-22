@@ -8,17 +8,18 @@ import { country, regionOf, SEA_CODES } from "./regions";
  */
 
 import { EST_HOURS, longestStreak, pickArchetype } from "./rewind-core";
+import { hoursFor } from "./tmdb-core";
 export { EST_HOURS, longestStreak, pickArchetype };
 
 type LogRow = {
   watched_on: string; rating: number | null; rewatch: number; cinema_chain: string | null; local_hour: number | null;
-  film_id: number; slug: string; title: string; year: number; country: string; genres: string; director: string; kind: string; motif: string;
+  film_id: number; slug: string; title: string; year: number; country: string; genres: string; director: string; kind: string; motif: string; poster_path: string | null; runtime: number | null; episodes: number | null; seasons: number | null;
 };
 
 export function computeRewind(userId: number, year: number) {
   const logs = all<LogRow>(
     `SELECT l.watched_on, l.rating, l.rewatch, l.cinema_chain, l.local_hour,
-            f.id film_id, f.slug, f.title, f.year, f.country, f.genres, f.director, f.kind, f.motif
+            f.id film_id, f.slug, f.title, f.year, f.country, f.genres, f.director, f.kind, f.motif, f.poster_path, f.runtime, f.episodes, f.seasons
      FROM logs l JOIN films f ON f.id = l.film_id
      WHERE l.user_id = ? AND l.watched_on BETWEEN ? AND ? ORDER BY l.watched_on, l.id`,
     userId, `${year}-01-01`, `${year}-12-31`,
@@ -80,14 +81,15 @@ export function computeRewind(userId: number, year: number) {
     cinema: cinemaTrips, reviews, midnight, avgRating,
   });
 
-  const pick = (t: LogRow) => ({ slug: t.slug, title: t.title, year: t.year, country: t.country, motif: t.motif, kind: t.kind });
+  const pick = (t: LogRow) => ({ slug: t.slug, title: t.title, year: t.year, country: t.country, motif: t.motif, kind: t.kind, poster_path: t.poster_path });
   return {
     year,
     logs: logs.length,
     titles: unique.length,
     films: films.length,
     series: series.length,
-    hours: films.length * EST_HOURS.film + series.length * EST_HOURS.series,
+    hours: Math.round(unique.reduce((h, t) => h + hoursFor(t).hours, 0)),
+    hoursEstimated: unique.some((t) => hoursFor(t).estimated),
     rewatches: logs.filter((l) => l.rewatch).length,
     reviews, likes, earned, achievements, cinemaTrips, midnight,
     avgRating: avgRating === null ? null : Math.round(avgRating * 10) / 10,

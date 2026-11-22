@@ -16,6 +16,7 @@ import { FranchisePanel } from "@/components/FranchisePanel";
 import { franchisesFor, positionIn } from "@/lib/franchises";
 import { bonusesFor } from "@/lib/events";
 import { audience } from "@/lib/geo";
+import { formatRuntime } from "@/lib/tmdb-core";
 
 type Params = Promise<{ slug: string }>;
 
@@ -75,6 +76,12 @@ export default async function FilmPage({ params, searchParams }: { params: Param
                 </a>
               );
             })}
+            {(film.runtime || film.episodes) && (
+              <span className="text-text">
+                {film.kind === "series" && film.episodes ? `${film.episodes} episodes${film.runtime ? " · " : ""}` : ""}
+                {film.runtime ? `${formatRuntime(film.runtime)}${film.kind === "series" ? " each" : ""}` : ""}
+              </span>
+            )}
             <span>{film.kind === "series" ? "Created by" : "Directed by"} <span className="text-text">{film.director}</span></span>
             <span>·</span>
             <Flag code={film.country} withName />
@@ -85,6 +92,7 @@ export default async function FilmPage({ params, searchParams }: { params: Param
             ))}
           </div>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed">{film.synopsis}</p>
+          {film.cast_names && <p className="mt-2 text-sm text-muted">Starring <span className="text-text">{film.cast_names}</span></p>}
           {bonuses.map((e) => (
             <Link key={e.id} href={`/events/${e.id}`} className="mt-3 flex w-fit items-center gap-2 rounded-lg border border-saffron/40 bg-saffron/10 px-3 py-1.5 text-sm">
               <span>{e.icon}</span>

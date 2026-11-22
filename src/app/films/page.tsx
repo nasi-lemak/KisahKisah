@@ -5,6 +5,9 @@ import { COUNTRIES, REGIONS, country, type RegionId } from "@/lib/regions";
 import { GENRES } from "@/lib/catalog";
 import { Poster, Stars, Empty } from "@/components/ui";
 import { SearchQuip } from "@/components/SearchQuip";
+import { currentUser } from "@/lib/auth";
+import { searchTmdb, tmdbConfigured } from "@/lib/tmdb";
+import { TmdbResults } from "@/components/TmdbResults";
 
 export const metadata: Metadata = { title: "Films & TV" };
 
@@ -25,6 +28,8 @@ export default async function FilmsPage({ searchParams }: { searchParams: SP }) 
   const noun = filter.kind === "series" ? "Series" : filter.kind === "film" ? "Films" : "Films & series";
   const heading = c ? `${c.flag} ${noun} from ${c.name}` : filter.region ? `${REGIONS[filter.region].icon} ${noun} from ${REGIONS[filter.region].name}` : filter.q ? `Results for “${filter.q}”` : noun;
 
+  const more = filter.q && tmdbConfigured() ? await searchTmdb(filter.q).catch(() => []) : [];
+  const viewer = more.length ? await currentUser() : null;
   const qs = (patch: Record<string, string | undefined>) => {
     const next = { ...sp, ...patch };
     const s = new URLSearchParams(Object.entries(next).filter(([, v]) => v) as [string, string][]).toString();
@@ -123,6 +128,14 @@ export default async function FilmsPage({ searchParams }: { searchParams: SP }) 
             </div>
           ))}
         </div>
+      )}
+
+      {more.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="section-title">Not here yet? From TMDB</h2>
+          <p className="text-sm text-muted">Add a title and it gets its own page, ready to log and review.</p>
+          <TmdbResults hits={more} signedIn={!!viewer} />
+        </section>
       )}
     </div>
   );
