@@ -1,0 +1,13 @@
+# Continuous SQLite backup. Set LITESTREAM_BUCKET, LITESTREAM_ENDPOINT (R2/MinIO; omit for AWS),
+# LITESTREAM_ACCESS_KEY_ID and LITESTREAM_SECRET_ACCESS_KEY in .env.
+# Restore: litestream restore -o /data/kisahkisah.db s3://$LITESTREAM_BUCKET/kisahkisah
+dbs:
+  - path: /data/kisahkisah.db
+    replicas:
+      - type: s3
+        bucket: ${LITESTREAM_BUCKET}
+        path: kisahkisah
+        endpoint: ${LITESTREAM_ENDPOINT}
+        access-key-id: ${LITESTREAM_ACCESS_KEY_ID}
+        secret-access-key: ${LITESTREAM_SECRET_ACCESS_KEY}
+        retention: 720h

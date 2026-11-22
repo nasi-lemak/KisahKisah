@@ -1,0 +1,9 @@
+node_modules
+.next
+data
+.git
+*.db
+*.db-*
+tsconfig.tsbuildinfo
+.env*
+!.env.example

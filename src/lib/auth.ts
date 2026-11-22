@@ -31,9 +31,10 @@ export type User = {
   created_at: string;
   email: string | null;
   email_verified_at: string | null;
+  locale: string | null;
 };
 
-const USER_COLS = "u.id, u.username, u.display_name, u.bio, u.home_country, u.points, u.avatar_item, u.frame_item, u.banner_item, u.title_item, u.theme_item, u.effect_item, u.namestyle_item, u.accent1, u.accent2, u.showcases, u.pinned_review_id, u.role, u.last_checkin, u.created_at, u.email, u.email_verified_at";
+const USER_COLS = "u.id, u.username, u.display_name, u.bio, u.home_country, u.points, u.avatar_item, u.frame_item, u.banner_item, u.title_item, u.theme_item, u.effect_item, u.namestyle_item, u.accent1, u.accent2, u.showcases, u.pinned_review_id, u.role, u.last_checkin, u.created_at, u.email, u.email_verified_at, u.locale";
 
 export async function createSession(userId: number) {
   const token = randomBytes(32).toString("base64url");

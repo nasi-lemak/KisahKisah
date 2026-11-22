@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getT } from "@/lib/i18n/server";
 import { currentUser } from "@/lib/auth";
 import { countryCounts, feedReviews, listFilms, popularReviews, recentLists } from "@/lib/queries";
 import { COUNTRIES, REGIONS } from "@/lib/regions";
@@ -12,6 +13,7 @@ import { audience } from "@/lib/geo";
 import { EventCard } from "@/components/EventBanner";
 
 export default async function Home() {
+  const t = await getT();
   const user = await currentUser();
   const films = listFilms({ sort: "popular" });
   const sea = listFilms({ region: "sea", sort: "popular" }).slice(0, 12);
@@ -41,32 +43,31 @@ export default async function Home() {
         <div className="relative max-w-xl">
           {user ? (
             <>
-              <p className="text-sm text-muted">Selamat kembali,</p>
+              <p className="text-sm text-muted">{t("home.welcomeBack")}</p>
               <h1 className="font-display text-4xl font-bold sm:text-5xl">{user.display_name} 👋</h1>
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <KP n={user.points} className="text-lg" />
                 <CheckinButton done={user.last_checkin === today} />
               </div>
               <div className="mt-6 flex flex-wrap gap-2">
-                <Link href="/films" className="btn btn-primary">Log a film</Link>
-                <Link href={`/u/${user.username}`} className="btn btn-ghost">My profile</Link>
-                <Link href="/kedai" className="btn btn-ghost">Spend KP</Link>
+                <Link href="/films" className="btn btn-primary">{t("home.logFilm")}</Link>
+                <Link href={`/u/${user.username}`} className="btn btn-ghost">{t("home.myProfile")}</Link>
+                <Link href="/kedai" className="btn btn-ghost">{t("home.spendKp")}</Link>
               </div>
             </>
           ) : (
             <>
               <h1 className="font-display text-4xl font-bold leading-tight sm:text-6xl">
-                Every film has a <span className="text-saffron">kisah</span>.
+                {t("home.heroBefore")} <span className="text-saffron">kisah</span>{t("home.heroAfter")}
               </h1>
               <p className="mt-4 text-lg text-muted">
-                Log the films and series you watch, compare scores from Douban to Rotten Tomatoes, collect avatars, play mini games and get your year back in Kisah Rewind.
-                Southeast Asian cinema in the spotlight; the whole world on the shelf.
+                {t("home.heroBody")}
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
-                <Link href="/register" className="btn btn-primary">Join free (+100 KP)</Link>
-                <Link href="/films" className="btn btn-ghost">Browse films</Link>
+                <Link href="/register" className="btn btn-primary">{t("home.joinFree", { kp: 100 })}</Link>
+                <Link href="/films" className="btn btn-ghost">{t("home.browse")}</Link>
               </div>
-              <p className="mt-3 text-xs text-muted">Try the demo: sign in as <b>aisyah</b> / <b>kisah123</b></p>
+              <p className="mt-3 text-xs text-muted">{t("home.demo", { user: "aisyah", password: "kisah123" })}</p>
             </>
           )}
         </div>
@@ -75,8 +76,8 @@ export default async function Home() {
       {/* Events */}
       <section>
         <div className="section-title flex items-baseline justify-between">
-          <span>Events & limited drops</span>
-          <Link href="/events" className="normal-case tracking-normal hover:text-text">Calendar →</Link>
+          <span>{t("home.events")}</span>
+          <Link href="/events" className="normal-case tracking-normal hover:text-text">{t("home.calendar")}</Link>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {live.slice(0, 4).map((e) => (
@@ -90,7 +91,7 @@ export default async function Home() {
 
       {/* Around the world */}
       <section>
-        <h2 className="section-title">Jalan-jalan · around the world</h2>
+        <h2 className="section-title">{t("home.around")}</h2>
         <div className="flex flex-wrap gap-2">
           {COUNTRIES.filter((c) => counts[c.code]).map((c) => (
             <Link key={c.code} href={`/films?country=${c.code}`} className={`chip hover:border-saffron ${c.region === "sea" ? "" : "opacity-80"}`}>
@@ -104,7 +105,7 @@ export default async function Home() {
       <section>
         <div className="section-title flex items-baseline justify-between">
           <span>Popular in {REGIONS.sea.name}</span>
-          <Link href="/films?region=sea" className="normal-case tracking-normal hover:text-text">More →</Link>
+          <Link href="/films?region=sea" className="normal-case tracking-normal hover:text-text">{t("home.more")}</Link>
         </div>
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
           {sea.map((f) => (
@@ -115,8 +116,8 @@ export default async function Home() {
 
       <section>
         <div className="section-title flex items-baseline justify-between">
-          <span>Trending worldwide</span>
-          <Link href="/films?sort=popular" className="normal-case tracking-normal hover:text-text">More →</Link>
+          <span>{t("home.trending")}</span>
+          <Link href="/films?sort=popular" className="normal-case tracking-normal hover:text-text">{t("home.more")}</Link>
         </div>
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
           {world.map((f) => (
@@ -128,8 +129,8 @@ export default async function Home() {
       <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <div>
           <div className="section-title flex items-baseline justify-between">
-            <span>📺 Series to binge</span>
-            <Link href="/films?kind=series" className="normal-case tracking-normal hover:text-text">All series →</Link>
+            <span>{t("home.series")}</span>
+            <Link href="/films?kind=series" className="normal-case tracking-normal hover:text-text">{t("home.allSeries")}</Link>
           </div>
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
             {series.map((f) => (
@@ -149,7 +150,7 @@ export default async function Home() {
 
       {reviews.length > 0 && (
         <section>
-          <h2 className="section-title">From people you follow</h2>
+          <h2 className="section-title">{t("home.following")}</h2>
           <div className="grid gap-4 md:grid-cols-2">
             {reviews.map((r) => (
               <ReviewCard key={r.id} r={r} viewerId={user?.id} />
@@ -159,7 +160,7 @@ export default async function Home() {
       )}
 
       <section>
-        <h2 className="section-title">Popular reviews this week</h2>
+        <h2 className="section-title">{t("home.popularReviews")}</h2>
         <div className="grid gap-4 md:grid-cols-2">
           {popular.map((r) => (
             <ReviewCard key={r.id} r={r} viewerId={user?.id} />
@@ -171,7 +172,7 @@ export default async function Home() {
         <div>
           <div className="section-title flex items-baseline justify-between">
             <span>Highest rated from {REGIONS.east.name}</span>
-            <Link href="/films?region=east&sort=rating" className="normal-case tracking-normal hover:text-text">More →</Link>
+            <Link href="/films?region=east&sort=rating" className="normal-case tracking-normal hover:text-text">{t("home.more")}</Link>
           </div>
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-6 lg:grid-cols-6">
             {east.map((f) => (
@@ -198,8 +199,8 @@ export default async function Home() {
 
       <section>
         <div className="section-title flex items-baseline justify-between">
-          <span>Catalogues by the community</span>
-          <Link href="/lists" className="normal-case tracking-normal hover:text-text">All →</Link>
+          <span>{t("home.lists")}</span>
+          <Link href="/lists" className="normal-case tracking-normal hover:text-text">{t("home.all")}</Link>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           {lists.map((l) => (

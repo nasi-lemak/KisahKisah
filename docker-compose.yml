@@ -1,0 +1,25 @@
+# Single server with a persistent volume. The optional litestream service streams
+# the SQLite database to S3/R2 continuously for backup and point-in-time restore.
+services:
+  app:
+    build: .
+    ports: ["3000:3000"]
+    env_file: .env
+    environment:
+      DATABASE_PATH: /data/kisahkisah.db
+      UPLOAD_DIR: /data/uploads
+    volumes: ["kisah-data:/data"]
+    restart: unless-stopped
+
+  litestream:
+    image: litestream/litestream:0.3.13
+    profiles: ["backup"]
+    command: replicate
+    env_file: .env
+    volumes:
+      - kisah-data:/data
+      - ./litestream.yml:/etc/litestream.yml:ro
+    restart: unless-stopped
+
+volumes:
+  kisah-data:

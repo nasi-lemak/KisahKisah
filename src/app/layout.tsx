@@ -17,6 +17,10 @@ import { syncCustomItems } from "@/lib/custom-items";
 import { audience } from "@/lib/geo";
 import { artistProfile, orgsForUser } from "@/lib/portal";
 import { themeStyle } from "@/components/ui";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { MESSAGES } from "@/lib/i18n/messages";
+import { I18nProvider } from "@/components/I18n";
+import { LanguagePicker } from "@/components/LanguagePicker";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
@@ -27,13 +31,13 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 const NAV = [
-  { href: "/films", label: "Films & TV" },
-  { href: "/lists", label: "Catalogues" },
-  { href: "/community", label: "Community" },
-  { href: "/events", label: "Events" },
-  { href: "/kedai", label: "Kedai" },
-  { href: "/cinemas", label: "Cinemas" },
-];
+  { href: "/films", key: "nav.films" },
+  { href: "/lists", key: "nav.lists" },
+  { href: "/community", key: "nav.community" },
+  { href: "/events", key: "nav.events" },
+  { href: "/kedai", key: "nav.kedai" },
+  { href: "/cinemas", key: "nav.cinemas" },
+] as const;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
@@ -41,10 +45,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const theme = user?.theme_item ? ITEM_BY_ID[user.theme_item]?.value : undefined;
   const live = activeEvents(undefined, await audience());
   const custom = syncCustomItems();
+  const locale = await getLocale();
+  const t = await getT();
 
   return (
-    <html lang="en">
+    <html lang={locale === "tl" ? "fil" : locale}>
       <body className="min-h-screen" data-theme={theme} style={themeStyle(user?.theme_item)}>
+        <I18nProvider locale={locale} messages={MESSAGES[locale]}>
         <ItemRegistry items={custom} />
         <div className="batik-strip" />
         <header className="sticky top-0 z-40 border-b print:hidden border-line bg-ink/90 backdrop-blur">
@@ -58,16 +65,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <nav className="hidden items-center gap-1 md:flex">
               {NAV.map((n) => (
                 <Link key={n.href} href={n.href} className="rounded-md px-3 py-1.5 text-sm font-medium text-muted hover:bg-raised hover:text-text">
-                  {n.label}
+                  {t(n.key)}
                 </Link>
               ))}
             </nav>
             <form action="/films" className="ml-auto hidden sm:block">
-              <input name="q" placeholder="Cari filem… search films" className="input w-52 py-1.5 text-sm" aria-label="Search films" />
+              <input name="q" placeholder={t("search.placeholder")} className="input w-52 py-1.5 text-sm" aria-label={t("search.label")} />
             </form>
             {user ? (
               <div className="ml-auto flex items-center gap-3 sm:ml-0">
-                <Link href="/kedai" className="hidden sm:block" title="Your Kisah Points">
+                <Link href="/kedai" className="hidden sm:block" title={t("kp.title")}>
                   <KP n={user.points} className="text-sm" />
                 </Link>
                 <details className="relative">
@@ -80,39 +87,39 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                       <KP n={user.points} className="text-xs" />
                     </div>
                     {[
-                      [`/u/${user.username}`, "Profile"],
-                      [`/u/${user.username}/diary`, "Diary"],
-                      [`/u/${user.username}/lists`, "My catalogues"],
-                      [`/u/${user.username}/watchlist`, "Watchlist"],
-                      ["/rewind", "⏪ My Rewind"],
-                      ["/achievements", "Achievements"],
-                      ["/studio", "🎨 Profile Studio"],
-                      ...(user.role === "admin" || user.role === "staff" ? [["/admin", "🛠️ Admin"]] : []),
-                      ...(orgsForUser(user.id).length ? [["/partner", "🤝 Partner portal"]] : []),
-                      ...(artistProfile(user.id)?.status === "approved" ? [["/artists", "🖌️ Artist briefs"]] : []),
-                      ["/settings", "Settings"],
+                      [`/u/${user.username}`, t("menu.profile")],
+                      [`/u/${user.username}/diary`, t("menu.diary")],
+                      [`/u/${user.username}/lists`, t("menu.lists")],
+                      [`/u/${user.username}/watchlist`, t("menu.watchlist")],
+                      ["/rewind", t("menu.rewind")],
+                      ["/achievements", t("menu.achievements")],
+                      ["/studio", t("menu.studio")],
+                      ...(user.role === "admin" || user.role === "staff" ? [["/admin", t("menu.admin")]] : []),
+                      ...(orgsForUser(user.id).length ? [["/partner", t("menu.partner")]] : []),
+                      ...(artistProfile(user.id)?.status === "approved" ? [["/artists", t("menu.artist")]] : []),
+                      ["/settings", t("menu.settings")],
                     ].map(([href, label]) => (
                       <Link key={href} href={href} className="block rounded-md px-3 py-1.5 hover:bg-raised">
                         {label}
                       </Link>
                     ))}
                     <form action={logout}>
-                      <button className="block w-full rounded-md px-3 py-1.5 text-left text-muted hover:bg-raised">Sign out</button>
+                      <button className="block w-full rounded-md px-3 py-1.5 text-left text-muted hover:bg-raised">{t("menu.signout")}</button>
                     </form>
                   </div>
                 </details>
               </div>
             ) : (
               <div className="ml-auto flex items-center gap-2 sm:ml-0">
-                <Link href="/login" className="btn btn-ghost py-1.5">Sign in</Link>
-                <Link href="/register" className="btn btn-primary py-1.5">Join</Link>
+                <Link href="/login" className="btn btn-ghost py-1.5">{t("auth.signin")}</Link>
+                <Link href="/register" className="btn btn-primary py-1.5">{t("auth.join")}</Link>
               </div>
             )}
           </div>
           <nav className="flex gap-1 overflow-x-auto px-3 pb-2 md:hidden">
             {NAV.map((n) => (
               <Link key={n.href} href={n.href} className="shrink-0 rounded-md bg-raised px-3 py-1 text-sm text-muted">
-                {n.label}
+                {t(n.key)}
               </Link>
             ))}
           </nav>
@@ -127,24 +134,24 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <div className="font-display text-lg font-bold text-text">
                 Kisah<span className="text-saffron">Kisah</span>
               </div>
-              <p className="mt-2">
-                <em>Kisah</em> (Malay): a story, a tale. Made in Southeast Asia for film & TV lovers everywhere. Selamat datang, welcome, 환영합니다, bienvenue.
-              </p>
+              <p className="mt-2">{t("footer.tagline")} Selamat datang, welcome, 환영합니다, bienvenue.</p>
+              <div className="mt-4"><LanguagePicker current={locale} label={t("lang.label")} /></div>
+              {locale !== "en" && <p className="mt-1 text-xs">{t("lang.note")}</p>}
             </div>
             <div className="flex flex-col gap-1">
-              <Link href="/achievements" className="hover:text-text">Achievements</Link>
-              <Link href="/community" className="hover:text-text">Leaderboard</Link>
-              <Link href="/cinemas" className="hover:text-text">Cinema partners</Link>
-              <Link href="/collections" className="hover:text-text">Trilogies & collections</Link>
-              <Link href="/events" className="hover:text-text">Events calendar</Link>
-              <Link href="/rewind" className="hover:text-text">Kisah Rewind</Link>
-              <Link href="/about" className="hover:text-text">How points work</Link>
-              <Link href="/advertise" className="hover:text-text">Advertise</Link>
-              <Link href="/artists" className="hover:text-text">Artist programme</Link>
-              <Link href="/partner" className="hover:text-text">Partner portal</Link>
+              <Link href="/achievements" className="hover:text-text">{t("footer.achievements")}</Link>
+              <Link href="/community" className="hover:text-text">{t("footer.leaderboard")}</Link>
+              <Link href="/cinemas" className="hover:text-text">{t("footer.cinemas")}</Link>
+              <Link href="/collections" className="hover:text-text">{t("footer.collections")}</Link>
+              <Link href="/events" className="hover:text-text">{t("footer.events")}</Link>
+              <Link href="/rewind" className="hover:text-text">{t("footer.rewind")}</Link>
+              <Link href="/about" className="hover:text-text">{t("footer.points")}</Link>
+              <Link href="/advertise" className="hover:text-text">{t("footer.advertise")}</Link>
+              <Link href="/artists" className="hover:text-text">{t("footer.artists")}</Link>
+              <Link href="/partner" className="hover:text-text">{t("footer.partner")}</Link>
             </div>
             <div>
-              <p>Ratings live everywhere: Douban, Watcha, Filmarks, Letterboxd, IMDb. We link you to all of them.</p>
+              <p>{t("footer.ratings")}</p>
               <p className="mt-2 text-xs">Posters and title data from TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
               <p className="mt-3 flex items-center gap-2">
                 © {new Date().getFullYear()} KisahKisah
@@ -158,6 +165,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </footer>
 
         <EasterEggs />
+        </I18nProvider>
         <Toaster initial={notes} />
       </body>
     </html>

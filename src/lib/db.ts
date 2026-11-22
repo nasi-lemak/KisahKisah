@@ -93,6 +93,7 @@ function migrate(d: DatabaseSync) {
   addColumn(d, "campaigns", "film_slug", "TEXT");
   addColumn(d, "campaigns", "ticket_bonus_pct", "INTEGER NOT NULL DEFAULT 0");
   addColumn(d, "campaigns", "ticket_item", "TEXT");
+  addColumn(d, "users", "locale", "TEXT");
   addColumn(d, "campaigns", "quiz_reward", "INTEGER NOT NULL DEFAULT 20");
   addColumn(d, "orgs", "billing_name", "TEXT NOT NULL DEFAULT ''");
   addColumn(d, "orgs", "billing_address", "TEXT NOT NULL DEFAULT ''");

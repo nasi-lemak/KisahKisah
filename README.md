@@ -73,6 +73,12 @@ Copy `.env.example` to `.env.local`:
 | `ANALYTICS_SALT` | Salt for the daily-rotating hash that counts unique viewers. Defaults to one derived from `CINEMA_WEBHOOK_SECRET`. |
 | `DISABLE_DEMO_CINEMA=1` | Hides the demo box office, which lets any signed-in user mint test tickets. Set this anywhere real points matter. |
 
+## Languages
+
+The interface comes in English, Bahasa Melayu, Bahasa Indonesia, ไทย, Tiếng Việt, Filipino and 한국어. The language is chosen from, in order: the picker in the footer or Settings (a cookie), the member's saved choice (it follows them to new devices), then the browser's `Accept-Language`. `<html lang>` follows it too.
+
+Translated now: navigation, menus, footer, home page, sign-in and sign-up. Strings live in `src/lib/i18n/messages.ts`; server components use `await getT()`, client components use `useT()`. A unit test fails if any language is missing a key or a `{placeholder}`. **The translations are first drafts: have native speakers review them before launch.** Next, translate the film, events, Kedai and settings pages the same way, and format dates in the viewer's locale.
+
 ## Accounts & security
 
 - **Sign-up** needs an email (never shown publicly). A confirmation link is emailed; confirming unlocks password resets by email and release reminders.
@@ -100,7 +106,7 @@ Staff (`role = admin`, set with `ADMIN_USERNAMES`; the demo seed includes **kura
 
 Partners and artists follow the public spec page at `/specs`. Partner inquiries from `/advertise` appear in **Admin → Partner inquiries**.
 
-For production, swap `src/lib/storage.ts` for S3/R2.
+For production, set `STORAGE=s3` to keep artwork on S3, R2 or MinIO (see `docs/DEPLOY.md`).
 
 ## Partner & artist portals
 
@@ -198,8 +204,8 @@ tests/                 node:test unit tests
 ## Notes & next steps
 
 - Auth is username or email plus password (scrypt) with httpOnly session cookies, rate limits, email confirmation and resets (see Accounts & security). Server actions get Next's built-in origin checks. Two-factor sign-in isn't built yet.
-- SQLite fits a single instance. For scale, port `schema.ts` to Postgres; queries are plain SQL.
+- SQLite fits a single instance; back it up continuously with Litestream. `docs/DEPLOY.md` covers Docker, object storage, cron, backups, the launch checklist and the Postgres migration path.
 - Rewind hours use TMDB runtimes where linked, else estimates (2h per film, 8h per season).
 - Lunar and Islamic festival dates in code are estimates. Confirm each year's real dates in **Admin → Events → Moving festivals**: confirmed dates replace the estimates everywhere (and can add years the code doesn't have), and the "approx." labels disappear.
 - `scores:sync` is unit-tested against sample payloads but hasn't been run against the live OMDb/TMDB APIs from this environment.
-- Ideas: a localised UI (Bahasa, Thai, Vietnamese, Tagalog, Korean, French…), a "cinema date" social feature.
+- Ideas: translate the remaining pages, add French and Chinese, a "cinema date" social feature.

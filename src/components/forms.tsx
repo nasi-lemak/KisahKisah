@@ -7,6 +7,7 @@ import {
   register, toggleFavorite, updateProfile, type FormState,
 } from "@/app/actions";
 import { toast } from "./Toaster";
+import { useT } from "./I18n";
 
 /**
  * Like useActionState, but submits via onSubmit so React doesn't reset the
@@ -42,49 +43,51 @@ export function Submit({ children, className = "btn btn-primary", pending }: { c
 
 export function LoginForm({ next }: { next: string }) {
   const [state, action, pending] = useActionState(login, undefined);
+  const t = useT();
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="next" value={next} />
       <div>
-        <label className="label" htmlFor="username">Username or email</label>
+        <label className="label" htmlFor="username">{t("form.usernameOrEmail")}</label>
         <input id="username" name="username" className="input" autoComplete="username" required />
       </div>
       <div>
-        <label className="label" htmlFor="password">Password</label>
+        <label className="label" htmlFor="password">{t("form.password")}</label>
         <input id="password" name="password" type="password" className="input" autoComplete="current-password" required />
       </div>
       <Notice state={state} />
-      <Submit pending={pending} className="btn btn-primary w-full justify-center">Sign in</Submit>
+      <Submit pending={pending} className="btn btn-primary w-full justify-center">{t("auth.signin")}</Submit>
     </form>
   );
 }
 
 export function RegisterForm({ countries, next }: { countries: { code: string; name: string; flag: string; region: string }[]; next: string }) {
   const [state, action, pending] = useKeptAction(register);
+  const t = useT();
   return (
     <form onSubmit={action} className="space-y-4">
       <input type="hidden" name="next" value={next} />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="label" htmlFor="username">Username</label>
+          <label className="label" htmlFor="username">{t("form.username")}</label>
           <input id="username" name="username" className="input" pattern="[a-zA-Z0-9_]{3,20}" autoComplete="username" required />
         </div>
         <div>
-          <label className="label" htmlFor="display_name">Display name</label>
+          <label className="label" htmlFor="display_name">{t("form.displayName")}</label>
           <input id="display_name" name="display_name" className="input" />
         </div>
       </div>
       <div>
-        <label className="label" htmlFor="email">Email</label>
+        <label className="label" htmlFor="email">{t("form.email")}</label>
         <input id="email" name="email" type="email" className="input" autoComplete="email" required />
-        <p className="mt-1 text-xs text-muted">For password resets and release reminders. Never shown on your profile.</p>
+        <p className="mt-1 text-xs text-muted">{t("form.emailHint")}</p>
       </div>
       <div>
-        <label className="label" htmlFor="password">Password</label>
+        <label className="label" htmlFor="password">{t("form.password")}</label>
         <input id="password" name="password" type="password" className="input" minLength={8} autoComplete="new-password" required />
       </div>
       <div>
-        <label className="label" htmlFor="home_country">Home country</label>
+        <label className="label" htmlFor="home_country">{t("form.homeCountry")}</label>
         <select id="home_country" name="home_country" className="input" defaultValue="MY">
           {countries.map((c) => (
             <option key={c.code} value={c.code}>
@@ -92,10 +95,10 @@ export function RegisterForm({ countries, next }: { countries: { code: string; n
             </option>
           ))}
         </select>
-        <p className="mt-1 text-xs text-muted">Used for &ldquo;where to watch&rdquo; links and local-cinema bonuses.</p>
+        <p className="mt-1 text-xs text-muted">{t("form.homeCountryHint")}</p>
       </div>
       <Notice state={state} />
-      <Submit pending={pending} className="btn btn-primary w-full justify-center">Create account (+100 KP)</Submit>
+      <Submit pending={pending} className="btn btn-primary w-full justify-center">{t("form.createAccount", { kp: 100 })}</Submit>
     </form>
   );
 }
