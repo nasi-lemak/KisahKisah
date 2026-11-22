@@ -20,7 +20,10 @@ export function syncCustomItems(): ShopItem[] {
   // Items that were un-published since last sync: hide them from the shop.
   for (const it of Object.values(ITEM_BY_ID)) if (it.custom && !items.some((x) => x.id === it.id)) it.retired = true;
   const offers: Record<string, Offer[]> = {};
+  // A campaign's ticket reward is only for ticket holders, never a free or KP drop.
+  const ticketOnly = new Set(all<{ ticket_item: string }>("SELECT ticket_item FROM campaigns WHERE ticket_item IS NOT NULL").map((r) => r.ticket_item));
   for (const r of all<CustomItemRow>("SELECT id, event, event_price FROM custom_items WHERE status = 'live' AND event IS NOT NULL")) {
+    if (ticketOnly.has(r.id)) continue;
     (offers[r.event!] ??= []).push({ item: r.id, price: r.event_price ?? 0 });
   }
   registerExtraOffers(offers);

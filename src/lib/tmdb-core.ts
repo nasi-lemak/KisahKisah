@@ -6,6 +6,8 @@ export type ImportedTitle = {
   tmdb_id: number; kind: Kind; slug: string; title: string; original_title: string | null; year: number; country: string;
   director: string; genres: string; motif: string; synopsis: string; poster_path: string | null; backdrop_path: string | null;
   runtime: number | null; episodes: number | null; seasons: number | null; status: string | null; imdb_id: string | null; cast_names: string;
+  /** Film: release date. Series: next episode's air date if announced, else the premiere. */
+  release_date: string | null;
 };
 
 export type SearchHit = { tmdb_id: number; kind: Kind; title: string; original_title: string | null; year: number | null; poster_path: string | null; overview: string; country: string | null };
@@ -38,6 +40,7 @@ export function slugFor(title: string, year: number): string {
   return `${base || "title"}-${year}`;
 }
 
+const isoDate = (d: unknown) => (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null);
 const yearOf = (d: unknown) => (typeof d === "string" && /^\d{4}/.test(d) ? Number(d.slice(0, 4)) : null);
 
 /** First production/origin country we know, else the first one given. */
@@ -62,6 +65,7 @@ export function mapMovie(m: Json, known: (c: string) => boolean = () => true): I
     runtime: m.runtime || null, episodes: null, seasons: null, status: null,
     imdb_id: m.imdb_id ?? m.external_ids?.imdb_id ?? null,
     cast_names: (m.credits?.cast ?? []).slice(0, 6).map((c: Json) => c.name).join(", "),
+    release_date: isoDate(m.release_date),
   };
 }
 
@@ -86,6 +90,7 @@ export function mapTv(t: Json, known: (c: string) => boolean = () => true): Impo
     episodes: t.number_of_episodes ?? null, seasons: t.number_of_seasons ?? null, status: seriesStatus(t.status, t.type),
     imdb_id: t.external_ids?.imdb_id ?? null,
     cast_names: (t.aggregate_credits?.cast ?? t.credits?.cast ?? []).slice(0, 6).map((c: Json) => c.name).join(", "),
+    release_date: isoDate(t.next_episode_to_air?.air_date) ?? isoDate(t.first_air_date),
   };
 }
 

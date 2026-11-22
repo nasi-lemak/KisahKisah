@@ -5,7 +5,7 @@ import { campaignById, campaignItems, orgMembers } from "@/lib/portal";
 import { campaignReadiness, slotsFor } from "@/lib/workflow";
 import { siteUrl } from "@/lib/site";
 import { createInvite, returnCampaign } from "@/app/admin/actions";
-import { ScheduleForm } from "@/components/partner/CampaignForms";
+import { ScheduleForm, TicketBonusForm } from "@/components/partner/CampaignForms";
 import { CampaignReport, SlotGrid, Stepper } from "@/components/partner/CampaignParts";
 
 export default async function AdminCampaign({ params }: { params: Promise<{ id: string }> }) {
@@ -51,6 +51,15 @@ export default async function AdminCampaign({ params }: { params: Promise<{ id: 
       <section className="glass space-y-3 p-5">
         <h2 className="font-display text-lg font-bold">Items</h2>
         <SlotGrid c={c} items={items} href={(id) => `/admin/items/${id}`} />
+      </section>
+
+      <section className="glass space-y-3 p-5">
+        <h2 className="font-display text-lg font-bold">🎟️ Cinema ticket bonus</h2>
+        <TicketBonusForm
+          c={c}
+          films={all<{ slug: string; title: string; year: number }>("SELECT slug, title, year FROM films ORDER BY title")}
+          items={items.map((i) => ({ id: i.id, name: i.name }))}
+        />
       </section>
 
       {c.status !== "scheduled" ? (

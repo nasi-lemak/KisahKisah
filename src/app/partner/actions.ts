@@ -39,11 +39,13 @@ export async function updateCampaignBrief(_: State, form: FormData): Promise<Sta
   if (!s("title", 120)) return { error: "The title can't be empty." };
   const markets = form.getAll("markets").map(String).filter((m) => m === "GLOBAL" || COUNTRY_BY_CODE[m]);
   if (!markets.length) return { error: "Pick at least one market (or Global)." };
+  const filmSlug = s("film_slug", 80) || null;
+  if (filmSlug && !one("SELECT 1 x FROM films WHERE slug = ?", filmSlug)) return { error: "That title isn't on KisahKisah yet. Leave it empty and ask us to add it." };
   run(
     `UPDATE campaigns SET title = ?, tagline = ?, synopsis = ?, release_date = ?, motif = ?, country = ?, color1 = ?, color2 = ?,
-       starts_on = ?, ends_on = ?, markets = ?, updated_at = datetime('now') WHERE id = ?`,
+       starts_on = ?, ends_on = ?, markets = ?, film_slug = ?, updated_at = datetime('now') WHERE id = ?`,
     s("title", 120), s("tagline", 140), s("synopsis", 600), date("release_date"), s("motif", 8) || "🎬", country,
-    hex("color1", c.color1), hex("color2", c.color2), date("starts_on"), date("ends_on"), markets.includes("GLOBAL") ? "GLOBAL" : markets.join(","), c.id,
+    hex("color1", c.color1), hex("color2", c.color2), date("starts_on"), date("ends_on"), markets.includes("GLOBAL") ? "GLOBAL" : markets.join(","), filmSlug, c.id,
   );
   revalidatePath(`/partner/campaigns/${c.id}`);
   return { ok: "Brief saved." };

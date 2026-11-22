@@ -48,9 +48,9 @@ export function upsertTitle(t: ImportedTitle): { slug: string; created: boolean 
   if (existing) {
     run(
       `UPDATE films SET poster_path = ?, backdrop_path = ?, runtime = ?, episodes = ?, seasons = COALESCE(?, seasons), status = COALESCE(?, status),
-         imdb_id = COALESCE(?, imdb_id), cast_names = ?, synopsis = CASE WHEN synopsis = '' OR synopsis = 'No synopsis yet.' THEN ? ELSE synopsis END
+         imdb_id = COALESCE(?, imdb_id), cast_names = ?, release_date = COALESCE(?, release_date), synopsis = CASE WHEN synopsis = '' OR synopsis = 'No synopsis yet.' THEN ? ELSE synopsis END
        WHERE id = ?`,
-      t.poster_path, t.backdrop_path, t.runtime, t.episodes, t.seasons, t.status, t.imdb_id, t.cast_names, t.synopsis, existing.id,
+      t.poster_path, t.backdrop_path, t.runtime, t.episodes, t.seasons, t.status, t.imdb_id, t.cast_names, t.release_date, t.synopsis, existing.id,
     );
     return { slug: existing.slug, created: false };
   }
@@ -67,10 +67,10 @@ export function upsertTitle(t: ImportedTitle): { slug: string; created: boolean 
   for (let i = 2; one("SELECT 1 x FROM films WHERE slug = ?", slug); i++) slug = `${t.slug}-${i}`;
   run(
     `INSERT INTO films (slug, kind, title, original_title, year, country, director, genres, motif, synopsis, seasons, status,
-       tmdb_id, imdb_id, poster_path, backdrop_path, runtime, episodes, cast_names)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+       tmdb_id, imdb_id, poster_path, backdrop_path, runtime, episodes, cast_names, release_date)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     slug, t.kind, t.title, t.original_title, t.year, t.country, t.director, t.genres, t.motif, t.synopsis, t.seasons, t.status,
-    t.tmdb_id, t.imdb_id, t.poster_path, t.backdrop_path, t.runtime, t.episodes, t.cast_names,
+    t.tmdb_id, t.imdb_id, t.poster_path, t.backdrop_path, t.runtime, t.episodes, t.cast_names, t.release_date,
   );
   return { slug, created: true };
 }

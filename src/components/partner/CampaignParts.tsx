@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { CHAIN_BY_ID } from "@/lib/cinema";
+import { country } from "@/lib/regions";
 import type { Campaign } from "@/lib/portal";
 import { campaignReport } from "@/lib/portal";
 import { campaignEventId, slotsFor } from "@/lib/workflow";
@@ -89,6 +91,36 @@ export function CampaignReport({ c }: { c: Campaign }) {
             ))}
           </tbody>
         </table>
+      )}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+        {([
+          ["🔔 Notify-me sign-ups", r.reminders.signups],
+          ["Reminders sent", r.reminders.sent],
+          ["🎟️ Bonus tickets", r.tickets.n],
+          ["Bonus KP paid", r.tickets.points],
+          ["Ticket items given", r.tickets.items],
+        ] as [string, number][]).map(([l, v]) => (
+          <div key={l} className="rounded-xl bg-black/20 p-3 text-center">
+            <div className="font-display text-2xl font-extrabold">{v.toLocaleString()}</div>
+            <div className="text-xs text-muted">{l}</div>
+          </div>
+        ))}
+      </div>
+      {(r.byChain.length > 0 || r.reminders.byCountry.length > 0) && (
+        <div className="grid gap-3 text-sm sm:grid-cols-2">
+          {r.byChain.length > 0 && (
+            <table className="w-full">
+              <thead><tr className="text-left text-xs uppercase tracking-widest text-muted"><th className="py-1">Cinema</th><th>Tickets</th><th>Bonus KP</th></tr></thead>
+              <tbody>{r.byChain.map((x) => <tr key={x.chain_id} className="border-t border-line"><td className="py-1.5">{CHAIN_BY_ID[x.chain_id]?.name ?? x.chain_id}</td><td>{x.n}</td><td>{x.points}</td></tr>)}</tbody>
+            </table>
+          )}
+          {r.reminders.byCountry.length > 0 && (
+            <table className="w-full">
+              <thead><tr className="text-left text-xs uppercase tracking-widest text-muted"><th className="py-1">Waiting for release</th><th>Fans</th></tr></thead>
+              <tbody>{r.reminders.byCountry.map((x) => <tr key={x.country} className="border-t border-line"><td className="py-1.5">{country(x.country)?.flag} {country(x.country)?.name ?? x.country}</td><td>{x.n}</td></tr>)}</tbody>
+            </table>
+          )}
+        </div>
       )}
       <AnalyticsPanel eventId={campaignEventId(c.id)} from={c.starts_on} to={c.ends_on} />
     </div>

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { all } from "@/lib/db";
+import { lastJobRuns } from "@/lib/jobs";
+import { RunJobsButton } from "@/components/admin/RunJobsButton";
 
 export default function AdminHome() {
   const counts = Object.fromEntries(all<{ status: string; n: number }>("SELECT status, COUNT(*) n FROM custom_items GROUP BY status").map((r) => [r.status, r.n]));
@@ -23,6 +25,16 @@ export default function AdminHome() {
           </Link>
         ))}
       </div>
+      <section className="glass space-y-3 p-5 text-sm">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="font-display text-lg font-bold">Scheduled jobs</h2>
+          <span className="text-xs text-muted">{process.env.CRON_SECRET ? "Run hourly by your scheduler via /api/cron." : "CRON_SECRET isn't set, so nothing runs on a schedule yet."}</span>
+          <div className="ml-auto"><RunJobsButton /></div>
+        </div>
+        {lastJobRuns().map((j) => (
+          <div key={j.job} className="flex flex-wrap gap-2"><b className="w-24">{j.job}</b><span className="text-muted">{j.last_run_at} UTC</span><span>{j.last_result}</span></div>
+        ))}
+      </section>
       <section className="glass p-5 text-sm">
         <h2 className="mb-2 font-display text-lg font-bold">How an item goes live</h2>
         <ol className="grid gap-2 sm:grid-cols-4">

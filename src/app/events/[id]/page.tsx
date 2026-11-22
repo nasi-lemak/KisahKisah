@@ -11,6 +11,10 @@ import { country } from "@/lib/regions";
 import { ItemPreview, RarityTag } from "@/components/ItemPreview";
 import { ClaimButton } from "@/components/EventBits";
 import { Poster } from "@/components/ui";
+import { NotifyButton } from "@/components/NotifyButton";
+import { reminderState } from "@/lib/reminders";
+import { canSignUp } from "@/lib/reminders-core";
+import { campaignById } from "@/lib/portal";
 
 type Params = Promise<{ id: string }>;
 
@@ -34,6 +38,11 @@ export default async function EventPage({ params, searchParams }: { params: Para
   const claimed = shown ? eventClaimCount(e.id, shown.start) : 0;
   const who = await audience();
   const canSee = who === "all" || visibleTo(e, who);
+  const cmpId = /^cmp-(\d+)$/.exec(e.id)?.[1];
+  const cmp = cmpId ? campaignById(Number(cmpId)) : undefined;
+  const remindTarget = cmp && canSignUp(cmp.release_date, now) ? `cmp:${cmp.id}` : null;
+  const bonusItem = cmp?.ticket_item ? ITEM_BY_ID[cmp.ticket_item] : undefined;
+  const ticketBonus = cmp && cmp.film_slug && (cmp.ticket_bonus_pct > 0 || bonusItem) ? cmp : null;
   const markets = isTargeted(e) ? e.markets!.map((m) => country(m)?.flag ?? m).join(" ") : null;
 
   return (
@@ -78,6 +87,11 @@ export default async function EventPage({ params, searchParams }: { params: Para
             <h2 className="font-display text-2xl font-bold">{e.promo.title}</h2>
             <p className="italic text-saffron">{e.promo.tagline}</p>
             <p className="mt-2 text-sm">{e.promo.synopsis}</p>
+            {remindTarget && canSee && (
+              <div className="mt-4">
+                <NotifyButton target={remindTarget} date={cmp!.release_date!} initial={reminderState(user?.id ?? null, remindTarget)} signedIn={!!user} verified={!!user?.email_verified_at} />
+              </div>
+            )}
             {e.sponsor && <p className="mt-3 text-xs text-muted">Presented by {e.sponsor.name}. Sponsors never influence ratings, reviews or scores.</p>}
           </div>
         </section>
@@ -109,6 +123,28 @@ export default async function EventPage({ params, searchParams }: { params: Para
               );
             })}
           </div>
+        </section>
+      )}
+
+      {ticketBonus && canSee && (
+        <section className="card flex flex-wrap items-center gap-4 border-saffron/40 p-5">
+          <div className="text-4xl">🎟️</div>
+          <div className="min-w-0 flex-1">
+            <div className="font-bold">See it at a partner cinema{liveNow ? "" : " during the event"}</div>
+            <div className="text-sm text-muted">
+              Redeem your ticket for <b className="text-text">{e.promo?.title ?? e.name}</b> and get
+              {ticketBonus.ticket_bonus_pct > 0 ? ` +${ticketBonus.ticket_bonus_pct}% KP on top of the usual ticket points` : ""}
+              {ticketBonus.ticket_bonus_pct > 0 && bonusItem ? " and" : ""}
+              {bonusItem ? ` the exclusive ${bonusItem.name}` : ""}.
+            </div>
+          </div>
+          {bonusItem && (
+            <div className="flex flex-col items-center gap-1 text-center">
+              <div className="flex h-16 w-16 items-center justify-center"><ItemPreview item={bonusItem} avatar={user?.avatar_item} /></div>
+              <span className="text-[0.65rem] uppercase tracking-widest text-muted">{owned.has(bonusItem.id) ? "✓ yours" : "ticket holders only"}</span>
+            </div>
+          )}
+          <Link href="/cinemas" className="btn btn-primary">Redeem a ticket →</Link>
         </section>
       )}
 

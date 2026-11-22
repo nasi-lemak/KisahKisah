@@ -17,6 +17,7 @@ test("tmdb: movies map to catalogue rows", () => {
   assert.equal(m.original_title, null, "same as title");
   assert.equal(m.imdb_id, "tt14895576");
   assert.equal(m.cast_names, "Zafreen Zairizal, Deena Ezral, Piqa");
+  assert.equal(m.release_date, "2023-05-21");
 });
 
 test("tmdb: series map with episodes, seasons and status", () => {
@@ -28,6 +29,8 @@ test("tmdb: series map with episodes, seasons and status", () => {
   assert.equal(t.seasons, 3);
   assert.equal(t.status, "ended");
   assert.equal(t.director, "Hwang Dong-hyuk");
+  assert.equal(t.release_date, "2021-09-17", "premiere when no next episode is announced");
+  assert.equal(mapTv({ ...fx("tmdb-tv"), next_episode_to_air: { air_date: "2027-06-27" } }).release_date, "2027-06-27");
   assert.deepEqual(t.genres.split(","), ["Action", "Mystery", "Drama"]);
   assert.equal(seriesStatus("Returning Series", "Scripted"), "ongoing");
   assert.equal(seriesStatus("Ended", "Miniseries"), "limited");

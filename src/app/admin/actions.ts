@@ -280,3 +280,21 @@ export async function saveHouseEvent(_: { error?: string; ok?: string } | undefi
   revalidatePath("/", "layout");
   redirect(`/admin/events/${id}?saved=1`);
 }
+
+// ── Campaign ticket bonus (commercial terms, staff only) ──────────────
+
+export async function saveTicketBonus(_: { error?: string; ok?: string } | undefined, form: FormData): Promise<{ error?: string; ok?: string }> {
+  await requireStaff();
+  const id = Number(form.get("campaign_id"));
+  if (!one("SELECT 1 x FROM campaigns WHERE id = ?", id)) return { error: "Campaign not found." };
+  const filmSlug = String(form.get("film_slug") ?? "").trim() || null;
+  if (filmSlug && !one("SELECT 1 x FROM films WHERE slug = ?", filmSlug)) return { error: "No catalogue title with that slug." };
+  const pct = Math.max(0, Math.min(300, Math.round(Number(form.get("ticket_bonus_pct")) || 0)));
+  const item = String(form.get("ticket_item") ?? "") || null;
+  if (item && !one("SELECT 1 x FROM custom_items WHERE id = ? AND campaign_id = ?", item, id)) return { error: "Pick one of this campaign's items." };
+  if ((pct || item) && !filmSlug) return { error: "Link the catalogue title first: the bonus applies to tickets for that title." };
+  run("UPDATE campaigns SET film_slug = ?, ticket_bonus_pct = ?, ticket_item = ?, updated_at = datetime('now') WHERE id = ?", filmSlug, pct, item, id);
+  syncCustomItems();
+  revalidatePath("/", "layout");
+  return { ok: pct || item ? `Saved: +${pct}% KP${item ? " and the item" : ""} on partner-cinema tickets during the campaign.` : "Saved. No ticket bonus." };
+}

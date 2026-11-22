@@ -504,3 +504,33 @@ CREATE TABLE IF NOT EXISTS outbox (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 `;
+
+export const SCHEMA_V9 = `
+-- "Notify me" sign-ups. target is "film:<id>" or "cmp:<campaign id>".
+CREATE TABLE IF NOT EXISTS reminders (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  target TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  sent_at TEXT,
+  PRIMARY KEY (user_id, target)
+);
+CREATE INDEX IF NOT EXISTS reminders_target ON reminders(target, sent_at);
+
+-- Extra KP and items paid for partner-cinema tickets during a campaign.
+CREATE TABLE IF NOT EXISTS campaign_ticket_bonuses (
+  id INTEGER PRIMARY KEY,
+  campaign_id INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  purchase_id INTEGER NOT NULL UNIQUE REFERENCES cinema_purchases(id) ON DELETE CASCADE,
+  chain_id TEXT NOT NULL,
+  points INTEGER NOT NULL,
+  item_id TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS job_runs (
+  job TEXT PRIMARY KEY,
+  last_run_at TEXT NOT NULL,
+  last_result TEXT NOT NULL DEFAULT ''
+);
+`;

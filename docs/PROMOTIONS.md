@@ -106,8 +106,8 @@ Tracked per campaign, reported mid-flight and at wrap:
 
 - **Reach:** banner and card impressions, campaign page views, daily unique viewers, clicks and click-through, by day and by market
 - **Engagement:** claims (`event_claims`), claim rate, KP purchases of premium items, items *equipped*, sticker reactions using campaign stickers (`review_stickers`)
-- **Intent:** watchlist adds\*, "notify me" sign-ups\*
-- **Conversion:** logs of the title, reviews (count + rating distribution, shown as-is), partner-cinema tickets claimed (`cinema_purchases`)
+- **Intent:** "notify me" sign-ups (by market), reminders delivered, watchlist adds\*
+- **Conversion:** logs of the title, reviews (count + rating distribution, shown as-is), partner-cinema tickets with the campaign bonus (by cinema), bonus KP paid
 - **Afterglow:** % still equipping the theme/frame 30 days later, sticker usage after vaulting
 
 \* not built yet.
@@ -145,8 +145,8 @@ Reach is measured without cookies or personal data: daily aggregate counters plu
 3. ~~Artist portal~~ **Built**: apply → briefs → claim → submit → feedback → accept → payout tracking (`/artists`).
 4. ~~Geo-targeting by viewer country~~ **Built**: partners pick markets in the brief; banners, cards, bonuses and claims only reach those countries (member home country, or CDN country header for visitors).
 5. ~~Impression and click tracking~~ **Built**: privacy-friendly impressions, daily viewers, clicks, CTR and page views in the campaign report, by day and country.
-6. Release-day watchlist reminders and the "notify me" button
-7. Partner-cinema ticket bonus wired to a campaign
+6. ~~Release-day reminders and the "notify me" button~~ **Built**: in-app and email on release day; sign-ups by country in the report.
+7. ~~Partner-cinema ticket bonus wired to a campaign~~ **Built**: +% KP and an exclusive ticket-holder item on partner-cinema tickets for the linked title, during the campaign, in its markets; reported by cinema.
 8. Official campaign Kuiz on event pages
 9. ~~House events created in the admin~~ **Built**: yearly or one-off windows, logging bonuses, featured titles, markets, pause/resume and a live preview (`/admin/events`).
 10. Contracts, invoicing, and confirming festival dates per market each year

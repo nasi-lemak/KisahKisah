@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { all } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { campaignById, campaignItems, isOrgMember } from "@/lib/portal";
@@ -29,7 +30,7 @@ export default async function PartnerCampaign({ params }: { params: Promise<{ id
 
       <section className="glass space-y-3 p-5">
         <h2 className="font-display text-xl font-bold">1 · The brief</h2>
-        <CampaignBriefForm c={c} countries={COUNTRIES} locked={locked} />
+        <CampaignBriefForm c={c} countries={COUNTRIES} locked={locked} films={all<{ slug: string; title: string; year: number }>("SELECT slug, title, year FROM films ORDER BY title")} />
       </section>
 
       <section className="glass space-y-3 p-5">

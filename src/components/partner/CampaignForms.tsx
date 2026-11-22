@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { submitCampaign, updateCampaignBrief } from "@/app/partner/actions";
-import { scheduleCampaign } from "@/app/admin/actions";
+import { saveTicketBonus, scheduleCampaign } from "@/app/admin/actions";
 import { Notice, Submit, useKeptAction } from "../forms";
 
-type C = { markets?: string; id: number; title: string; tagline: string; synopsis: string; release_date: string | null; motif: string; country: string; color1: string; color2: string; starts_on: string | null; ends_on: string | null; featured?: string };
+type C = { markets?: string; id: number; title: string; tagline: string; synopsis: string; release_date: string | null; motif: string; country: string; color1: string; color2: string; starts_on: string | null; ends_on: string | null; featured?: string; film_slug?: string | null };
 
-export function CampaignBriefForm({ c, countries, locked }: { c: C; countries: { code: string; name: string; flag: string }[]; locked: boolean }) {
+export function CampaignBriefForm({ c, countries, locked, films = [] }: { c: C; countries: { code: string; name: string; flag: string }[]; locked: boolean; films?: { slug: string; title: string; year: number }[] }) {
   const [state, action, pending] = useKeptAction(updateCampaignBrief);
   const [v, setV] = useState({ title: c.title, tagline: c.tagline, motif: c.motif, color1: c.color1, color2: c.color2 });
   return (
@@ -60,6 +60,12 @@ export function CampaignBriefForm({ c, countries, locked }: { c: C; countries: {
             <label className="label" htmlFor="cb-end">Preferred end</label>
             <input id="cb-end" type="date" name="ends_on" className="input" defaultValue={c.ends_on ?? ""} />
           </div>
+        </div>
+        <div>
+          <label className="label" htmlFor="cb-film">The title's page on KisahKisah (optional)</label>
+          <input id="cb-film" name="film_slug" list="cb-films" className="input" defaultValue={c.film_slug ?? ""} placeholder="Start typing, e.g. pulau-2023" />
+          <datalist id="cb-films">{films.map((f) => <option key={f.slug} value={f.slug}>{f.title} ({f.year})</option>)}</datalist>
+          <p className="mt-1 text-xs text-muted">Linking it lets fans' reminders and partner-cinema ticket bonuses count toward your campaign. Not listed? Ask us to add it.</p>
         </div>
         <fieldset>
           <legend className="label">Markets: where fans will see it</legend>
@@ -118,6 +124,36 @@ export function ScheduleForm({ c }: { c: C }) {
       </div>
       <Notice state={state} />
       <Submit pending={pending}>📅 Publish items & schedule</Submit>
+    </form>
+  );
+}
+
+export function TicketBonusForm({ c, films, items }: { c: { id: number; film_slug: string | null; ticket_bonus_pct: number; ticket_item: string | null }; films: { slug: string; title: string; year: number }[]; items: { id: string; name: string }[] }) {
+  const [state, action, pending] = useKeptAction(saveTicketBonus);
+  return (
+    <form onSubmit={action} className="space-y-3">
+      <input type="hidden" name="campaign_id" value={c.id} />
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div>
+          <label className="label" htmlFor="tb-film">Catalogue title</label>
+          <input id="tb-film" name="film_slug" list="tb-films" className="input" defaultValue={c.film_slug ?? ""} />
+          <datalist id="tb-films">{films.map((f) => <option key={f.slug} value={f.slug}>{f.title} ({f.year})</option>)}</datalist>
+        </div>
+        <div>
+          <label className="label" htmlFor="tb-pct">Extra KP on tickets (%)</label>
+          <input id="tb-pct" name="ticket_bonus_pct" type="number" min={0} max={300} step={5} className="input" defaultValue={c.ticket_bonus_pct} />
+        </div>
+        <div>
+          <label className="label" htmlFor="tb-item">Exclusive item for ticket holders</label>
+          <select id="tb-item" name="ticket_item" className="input" defaultValue={c.ticket_item ?? ""}>
+            <option value="">None</option>
+            {items.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
+          </select>
+        </div>
+      </div>
+      <p className="text-xs text-muted">Applies to tickets for this title bought at partner cinemas during the campaign, by members in its markets. The partner pays for the extra KP under the campaign agreement.</p>
+      <Notice state={state} />
+      <Submit pending={pending} className="btn btn-ghost">Save ticket bonus</Submit>
     </form>
   );
 }

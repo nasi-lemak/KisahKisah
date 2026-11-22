@@ -63,6 +63,7 @@ Copy `.env.example` to `.env.local`:
 | `TMDB_API_KEY` | TMDB v3 key or v4 read token. Turns on real posters, runtimes, episodes and cast, **Admin → Catalogue**, and "add a missing title" from film search. Also used by `npm run scores:sync`. |
 | `OMDB_API_KEY` | Optional, for `npm run scores:sync`. Respect each provider's terms. |
 | `RESEND_API_KEY`, `MAIL_FROM` | Email delivery (verification, password resets, reminders). Without them, mail lands in the dev outbox at **Admin → Outbox**. |
+| `CRON_SECRET` | Turns on `/api/cron`. Call it hourly with `Authorization: Bearer <secret>` (GET or POST) to send release reminders and clean up expired sessions and links. Staff can also press **Run now** on the admin overview. |
 | `TRUST_PROXY=1` | Set only behind a proxy you control, so `X-Forwarded-For` can be used for per-IP rate limits. Without it, per-IP limits are skipped and per-account limits still apply. |
 | `ADMIN_USERNAMES` | Comma-separated usernames given admin access (item editor, inquiries). |
 | `UPLOAD_DIR` | Where uploaded artwork is stored (default `./data/uploads`). |
@@ -110,6 +111,10 @@ Everyone contributes through the same pipeline: upload → automatic checks → 
 3. They submit each item, then the campaign, confirming they hold the licence and accept the "Sponsored" label.
 4. Staff review each item: approve, or request changes with a note the partner sees. When everything's approved, *Publish items & schedule* turns the campaign into a **sponsored event** with its own page, banner and limited drops for those dates. No code needed.
 5. Both sides see a report: fans who claimed, items claimed, equipped right now, sticker uses, KP spent, plus **impressions, daily viewers, clicks, click-through and event page views**, by day and by country.
+
+**Release reminders.** Sponsored events with a future release date, and catalogue titles with an upcoming release (from TMDB, including new seasons), show **🔔 Notify me**. On release day the scheduled job sends an in-app notification, plus an email to members with a confirmed address. Reminders more than 14 days late are dropped rather than sent. Partners see sign-ups, by country, and reminders sent in their report.
+
+**Cinema ticket bonus.** Partners link their title's KisahKisah page in the brief. Staff set the commercial terms on the campaign: extra KP on partner-cinema tickets (a percentage of the normal ticket points) and an optional exclusive item. Ticket holders in the campaign's markets get them while it runs. That item is then removed from the free drops. The event and film pages advertise the bonus, and the report shows bonus tickets, KP paid, items given, and a breakdown by cinema.
 
 **Targeting.** In the brief, partners choose their markets (🌏 Global or specific countries). A targeted campaign's banner, cards, logging bonus and drops only appear for members whose home country is in those markets, or for signed-out visitors whose CDN country header matches. Everyone can still open the event page, but people outside the markets see a notice instead of claim buttons, and the server refuses their claims. Staff see everything.
 
@@ -192,4 +197,4 @@ tests/                 node:test unit tests
 - Rewind hours use TMDB runtimes where linked, else estimates (2h per film, 8h per season).
 - Lunar/Islamic festival dates are approximate and flagged in code. Confirm them yearly.
 - `scores:sync` is unit-tested against sample payloads but hasn't been run against the live OMDb/TMDB APIs from this environment.
-- Ideas: a localised UI (Bahasa, Thai, Vietnamese, Tagalog, Korean, French…), release-day watchlist reminders, a "cinema date" social feature.
+- Ideas: a localised UI (Bahasa, Thai, Vietnamese, Tagalog, Korean, French…), a "cinema date" social feature.

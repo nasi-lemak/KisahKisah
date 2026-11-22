@@ -2,7 +2,7 @@ import "server-only";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { SCHEMA, SCHEMA_NOTIFICATIONS, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8 } from "./schema";
+import { SCHEMA, SCHEMA_NOTIFICATIONS, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9 } from "./schema";
 import { syncCustomItems } from "./custom-items";
 import { CATALOG } from "./catalog";
 import { STARTER_ITEMS } from "./shop";
@@ -28,6 +28,7 @@ export function db(): DatabaseSync {
   d.exec(SCHEMA_V6);
   d.exec(SCHEMA_V7);
   d.exec(SCHEMA_V8);
+  d.exec(SCHEMA_V9);
   // Seed exactly once, even if several build workers open the file together.
   let seeded = false;
   d.exec("BEGIN IMMEDIATE");
@@ -87,6 +88,10 @@ function migrate(d: DatabaseSync) {
   addColumn(d, "users", "email", "TEXT");
   addColumn(d, "users", "email_verified_at", "TEXT");
   for (const [col, def] of [["tmdb_id", "INTEGER"], ["imdb_id", "TEXT"], ["poster_path", "TEXT"], ["backdrop_path", "TEXT"], ["runtime", "INTEGER"], ["episodes", "INTEGER"], ["cast_names", "TEXT NOT NULL DEFAULT ''"], ["tmdb_checked_at", "TEXT"]]) addColumn(d, "films", col, def);
+  addColumn(d, "films", "release_date", "TEXT");
+  addColumn(d, "campaigns", "film_slug", "TEXT");
+  addColumn(d, "campaigns", "ticket_bonus_pct", "INTEGER NOT NULL DEFAULT 0");
+  addColumn(d, "campaigns", "ticket_item", "TEXT");
   d.exec("CREATE UNIQUE INDEX IF NOT EXISTS films_tmdb ON films(kind, tmdb_id) WHERE tmdb_id IS NOT NULL");
   d.exec("CREATE UNIQUE INDEX IF NOT EXISTS users_email ON users(email COLLATE NOCASE) WHERE email IS NOT NULL");
   // Staff accounts come from config, e.g. ADMIN_USERNAMES=alice,bob

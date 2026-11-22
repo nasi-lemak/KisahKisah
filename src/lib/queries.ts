@@ -8,7 +8,7 @@ export type Film = {
   country: string; director: string; genres: string; motif: string; synopsis: string; kind: "film" | "series";
   seasons: number | null; status: "ended" | "ongoing" | "limited" | null;
   tmdb_id: number | null; imdb_id: string | null; poster_path: string | null; backdrop_path: string | null;
-  runtime: number | null; episodes: number | null; cast_names: string;
+  runtime: number | null; episodes: number | null; cast_names: string; release_date: string | null;
 };
 export type FilmWithStats = Film & { avg_rating: number | null; log_count: number; review_count: number };
 

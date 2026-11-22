@@ -1,4 +1,5 @@
 import "server-only";
+import { campaignSignups } from "./reminders";
 import { all, one, run } from "./db";
 import type { User } from "./auth";
 import type { CustomItemRow } from "./custom-item-map";
@@ -13,6 +14,7 @@ export type Campaign = {
   status: CampaignStatus; tagline: string; synopsis: string; release_date: string | null; motif: string; country: string;
   color1: string; color2: string; starts_on: string | null; ends_on: string | null; featured: string;
   licence_confirmed: number; licence_at: string | null; created_at: string; updated_at: string;
+  film_slug: string | null; ticket_bonus_pct: number; ticket_item: string | null;
 };
 
 const CAMPAIGN_SELECT = "SELECT c.*, o.name org_name FROM campaigns c JOIN orgs o ON o.id = c.org_id";
@@ -64,7 +66,14 @@ export function campaignReport(c: Campaign) {
       ? n("SELECT COUNT(*) n FROM review_stickers WHERE sticker_id = ?", i.id) + n("SELECT COUNT(*) n FROM profile_stickers WHERE item_id = ?", i.id)
       : 0,
   }));
+  const tickets = one<{ n: number; points: number; items: number; fans: number }>(
+    "SELECT COUNT(*) n, COALESCE(SUM(points), 0) points, COUNT(item_id) items, COUNT(DISTINCT user_id) fans FROM campaign_ticket_bonuses WHERE campaign_id = ?", c.id,
+  )!;
+  const byChain = all<{ chain_id: string; n: number; points: number }>(
+    "SELECT chain_id, COUNT(*) n, SUM(points) points FROM campaign_ticket_bonuses WHERE campaign_id = ? GROUP BY chain_id ORDER BY n DESC", c.id,
+  );
   return {
+    tickets, byChain, reminders: campaignSignups(c.id, c.film_slug),
     uniqueClaimers: n("SELECT COUNT(DISTINCT user_id) n FROM event_claims WHERE event_id = ?", eventId),
     totalClaims: perItem.reduce((a, x) => a + x.claims, 0),
     kpSpent: n("SELECT COALESCE(SUM(price), 0) n FROM event_claims WHERE event_id = ?", eventId),

@@ -514,7 +514,8 @@ export async function redeemTicket(_: FormState, form: FormData): Promise<FormSt
   refresh();
   if (!res.ok) return { error: res.error };
   if (res.duplicate) return { error: "You've already claimed this ticket." };
-  return { ok: `+${res.points} KP${res.localBonus ? " (local film bonus ×2!)" : ""}` };
+  const b = "campaignBonus" in res ? res.campaignBonus : undefined;
+  return { ok: `+${res.points} KP${res.localBonus ? " (local film bonus ×2!)" : ""}${b ? ` · ${b.campaign} bonus +${b.points} KP${b.item ? ` and ${b.item}` : ""}` : ""}` };
 }
 
 /**

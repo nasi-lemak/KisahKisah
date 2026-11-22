@@ -17,6 +17,10 @@ import { franchisesFor, positionIn } from "@/lib/franchises";
 import { bonusesFor } from "@/lib/events";
 import { audience } from "@/lib/geo";
 import { formatRuntime } from "@/lib/tmdb-core";
+import { NotifyButton } from "@/components/NotifyButton";
+import { reminderState } from "@/lib/reminders";
+import { canSignUp } from "@/lib/reminders-core";
+import { one } from "@/lib/db";
 
 type Params = Promise<{ slug: string }>;
 
@@ -45,6 +49,11 @@ export default async function FilmPage({ params, searchParams }: { params: Param
   const allFilms = all<{ id: number; title: string; year: number }>("SELECT id, title, year FROM films ORDER BY title");
   const today = new Date().toISOString().slice(0, 10);
   const bonuses = bonusesFor(film, undefined, await audience());
+  const upcoming = canSignUp(film.release_date, today) ? `film:${film.id}` : null;
+  const ticketCampaign = one<{ id: number; title: string; ticket_bonus_pct: number; markets: string }>(
+    `SELECT id, title, ticket_bonus_pct, markets FROM campaigns WHERE film_slug = ? AND status = 'scheduled' AND starts_on <= ? AND ends_on >= ?
+       AND (ticket_bonus_pct > 0 OR ticket_item IS NOT NULL) LIMIT 1`, film.slug, today, today,
+  );
 
   return (
     <div className="space-y-10">
@@ -93,6 +102,18 @@ export default async function FilmPage({ params, searchParams }: { params: Param
           </div>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed">{film.synopsis}</p>
           {film.cast_names && <p className="mt-2 text-sm text-muted">Starring <span className="text-text">{film.cast_names}</span></p>}
+          {upcoming && (
+            <div className="mt-4 rounded-xl border border-saffron/40 bg-saffron/10 p-4">
+              <div className="mb-2 text-sm"><b>Coming {new Date(`${film.release_date}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}</b>{film.kind === "series" ? " · new episodes" : ""}</div>
+              <NotifyButton target={upcoming} date={film.release_date!} initial={reminderState(user?.id ?? null, upcoming)} signedIn={!!user} verified={!!user?.email_verified_at} />
+            </div>
+          )}
+          {ticketCampaign && (
+            <Link href={`/events/cmp-${ticketCampaign.id}`} className="mt-3 flex w-fit items-center gap-2 rounded-lg border border-saffron/40 bg-saffron/10 px-3 py-1.5 text-sm">
+              <span>🎟️</span>
+              <span><b>{ticketCampaign.title}</b> launch: partner-cinema tickets earn {ticketCampaign.ticket_bonus_pct > 0 ? `+${ticketCampaign.ticket_bonus_pct}% KP` : "an exclusive item"}</span>
+            </Link>
+          )}
           {bonuses.map((e) => (
             <Link key={e.id} href={`/events/${e.id}`} className="mt-3 flex w-fit items-center gap-2 rounded-lg border border-saffron/40 bg-saffron/10 px-3 py-1.5 text-sm">
               <span>{e.icon}</span>
