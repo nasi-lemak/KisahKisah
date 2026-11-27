@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getI18n } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 import { currentUser } from "@/lib/auth";
 import { inventory, ledger, lifetimePoints } from "@/lib/queries";
@@ -16,29 +17,28 @@ import type { CardData } from "@/lib/profile";
 
 export const metadata: Metadata = { title: "Kedai · Shop" };
 
-const SECTIONS: { type: ItemType; title: string; blurb: string; icon: string }[] = [
-  { type: "frame", title: "Avatar decorations", blurb: "Orbiting lanterns, kucing ears, spinning kites", icon: "💫" },
-  { type: "effect", title: "Profile effects", blurb: "Particles that play over your profile card", icon: "✨" },
-  { type: "namestyle", title: "Name styles", blurb: "Your display name, everywhere, with flair", icon: "🔤" },
-  { type: "avatar", title: "Avatars", blurb: "Who you are on KisahKisah", icon: "🙂" },
-  { type: "banner", title: "Profile banners", blurb: "Animated backdrops for your profile", icon: "🖼️" },
-  { type: "theme", title: "App themes", blurb: "Recolour the whole app, just for you", icon: "🎨" },
-  { type: "sticker", title: "Stickers", blurb: "Slap them on reviews and your sticker board", icon: "🏷️" },
-  { type: "title", title: "Titles", blurb: "Shown beside your name", icon: "🎖️" },
-];
+const SECTION_TYPES = [
+  { type: "frame", icon: "💫" },
+  { type: "effect", icon: "✨" },
+  { type: "namestyle", icon: "🔤" },
+  { type: "avatar", icon: "🙂" },
+  { type: "banner", icon: "🖼️" },
+  { type: "theme", icon: "🎨" },
+  { type: "sticker", icon: "🏷️" },
+  { type: "title", icon: "🎖️" },
+] as const satisfies readonly { type: ItemType; icon: string }[];
 
 const NEW_TYPES = new Set<ItemType>(["effect", "namestyle"]);
 const NEW_IDS = new Set(["fr_bungaraya", "fr_lanterns", "fr_kucing", "fr_kopi", "fr_wau", "fr_durian"]);
 
-const fmt = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 
-function ShopCard({ item, children, avatar, name }: { item: ShopItem; children: React.ReactNode; avatar?: string; name: string }) {
+function ShopCard({ item, children, avatar, name, newLabel = "New" }: { item: ShopItem; children: React.ReactNode; avatar?: string; name: string; newLabel?: string }) {
   const rc = RARITY_STYLE[item.rarity].color;
   const isNew = NEW_TYPES.has(item.type) || NEW_IDS.has(item.id);
   return (
     <div className={`shop-card ${item.rarity === "legendary" ? "legendary" : ""}`} style={{ ["--r1" as string]: rc, ["--r2" as string]: `${rc}55` }}>
       <div className="inner flex flex-col gap-2 p-4">
-        {isNew && <span className="ribbon bg-jade">New</span>}
+        {isNew && <span className="ribbon bg-jade">{newLabel}</span>}
         <div className="flex h-28 items-center justify-center">
           <ItemPreview item={item} avatar={avatar} displayName={name} />
         </div>
@@ -53,6 +53,9 @@ function ShopCard({ item, children, avatar, name }: { item: ShopItem; children: 
 }
 
 export default async function KedaiPage() {
+  const { t, date } = await getI18n();
+  const fmt = (d: string) => date(d, "medium");
+  const SECTIONS = SECTION_TYPES.map((x) => ({ ...x, title: t(`kedai.sec.${x.type}`), blurb: t(`kedai.sec.${x.type}Hint`) }));
   const user = await currentUser();
   const owned = new Set(user ? inventory(user.id) : []);
   const history = user ? ledger(user.id, 10) : [];
@@ -60,7 +63,7 @@ export default async function KedaiPage() {
   const live = activeEvents(undefined, await audience()).filter((e) => e.offers.length);
   const vaulted = ITEMS.filter((i) => i.event && !i.retired && !live.some((e) => e.offers.some((o) => o.item === i.id)));
   const avatar = user?.avatar_item;
-  const name = user?.display_name ?? "Your Name";
+  const name = user?.display_name ?? t("kedai.yourName");
 
   const bundleCard = (b: (typeof BUNDLES)[number]): CardData => {
     const pick = (t: ItemType) => b.items.find((i) => ITEM_BY_ID[i]?.type === t) ?? null;
@@ -78,20 +81,20 @@ export default async function KedaiPage() {
       <section className="relative overflow-hidden rounded-3xl border border-line p-7 sm:p-10" style={{ background: "radial-gradient(circle at 15% 20%, #f5a52455, transparent 45%), radial-gradient(circle at 85% 80%, #c084fc44, transparent 45%), radial-gradient(circle at 60% 10%, #19b38a33, transparent 40%), var(--color-surface)" }}>
         <div className="relative flex flex-wrap items-end justify-between gap-6">
           <div>
-            <div className="text-xs font-bold uppercase tracking-[0.3em] text-muted">The Kedai</div>
-            <h1 className="mt-1 font-display text-5xl font-extrabold sm:text-6xl">Level up your look.</h1>
-            <p className="mt-2 max-w-xl text-muted">Decorations, profile effects, name styles, stickers and themes, paid for with Kisah Points you earn by watching, reviewing and playing. Never real money.</p>
+            <div className="text-xs font-bold uppercase tracking-[0.3em] text-muted">{t("kedai.title")}</div>
+            <h1 className="mt-1 font-display text-5xl font-extrabold sm:text-6xl">{t("kedai.lead")}</h1>
+            <p className="mt-2 max-w-xl text-muted">{t("kedai.body")}</p>
           </div>
           {user ? (
             <div className="glass flex items-center gap-4 px-5 py-4">
               <div>
-                <div className="text-xs uppercase tracking-widest text-muted">Balance</div>
+                <div className="text-xs uppercase tracking-widest text-muted">{t("kedai.balance")}</div>
                 <KP n={user.points} className="text-2xl" />
               </div>
-              <Link href="/studio" className="btn btn-primary">🎨 Profile Studio</Link>
+              <Link href="/studio" className="btn btn-primary">{t("kedai.studio")}</Link>
             </div>
           ) : (
-            <Link href="/login?next=/kedai" className="btn btn-primary">Sign in to shop</Link>
+            <Link href="/login?next=/kedai" className="btn btn-primary">{t("kedai.signIn")}</Link>
           )}
         </div>
       </section>
@@ -104,18 +107,18 @@ export default async function KedaiPage() {
             <div>
               <div className="font-display font-bold">
                 Limited drop · {e.name}
-                {e.kind === "sponsored" && <span className="ml-2 rounded bg-white/15 px-1.5 py-0.5 text-[0.6rem] uppercase tracking-wider">Sponsored</span>}
+                {e.kind === "sponsored" && <span className="ml-2 rounded bg-white/15 px-1.5 py-0.5 text-[0.6rem] uppercase tracking-wider">{t("kedai.sponsored")}</span>}
               </div>
-              <div className="text-xs text-muted">⏳ Vaulted in {e.daysLeft} day{e.daysLeft === 1 ? "" : "s"}</div>
+              <div className="text-xs text-muted">{e.daysLeft === 1 ? t("kedai.vaultedInOne") : t("kedai.vaultedInMany", { n: e.daysLeft })}</div>
             </div>
-            <Link href={`/events/${e.id}`} className="ml-auto text-sm text-muted hover:text-text">Event page →</Link>
+            <Link href={`/events/${e.id}`} className="ml-auto text-sm text-muted hover:text-text">{t("kedai.eventPage")}</Link>
           </div>
           <div className="grid grid-cols-2 gap-3 bg-surface p-4 sm:grid-cols-4 lg:grid-cols-5">
             {e.offers.map((o) => {
               const item = ITEM_BY_ID[o.item];
               if (!item) return null;
               return (
-                <ShopCard key={o.item} item={item} avatar={avatar} name={name}>
+                <ShopCard newLabel={t("kedai.new")} key={o.item} item={item} avatar={avatar} name={name}>
                   <ClaimButton eventId={e.id} itemId={item.id} price={o.price} owned={owned.has(item.id)} affordable={(user?.points ?? 0) >= o.price} live signedIn={!!user} />
                 </ShopCard>
               );
@@ -126,7 +129,7 @@ export default async function KedaiPage() {
 
       {/* Bundles */}
       <section>
-        <h2 className="mb-4 font-display text-2xl font-extrabold">Featured bundles</h2>
+        <h2 className="mb-4 font-display text-2xl font-extrabold">{t("kedai.bundles")}</h2>
         <div className="grid gap-5 lg:grid-cols-3">
           {BUNDLES.map((b) => {
             const total = b.items.reduce((a, id) => a + (ITEM_BY_ID[id]?.price ?? 0), 0);
@@ -179,11 +182,11 @@ export default async function KedaiPage() {
               {list.map((item) => {
                 const ach = source.get(item.id);
                 return (
-                  <ShopCard key={item.id} item={item} avatar={avatar} name={name}>
+                  <ShopCard newLabel={t("kedai.new")} key={item.id} item={item} avatar={avatar} name={name}>
                     {owned.has(item.id) ? (
-                      <Link href="/studio" className="block rounded-lg bg-jade/15 py-1.5 text-center text-sm font-bold text-jade">✓ Owned · equip</Link>
+                      <Link href="/studio" className="block rounded-lg bg-jade/15 py-1.5 text-center text-sm font-bold text-jade">{t("kedai.owned")}</Link>
                     ) : item.price === null ? (
-                      <span className="block rounded-lg bg-raised py-1.5 text-center text-xs text-muted">🔒 {ach ? (ach.hidden ? "Secret achievement" : `Earn “${ach.name}”`) : "Earn-only"}</span>
+                      <span className="block rounded-lg bg-raised py-1.5 text-center text-xs text-muted">🔒 {ach ? (ach.hidden ? t("kedai.secret") : t("kedai.earn", { name: ach.name })) : t("kedai.earnOnly")}</span>
                     ) : user ? (
                       <BuyButton itemId={item.id} price={item.price} affordable={user.points >= item.price} />
                     ) : (
@@ -199,8 +202,8 @@ export default async function KedaiPage() {
 
       <section>
         <div className="mb-4 flex items-baseline gap-3">
-          <h2 className="font-display text-2xl font-extrabold">🔐 The Vault</h2>
-          <span className="text-sm text-muted">Event exclusives, back only when their event returns</span>
+          <h2 className="font-display text-2xl font-extrabold">{t("kedai.vault")}</h2>
+          <span className="text-sm text-muted">{t("kedai.exclusives")}</span>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
           {vaulted.map((item) => {
@@ -212,7 +215,7 @@ export default async function KedaiPage() {
                 </div>
                 <div className="text-xs font-semibold">{item.name}</div>
                 <div className="text-[0.65rem] text-muted">
-                  {owned.has(item.id) ? "✓ In your collection" : next ? `Returns ${fmt(next.start)}` : "Retired"}
+                  {owned.has(item.id) ? t("kedai.inCollection") : next ? t("kedai.returns", { date: fmt(next.start) }) : t("kedai.retired")}
                 </div>
               </div>
             );
@@ -222,7 +225,7 @@ export default async function KedaiPage() {
 
       {user && history.length > 0 && (
         <section>
-          <h2 className="mb-3 font-display text-xl font-bold">KP history</h2>
+          <h2 className="mb-3 font-display text-xl font-bold">{t("kedai.history")}</h2>
           <div className="glass divide-y divide-line">
             {history.map((h) => (
               <div key={h.id} className="flex items-center gap-3 px-4 py-2 text-sm">

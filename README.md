@@ -77,7 +77,7 @@ Copy `.env.example` to `.env.local`:
 
 The interface comes in English, Bahasa Melayu, Bahasa Indonesia, ไทย, Tiếng Việt, Filipino and 한국어. The language is chosen from, in order: the picker in the footer or Settings (a cookie), the member's saved choice (it follows them to new devices), then the browser's `Accept-Language`. `<html lang>` follows it too.
 
-Translated now: navigation, menus, footer, home page, sign-in and sign-up. Strings live in `src/lib/i18n/messages.ts`; server components use `await getT()`, client components use `useT()`. A unit test fails if any language is missing a key or a `{placeholder}`. **The translations are first drafts: have native speakers review them before launch.** Next, translate the film, events, Kedai and settings pages the same way, and format dates in the viewer's locale.
+Translated now: navigation, menus, footer, home, sign-in and sign-up, film and series pages (including the log and review form), events and event pages, the Kedai, and Settings. Dates on those pages follow the viewer's language. Strings live in `src/lib/i18n/messages.ts` (site chrome) and `src/lib/i18n/pages/<lang>.ts` (pages). Server components use `await getI18n()` (`t`, `locale`, `date`); client components use `useT()` and `useFormatDate()`. A unit test fails if any language is missing a key or a `{placeholder}`. **The translations are first drafts: have native speakers review them before launch.** Still in English: profiles, diary, catalogues, community, Rewind, the campaign Kuiz, the partner and artist portals, and the admin (staff-facing). Titles, event names and sponsor copy are content and stay as written.
 
 ## Accounts & security
 

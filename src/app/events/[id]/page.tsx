@@ -17,6 +17,7 @@ import { canSignUp } from "@/lib/reminders-core";
 import { campaignById } from "@/lib/portal";
 import { publicQuiz, quizPlay } from "@/lib/quiz";
 import { CampaignQuiz } from "@/components/CampaignQuiz";
+import { getI18n } from "@/lib/i18n/server";
 
 type Params = Promise<{ id: string }>;
 
@@ -25,7 +26,6 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return { title: e?.name ?? "Event" };
 }
 
-const fmt = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 
 export default async function EventPage({ params, searchParams }: { params: Params; searchParams: Promise<{ preview?: string }> }) {
   const e = eventById((await params).id);
@@ -45,6 +45,7 @@ export default async function EventPage({ params, searchParams }: { params: Para
   const remindTarget = cmp && canSignUp(cmp.release_date, now) ? `cmp:${cmp.id}` : null;
   const bonusItem = cmp?.ticket_item ? ITEM_BY_ID[cmp.ticket_item] : undefined;
   const ticketBonus = cmp && cmp.film_slug && (cmp.ticket_bonus_pct > 0 || bonusItem) ? cmp : null;
+  const { t, date: fmt } = await getI18n();
   const markets = isTargeted(e) ? e.markets!.map((m) => country(m)?.flag ?? m).join(" ") : null;
 
   return (
@@ -59,15 +60,15 @@ export default async function EventPage({ params, searchParams }: { params: Para
           <p className="mt-2 max-w-2xl text-lg text-white/85">{e.tagline}</p>
           <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
             {liveNow ? (
-              <span className="rounded-full bg-jade px-3 py-1 font-bold text-ink">● LIVE until {fmt(liveNow.end)}</span>
+              <span className="rounded-full bg-jade px-3 py-1 font-bold text-ink">{t("event.liveUntil", { date: fmt(liveNow.end) })}</span>
             ) : shown ? (
-              <span className="rounded-full bg-white/15 px-3 py-1">Next: {fmt(shown.start)}{isApproximate(e, Number(shown.start.slice(0, 4))) ? " (date approximate)" : ""}</span>
+              <span className="rounded-full bg-white/15 px-3 py-1">{t("event.next", { date: fmt(shown.start) })}{isApproximate(e, Number(shown.start.slice(0, 4))) ? ` ${t("event.dateApprox")}` : ""}</span>
             ) : null}
-            {claimed > 0 && <span className="text-white/80">{claimed} member{claimed === 1 ? "" : "s"} joined</span>}
+            {claimed > 0 && <span className="text-white/80">{claimed === 1 ? t("event.joinedOne") : t("event.joinedMany", { n: claimed })}</span>}
             {markets ? (
-              <span className="text-white/80">🎯 Running in {markets}</span>
+              <span className="text-white/80">{t("event.runningIn", { flags: markets })}</span>
             ) : (
-              e.spotlight && <span className="text-white/80">Spotlight: {e.spotlight.map((c) => country(c)?.flag).join(" ")} · open to everyone</span>
+              e.spotlight && <span className="text-white/80">{t("event.spotlight", { flags: e.spotlight.map((c) => country(c)?.flag).join(" ") })}</span>
             )}
           </div>
         </div>
@@ -76,7 +77,7 @@ export default async function EventPage({ params, searchParams }: { params: Para
       <TrackOnView eventId={e.id} metric="view" />
       {!canSee && liveNow && (
         <p className="rounded-xl border border-saffron/40 bg-saffron/10 p-3 text-sm">
-          This campaign runs in {e.markets!.map((m) => country(m)?.name ?? m).join(", ")} only, so its drops can't be claimed from your country.
+          {t("event.notHere", { countries: e.markets!.map((m) => country(m)?.name ?? m).join(", ") })}
         </p>
       )}
       <p className="max-w-3xl text-muted">{e.blurb}</p>
@@ -85,7 +86,7 @@ export default async function EventPage({ params, searchParams }: { params: Para
         <section className="card grid gap-5 p-5 sm:grid-cols-[140px_1fr]">
           <Poster film={{ slug: e.id, title: e.promo.title, year: Number(e.promo.releaseDate.slice(0, 4)), country: e.promo.country, motif: e.promo.motif }} link={false} />
           <div>
-            <div className="text-xs uppercase tracking-widest text-muted">Coming to cinemas {fmt(e.promo.releaseDate)}</div>
+            <div className="text-xs uppercase tracking-widest text-muted">{t("event.comingTo", { date: fmt(e.promo.releaseDate) })}</div>
             <h2 className="font-display text-2xl font-bold">{e.promo.title}</h2>
             <p className="italic text-saffron">{e.promo.tagline}</p>
             <p className="mt-2 text-sm">{e.promo.synopsis}</p>
@@ -94,14 +95,14 @@ export default async function EventPage({ params, searchParams }: { params: Para
                 <NotifyButton target={remindTarget} date={cmp!.release_date!} initial={reminderState(user?.id ?? null, remindTarget)} signedIn={!!user} verified={!!user?.email_verified_at} />
               </div>
             )}
-            {e.sponsor && <p className="mt-3 text-xs text-muted">Presented by {e.sponsor.name}. Sponsors never influence ratings, reviews or scores.</p>}
+            {e.sponsor && <p className="mt-3 text-xs text-muted">{t("event.presentedBy", { sponsor: e.sponsor.name })}</p>}
           </div>
         </section>
       )}
 
       {e.offers.length > 0 && (
         <section>
-          <h2 className="section-title">Limited drops {liveNow ? "· claim before they're vaulted" : "· vaulted until the event returns"}</h2>
+          <h2 className="section-title">{liveNow ? t("event.dropsLive") : t("event.dropsVaulted")}</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {e.offers.map((o) => {
               const item = ITEM_BY_ID[o.item];
@@ -118,7 +119,7 @@ export default async function EventPage({ params, searchParams }: { params: Para
                     <ClaimButton
                       eventId={e.id} itemId={item.id} price={o.price} owned={owned.has(item.id)}
                       affordable={(user?.points ?? 0) >= o.price} live={!!liveNow && canSee} signedIn={!!user}
-                      lockedLabel={liveNow && !canSee ? "🌏 Not in your region" : undefined}
+                      lockedLabel={liveNow && !canSee ? t("drop.notRegion") : t("drop.notLive")}
                     />
                   </div>
                 </div>
@@ -130,11 +131,11 @@ export default async function EventPage({ params, searchParams }: { params: Para
 
       {cmp && liveNow && canSee && publicQuiz(cmp.id).length > 0 && (
         <section className="card space-y-3 p-5">
-          <h2 className="font-display text-xl font-bold">❓ Official {cmp.title} Kuiz</h2>
+          <h2 className="font-display text-xl font-bold">{t("event.kuiz", { title: cmp.title })}</h2>
           {user ? (
             <CampaignQuiz campaignId={cmp.id} questions={publicQuiz(cmp.id)} reward={cmp.quiz_reward} played={quizPlay(user.id, cmp.id) ?? null} />
           ) : (
-            <Link href={`/login?next=/events/${e.id}`} className="btn btn-ghost">Sign in to play for KP</Link>
+            <Link href={`/login?next=/events/${e.id}`} className="btn btn-ghost">{t("event.kuizSignIn")}</Link>
           )}
         </section>
       )}
@@ -143,21 +144,22 @@ export default async function EventPage({ params, searchParams }: { params: Para
         <section className="card flex flex-wrap items-center gap-4 border-saffron/40 p-5">
           <div className="text-4xl">🎟️</div>
           <div className="min-w-0 flex-1">
-            <div className="font-bold">See it at a partner cinema{liveNow ? "" : " during the event"}</div>
+            <div className="font-bold">{liveNow ? t("event.cinema") : t("event.cinemaDuring")}</div>
             <div className="text-sm text-muted">
-              Redeem your ticket for <b className="text-text">{e.promo?.title ?? e.name}</b> and get
-              {ticketBonus.ticket_bonus_pct > 0 ? ` +${ticketBonus.ticket_bonus_pct}% KP on top of the usual ticket points` : ""}
-              {ticketBonus.ticket_bonus_pct > 0 && bonusItem ? " and" : ""}
-              {bonusItem ? ` the exclusive ${bonusItem.name}` : ""}.
+              {ticketBonus.ticket_bonus_pct > 0 && bonusItem
+                ? t("event.ticketBoth", { title: e.promo?.title ?? e.name, pct: ticketBonus.ticket_bonus_pct, item: bonusItem.name })
+                : ticketBonus.ticket_bonus_pct > 0
+                  ? t("event.ticketKp", { title: e.promo?.title ?? e.name, pct: ticketBonus.ticket_bonus_pct })
+                  : t("event.ticketItem", { title: e.promo?.title ?? e.name, item: bonusItem!.name })}
             </div>
           </div>
           {bonusItem && (
             <div className="flex flex-col items-center gap-1 text-center">
               <div className="flex h-16 w-16 items-center justify-center"><ItemPreview item={bonusItem} avatar={user?.avatar_item} /></div>
-              <span className="text-[0.65rem] uppercase tracking-widest text-muted">{owned.has(bonusItem.id) ? "✓ yours" : "ticket holders only"}</span>
+              <span className="text-[0.65rem] uppercase tracking-widest text-muted">{owned.has(bonusItem.id) ? t("event.yours") : t("event.ticketOnly")}</span>
             </div>
           )}
-          <Link href="/cinemas" className="btn btn-primary">Redeem a ticket →</Link>
+          <Link href="/cinemas" className="btn btn-primary">{t("event.redeem")}</Link>
         </section>
       )}
 
@@ -165,10 +167,10 @@ export default async function EventPage({ params, searchParams }: { params: Para
         <section className="card flex flex-wrap items-center gap-4 p-5">
           <div className="text-4xl">🪙</div>
           <div>
-            <div className="font-bold">Event bonus: {e.bonus.label}</div>
-            <div className="text-sm text-muted">+{e.bonus.points} KP per title, up to {e.bonus.maxLogs} titles per event. On top of the usual points.</div>
+            <div className="font-bold">{t("event.bonus", { label: e.bonus.label })}</div>
+            <div className="text-sm text-muted">{t("event.bonusBody", { kp: e.bonus.points, max: e.bonus.maxLogs })}</div>
           </div>
-          <Link href="/films" className="btn btn-ghost ml-auto">Find something to watch</Link>
+          <Link href="/films" className="btn btn-ghost ml-auto">{t("event.findWatch")}</Link>
         </section>
       )}
 
@@ -178,7 +180,7 @@ export default async function EventPage({ params, searchParams }: { params: Para
 
       {featured.length > 0 && (
         <section>
-          <h2 className="section-title">Featured for {e.name}</h2>
+          <h2 className="section-title">{t("event.featured", { name: e.name })}</h2>
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
             {featured.map((f) => (
               <Poster key={f.id} film={f} />
@@ -187,7 +189,7 @@ export default async function EventPage({ params, searchParams }: { params: Para
         </section>
       )}
 
-      <Link href="/events" className="text-sm text-muted hover:text-text">← All events</Link>
+      <Link href="/events" className="text-sm text-muted hover:text-text">{t("event.all")}</Link>
     </div>
   );
 }

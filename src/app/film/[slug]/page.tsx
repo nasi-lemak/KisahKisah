@@ -17,6 +17,7 @@ import { franchisesFor, positionIn } from "@/lib/franchises";
 import { bonusesFor } from "@/lib/events";
 import { audience } from "@/lib/geo";
 import { formatRuntime } from "@/lib/tmdb-core";
+import { getI18n } from "@/lib/i18n/server";
 import { NotifyButton } from "@/components/NotifyButton";
 import { reminderState } from "@/lib/reminders";
 import { canSignUp } from "@/lib/reminders-core";
@@ -50,6 +51,7 @@ export default async function FilmPage({ params, searchParams }: { params: Param
   const today = new Date().toISOString().slice(0, 10);
   const bonuses = bonusesFor(film, undefined, await audience());
   const upcoming = canSignUp(film.release_date, today) ? `film:${film.id}` : null;
+  const { t, date } = await getI18n();
   const ticketCampaign = one<{ id: number; title: string; ticket_bonus_pct: number; markets: string }>(
     `SELECT id, title, ticket_bonus_pct, markets FROM campaigns WHERE film_slug = ? AND status = 'scheduled' AND starts_on <= ? AND ends_on >= ?
        AND (ticket_bonus_pct > 0 OR ticket_item IS NOT NULL) LIMIT 1`, film.slug, today, today,
@@ -68,12 +70,12 @@ export default async function FilmPage({ params, searchParams }: { params: Param
           </h1>
           {film.original_title && film.original_title !== film.title && <div className="mt-1 text-lg text-muted">{film.original_title}</div>}
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-            {film.kind === "series" && <span className="rounded bg-lotus/20 px-1.5 py-0.5 text-xs font-bold uppercase tracking-wider text-lotus">TV series</span>}
+            {film.kind === "series" && <span className="rounded bg-lotus/20 px-1.5 py-0.5 text-xs font-bold uppercase tracking-wider text-lotus">{t("film.tvSeries")}</span>}
             {film.kind === "series" && (film.seasons || film.status) && (
               <span className="text-text">
-                {film.seasons ? `${film.seasons} season${film.seasons > 1 ? "s" : ""}` : ""}
+                {film.seasons ? (film.seasons > 1 ? t("film.seasonsMany", { n: film.seasons }) : t("film.seasonsOne")) : ""}
                 {film.seasons && film.status ? " · " : ""}
-                {film.status === "ongoing" ? "still running" : film.status === "limited" ? "limited series" : film.status === "ended" ? "ended" : ""}
+                {film.status === "ongoing" ? t("film.stillRunning") : film.status === "limited" ? t("film.limited") : film.status === "ended" ? t("film.ended") : ""}
               </span>
             )}
             {franchisesFor(film.slug).map((f) => {
@@ -87,11 +89,11 @@ export default async function FilmPage({ params, searchParams }: { params: Param
             })}
             {(film.runtime || film.episodes) && (
               <span className="text-text">
-                {film.kind === "series" && film.episodes ? `${film.episodes} episodes${film.runtime ? " · " : ""}` : ""}
-                {film.runtime ? `${formatRuntime(film.runtime)}${film.kind === "series" ? " each" : ""}` : ""}
+                {film.kind === "series" && film.episodes ? `${t("film.episodes", { n: film.episodes })}${film.runtime ? " · " : ""}` : ""}
+                {film.runtime ? (film.kind === "series" ? t("film.each", { runtime: formatRuntime(film.runtime)! }) : formatRuntime(film.runtime)) : ""}
               </span>
             )}
-            <span>{film.kind === "series" ? "Created by" : "Directed by"} <span className="text-text">{film.director}</span></span>
+            <span>{film.kind === "series" ? t("film.createdBy") : t("film.directedBy")} <span className="text-text">{film.director}</span></span>
             <span>·</span>
             <Flag code={film.country} withName />
           </div>
@@ -101,23 +103,23 @@ export default async function FilmPage({ params, searchParams }: { params: Param
             ))}
           </div>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed">{film.synopsis}</p>
-          {film.cast_names && <p className="mt-2 text-sm text-muted">Starring <span className="text-text">{film.cast_names}</span></p>}
+          {film.cast_names && <p className="mt-2 text-sm text-muted">{t("film.starring")} <span className="text-text">{film.cast_names}</span></p>}
           {upcoming && (
             <div className="mt-4 rounded-xl border border-saffron/40 bg-saffron/10 p-4">
-              <div className="mb-2 text-sm"><b>Coming {new Date(`${film.release_date}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}</b>{film.kind === "series" ? " · new episodes" : ""}</div>
+              <div className="mb-2 text-sm"><b>{t("film.coming", { date: date(film.release_date!) })}</b>{film.kind === "series" ? ` · ${t("film.newEpisodes")}` : ""}</div>
               <NotifyButton target={upcoming} date={film.release_date!} initial={reminderState(user?.id ?? null, upcoming)} signedIn={!!user} verified={!!user?.email_verified_at} />
             </div>
           )}
           {ticketCampaign && (
             <Link href={`/events/cmp-${ticketCampaign.id}`} className="mt-3 flex w-fit items-center gap-2 rounded-lg border border-saffron/40 bg-saffron/10 px-3 py-1.5 text-sm">
               <span>🎟️</span>
-              <span><b>{ticketCampaign.title}</b> launch: partner-cinema tickets earn {ticketCampaign.ticket_bonus_pct > 0 ? `+${ticketCampaign.ticket_bonus_pct}% KP` : "an exclusive item"}</span>
+              <span><b>{ticketCampaign.title}</b> {ticketCampaign.ticket_bonus_pct > 0 ? t("film.launchKp", { pct: ticketCampaign.ticket_bonus_pct }) : t("film.launchItem")}</span>
             </Link>
           )}
           {bonuses.map((e) => (
             <Link key={e.id} href={`/events/${e.id}`} className="mt-3 flex w-fit items-center gap-2 rounded-lg border border-saffron/40 bg-saffron/10 px-3 py-1.5 text-sm">
               <span>{e.icon}</span>
-              <span><b>{e.name}</b>: log this for +{e.bonus!.points} bonus KP</span>
+              <span><b>{e.name}</b>: {t("film.logForBonus", { kp: e.bonus!.points })}</span>
             </Link>
           ))}
 
@@ -125,7 +127,7 @@ export default async function FilmPage({ params, searchParams }: { params: Param
           <div className="mt-8 space-y-4">
             {local.length > 0 && (
               <div>
-                <div className="label">Rate it where {c?.name ?? "locals"} do {c?.flag}</div>
+                <div className="label">{t("film.rateWhere", { country: c?.name ?? t("film.locals") })} {c?.flag}</div>
                 <div className="flex flex-wrap gap-2">
                   {local.map((l) => (
                     <a key={l.id} href={l.url} target="_blank" rel="noopener noreferrer" className="chip py-1.5 hover:border-saffron" style={{ borderColor: `${l.color}aa` }}>
@@ -137,7 +139,7 @@ export default async function FilmPage({ params, searchParams }: { params: Param
               </div>
             )}
             <div>
-              <div className="label">Elsewhere on the web</div>
+              <div className="label">{t("film.elsewhere")}</div>
               <div className="flex flex-wrap gap-2">
                 {global.map((l) => (
                   <a key={l.id} href={l.url} target="_blank" rel="noopener noreferrer" className="chip py-1.5 hover:border-saffron">
@@ -147,7 +149,7 @@ export default async function FilmPage({ params, searchParams }: { params: Param
                 ))}
                 {jw && (
                   <a href={jw} target="_blank" rel="noopener noreferrer" className="chip py-1.5 hover:border-saffron">
-                    📺 Where to watch {user ? `in ${country(user.home_country)?.flag ?? ""}` : ""} ↗
+                    {user ? t("film.whereToWatchIn", { flag: country(user.home_country)?.flag ?? "" }) : t("film.whereToWatch")} ↗
                   </a>
                 )}
               </div>
@@ -159,17 +161,17 @@ export default async function FilmPage({ params, searchParams }: { params: Param
         <aside className="space-y-4">
           <div className="card p-4">
             <div className="flex items-baseline justify-between">
-              <span className="label mb-0">KisahKisah rating</span>
+              <span className="label mb-0">{t("film.rating")}</span>
               <span className="font-display text-3xl font-bold">{film.avg_rating ? film.avg_rating.toFixed(1) : "–"}</span>
             </div>
-            <div className="mt-3 flex h-14 items-end gap-0.5" aria-label="Ratings histogram">
+            <div className="mt-3 flex h-14 items-end gap-0.5" aria-label={t("film.histogram")}>
               {hist.map((n, i) => (
                 <div key={i} className="flex-1 rounded-t bg-saffron/70" style={{ height: `${Math.max(4, (n / maxBucket) * 100)}%`, opacity: n ? 1 : 0.2 }} title={`${(i + 1) / 2}★: ${n}`} />
               ))}
             </div>
             <div className="mt-1 flex justify-between text-xs text-muted">
               <span>½</span>
-              <span>{film.log_count} logs · {film.review_count} reviews</span>
+              <span>{t("film.logsReviews", { logs: film.log_count, reviews: film.review_count })}</span>
               <span>★★★★★</span>
             </div>
           </div>
@@ -178,31 +180,31 @@ export default async function FilmPage({ params, searchParams }: { params: Param
             <div className="card space-y-2 p-4">
               {state.logged && (
                 <div className="text-sm text-muted">
-                  ✓ Watched{state.timesLogged > 1 ? ` ${state.timesLogged}×` : ""}, last on {state.lastWatched} {state.lastRating ? <Stars rating={state.lastRating} /> : null}
+                  {state.timesLogged > 1 ? t("film.watchedTimes", { n: state.timesLogged }) : t("film.watched")}, {t("film.lastOn", { date: date(state.lastWatched!, "medium") })} {state.lastRating ? <Stars rating={state.lastRating} /> : null}
                 </div>
               )}
-              <a href="#log" className="btn btn-primary w-full justify-center">{state.logged ? "Log again / review" : "＋ Log or review"}</a>
+              <a href="#log" className="btn btn-primary w-full justify-center">{state.logged ? t("film.logAgain") : t("film.logOrReview")}</a>
               <form action={toggleWatchlist.bind(null, film.id)}>
-                <button className="btn btn-ghost w-full justify-center">{state.inWatchlist ? "✓ On watchlist" : "🕒 Add to watchlist"}</button>
+                <button className="btn btn-ghost w-full justify-center">{state.inWatchlist ? t("film.onWatchlist") : t("film.addWatchlist")}</button>
               </form>
               <FavoriteButton filmId={film.id} isFavorite={state.isFavorite} />
               {myLists.length > 0 ? (
                 <form action={addToListForm} className="flex gap-2">
                   <input type="hidden" name="film_id" value={film.id} />
-                  <select name="list_id" className="input py-1.5 text-sm" aria-label="Add to catalogue">
+                  <select name="list_id" className="input py-1.5 text-sm" aria-label={t("film.addToCatalogue")}>
                     {myLists.map((l) => (
                       <option key={l.id} value={l.id}>{l.title}</option>
                     ))}
                   </select>
-                  <button className="btn btn-ghost py-1.5">Add</button>
+                  <button className="btn btn-ghost py-1.5">{t("film.add")}</button>
                 </form>
               ) : null}
               <Link href={`/lists/new?film=${film.id}`} className="block text-center text-xs text-muted hover:text-text">
-                ＋ Start a new catalogue with this film
+                {t("film.newCatalogue")}
               </Link>
             </div>
           ) : (
-            <SignInPrompt what="log, rate and review this film" next={`/film/${film.slug}`} />
+            <SignInPrompt what={t("film.signInWhat")} next={`/film/${film.slug}`} />
           )}
         </aside>
       </div>
@@ -215,16 +217,16 @@ export default async function FilmPage({ params, searchParams }: { params: Param
 
       {user && (
         <section id="log" className="card scroll-mt-24 p-6">
-          {logged && <p className="mb-4 rounded-md border border-jade/40 bg-jade/10 px-3 py-2 text-sm text-emerald-300">Logged! It&apos;s in your diary.</p>}
-          <h2 className="mb-4 font-display text-2xl font-bold">Your kisah with {film.title}</h2>
+          {logged && <p className="mb-4 rounded-md border border-jade/40 bg-jade/10 px-3 py-2 text-sm text-emerald-300">{t("film.logged")}</p>}
+          <h2 className="mb-4 font-display text-2xl font-bold">{t("film.yourKisah", { title: film.title })}</h2>
           <LogForm film={{ id: film.id, title: film.title }} films={allFilms} today={today} />
         </section>
       )}
 
       <section>
-        <h2 className="section-title">Reviews ({reviews.length})</h2>
+        <h2 className="section-title">{t("film.reviews", { n: reviews.length })}</h2>
         {reviews.length === 0 ? (
-          <Empty>No reviews yet. Be the first to tell your kisah!</Empty>
+          <Empty>{t("film.noReviews")}</Empty>
         ) : (
           <div className="space-y-3">
             {reviews.map((r) => (
@@ -236,7 +238,7 @@ export default async function FilmPage({ params, searchParams }: { params: Param
 
       {inLists.length > 0 && (
         <section>
-          <h2 className="section-title">In these catalogues</h2>
+          <h2 className="section-title">{t("film.inCatalogues")}</h2>
           <div className="grid gap-3 md:grid-cols-2">
             {inLists.map((l) => (
               <ListCard key={l.id} l={l} />

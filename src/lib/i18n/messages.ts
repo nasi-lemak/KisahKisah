@@ -1,4 +1,11 @@
 import type { Locale } from "./core";
+import { en as enPages, type PageKey } from "./pages/en.ts";
+import { ms as msPages } from "./pages/ms.ts";
+import { id as idPages } from "./pages/id.ts";
+import { th as thPages } from "./pages/th.ts";
+import { vi as viPages } from "./pages/vi.ts";
+import { tl as tlPages } from "./pages/tl.ts";
+import { ko as koPages } from "./pages/ko.ts";
 
 /**
  * Site chrome, home, sign-in and sign-up. English is the source of truth; every
@@ -84,10 +91,12 @@ const en = {
   "form.createAccount": "Create account (+{kp} KP)",
 };
 
-export type MsgKey = keyof typeof en;
+type CoreKey = keyof typeof en;
+type CoreMessages = Record<CoreKey, string>;
+export type MsgKey = CoreKey | PageKey;
 export type Messages = Record<MsgKey, string>;
 
-const ms: Messages = {
+const ms: CoreMessages = {
   "nav.films": "Filem & TV",
   "nav.lists": "Katalog",
   "nav.community": "Komuniti",
@@ -166,7 +175,7 @@ const ms: Messages = {
   "form.createAccount": "Daftar akaun (+{kp} KP)",
 };
 
-const id: Messages = {
+const id: CoreMessages = {
   "nav.films": "Film & TV",
   "nav.lists": "Katalog",
   "nav.community": "Komunitas",
@@ -245,7 +254,7 @@ const id: Messages = {
   "form.createAccount": "Buat akun (+{kp} KP)",
 };
 
-const th: Messages = {
+const th: CoreMessages = {
   "nav.films": "ภาพยนตร์และซีรีส์",
   "nav.lists": "แคตตาล็อก",
   "nav.community": "ชุมชน",
@@ -324,7 +333,7 @@ const th: Messages = {
   "form.createAccount": "สร้างบัญชี (+{kp} KP)",
 };
 
-const vi: Messages = {
+const vi: CoreMessages = {
   "nav.films": "Phim & TV",
   "nav.lists": "Danh mục",
   "nav.community": "Cộng đồng",
@@ -403,7 +412,7 @@ const vi: Messages = {
   "form.createAccount": "Tạo tài khoản (+{kp} KP)",
 };
 
-const tl: Messages = {
+const tl: CoreMessages = {
   "nav.films": "Pelikula & TV",
   "nav.lists": "Mga katalogo",
   "nav.community": "Komunidad",
@@ -482,7 +491,7 @@ const tl: Messages = {
   "form.createAccount": "Gumawa ng account (+{kp} KP)",
 };
 
-const ko: Messages = {
+const ko: CoreMessages = {
   "nav.films": "영화 & TV",
   "nav.lists": "카탈로그",
   "nav.community": "커뮤니티",
@@ -561,4 +570,12 @@ const ko: Messages = {
   "form.createAccount": "계정 만들기 (+{kp} KP)",
 };
 
-export const MESSAGES: Record<Locale, Messages> = { en, ms, id, th, vi, tl, ko };
+export const MESSAGES: Record<Locale, Messages> = {
+  en: { ...en, ...enPages },
+  ms: { ...ms, ...msPages },
+  id: { ...id, ...idPages },
+  th: { ...th, ...thPages },
+  vi: { ...vi, ...viPages },
+  tl: { ...tl, ...tlPages },
+  ko: { ...ko, ...koPages },
+};

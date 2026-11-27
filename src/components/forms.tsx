@@ -105,18 +105,19 @@ export function RegisterForm({ countries, next }: { countries: { code: string; n
 
 export function SettingsForm({ user, countries }: { user: { display_name: string; bio: string; home_country: string }; countries: { code: string; name: string; flag: string }[] }) {
   const [state, action, pending] = useKeptAction(updateProfile);
+  const t = useT();
   return (
     <form onSubmit={action} className="space-y-4">
       <div>
-        <label className="label" htmlFor="display_name">Display name</label>
+        <label className="label" htmlFor="display_name">{t("form.displayName")}</label>
         <input id="display_name" name="display_name" defaultValue={user.display_name} className="input" required />
       </div>
       <div>
-        <label className="label" htmlFor="bio">Bio</label>
+        <label className="label" htmlFor="bio">{t("settings.bio")}</label>
         <textarea id="bio" name="bio" defaultValue={user.bio} className="input min-h-24" maxLength={400} />
       </div>
       <div>
-        <label className="label" htmlFor="home_country">Home country</label>
+        <label className="label" htmlFor="home_country">{t("form.homeCountry")}</label>
         <select id="home_country" name="home_country" defaultValue={user.home_country} className="input">
           {countries.map((c) => (
             <option key={c.code} value={c.code}>
@@ -126,7 +127,7 @@ export function SettingsForm({ user, countries }: { user: { display_name: string
         </select>
       </div>
       <Notice state={state} />
-      <Submit pending={pending}>Save</Submit>
+      <Submit pending={pending}>{t("settings.save")}</Submit>
     </form>
   );
 }
@@ -153,6 +154,7 @@ export function CommentForm({ reviewId }: { reviewId: number }) {
 
 export function FavoriteButton({ filmId, isFavorite }: { filmId: number; isFavorite: boolean }) {
   const [pending, start] = useTransition();
+  const t = useT();
   return (
     <button
       className={`btn ${isFavorite ? "btn-primary" : "btn-ghost"} w-full justify-center`}
@@ -164,7 +166,7 @@ export function FavoriteButton({ filmId, isFavorite }: { filmId: number; isFavor
         })
       }
     >
-      {isFavorite ? "★ In your top 4" : "☆ Add to top 4"}
+      {isFavorite ? t("film.inTop4") : t("film.addTop4")}
     </button>
   );
 }
@@ -369,11 +371,16 @@ export function DemoBoxOffice({ chains, films }: { chains: Chain[]; films: { id:
 }
 
 export function SignInPrompt({ what, next }: { what: string; next: string }) {
+  const t = useT();
+  // Split the sentence around its two links so word order can change per language.
+  const parts = t("common.signInOrJoin", { what }).split(/(\{signIn\}|\{join\})/);
   return (
     <div className="card p-5 text-center text-sm">
-      <Link href={`/login?next=${encodeURIComponent(next)}`} className="font-semibold text-saffron hover:underline">Sign in</Link>{" "}
-      or{" "}
-      <Link href="/register" className="font-semibold text-saffron hover:underline">join</Link> to {what}.
+      {parts.map((p, i) =>
+        p === "{signIn}" ? <Link key={i} href={`/login?next=${encodeURIComponent(next)}`} className="font-semibold text-saffron hover:underline">{t("common.signIn")}</Link>
+        : p === "{join}" ? <Link key={i} href="/register" className="font-semibold text-saffron hover:underline">{t("common.join")}</Link>
+        : <span key={i}>{p}</span>,
+      )}
     </div>
   );
 }

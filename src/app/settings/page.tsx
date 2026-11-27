@@ -16,8 +16,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const t = await getT();
   return (
     <div className="mx-auto max-w-lg space-y-6">
-      <h1 className="font-display text-3xl font-bold">Settings</h1>
-      {reset && <p className="rounded-md border border-jade/40 bg-jade/10 px-3 py-2 text-sm text-emerald-300">Password reset. You're signed in here and signed out everywhere else.</p>}
+      <h1 className="font-display text-3xl font-bold">{t("settings.title")}</h1>
+      {reset && <p className="rounded-md border border-jade/40 bg-jade/10 px-3 py-2 text-sm text-emerald-300">{t("settings.resetDone")}</p>}
       <div className="card p-6">
         <SettingsForm user={user} countries={COUNTRIES} />
       </div>
@@ -26,18 +26,18 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <LanguagePicker id="settings-lang" current={locale} label={t("lang.label")} />
       </section>
       <section className="card space-y-4 p-6">
-        <h2 className="font-display text-xl font-bold">Account &amp; security</h2>
+        <h2 className="font-display text-xl font-bold">{t("settings.security")}</h2>
         <EmailSettings email={user.email} verified={!!user.email_verified_at} />
         <hr className="border-line" />
         <PasswordSettings />
         <hr className="border-line" />
         <form action={signOutEverywhere} className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted">Lost a phone or used a shared computer?</p>
-          <button className="btn btn-ghost">Sign out everywhere</button>
+          <p className="text-sm text-muted">{t("settings.lost")}</p>
+          <button className="btn btn-ghost">{t("settings.signOutAll")}</button>
         </form>
       </section>
       <p className="text-sm text-muted">
-        Avatar, decoration, effects, name style, banner, colours and showcases live in <Link href="/studio" className="text-saffron">Profile Studio</Link>.
+        {t("settings.studioNote")} <Link href="/studio" className="text-saffron">{t("settings.studio")}</Link>.
       </p>
     </div>
   );

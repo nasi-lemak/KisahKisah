@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { negotiate, format, placeholders, LOCALES } from "../src/lib/i18n/core.ts";
+import { negotiate, format, placeholders, LOCALES, formatDate } from "../src/lib/i18n/core.ts";
 import { MESSAGES } from "../src/lib/i18n/messages.ts";
 
 test("i18n: Accept-Language negotiation", () => {
@@ -29,4 +29,13 @@ test("i18n: every language has every key with the same placeholders", () => {
     }
     assert.equal(Object.keys(dict).length, keys.length, `${code} has extra keys`);
   }
+});
+
+test("i18n: dates in the viewer's language", () => {
+  assert.equal(formatDate("2026-11-27", "en"), "27 November 2026");
+  assert.equal(formatDate("2026-11-27", "en", "short"), "27 Nov");
+  assert.match(formatDate("2026-11-27", "ms"), /27 November 2026/);
+  assert.match(formatDate("2026-11-27", "ko"), /2026.*11.*27/);
+  assert.match(formatDate("2026-11-27", "vi"), /27/);
+  assert.equal(formatDate("not-a-date", "en"), "not-a-date");
 });

@@ -46,3 +46,19 @@ export function format(template: string, vars: Record<string, string | number> =
 export function placeholders(template: string): string[] {
   return [...template.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 }
+
+/** BCP 47 tag for Intl: Filipino is "fil"; English uses day-month order. */
+export function intlTag(l: Locale): string {
+  return l === "tl" ? "fil" : l === "en" ? "en-GB" : l;
+}
+
+/** "2026-11-27" → "27 November 2026" / "27 Nov" in the viewer's language. Dates are calendar days (UTC). */
+export function formatDate(iso: string, locale: Locale, style: "long" | "short" | "medium" = "long"): string {
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return iso;
+  const opts: Intl.DateTimeFormatOptions =
+    style === "short" ? { day: "numeric", month: "short", timeZone: "UTC" }
+    : style === "medium" ? { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }
+    : { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" };
+  return new Intl.DateTimeFormat(intlTag(locale), opts).format(d);
+}

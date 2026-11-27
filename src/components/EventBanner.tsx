@@ -1,8 +1,12 @@
+"use client";
+
 import type { ActiveEvent } from "@/lib/events";
 import { TrackedLink, TrackOnView } from "./Track";
+import { useT } from "./I18n";
 
 /** Thin strip under the header while an event or campaign is live. */
 export function EventBanner({ events }: { events: ActiveEvent[] }) {
+  const t = useT();
   if (!events.length) return null;
   return (
     <div className="border-b border-line">
@@ -18,10 +22,10 @@ export function EventBanner({ events }: { events: ActiveEvent[] }) {
             <span className="text-lg">{e.icon}</span>
             <span className="min-w-0 truncate">
               <b>{e.name}</b>
-              {e.kind === "sponsored" && <span className="ml-2 rounded bg-white/15 px-1.5 py-0.5 text-[0.65rem] uppercase tracking-wider">Sponsored</span>}
+              {e.kind === "sponsored" && <span className="ml-2 rounded bg-white/15 px-1.5 py-0.5 text-[0.65rem] uppercase tracking-wider">{t("banner.sponsored")}</span>}
               <span className="ml-2 text-muted">{e.tagline}</span>
             </span>
-            <span className="ml-auto shrink-0 text-xs text-muted">{e.daysLeft === 0 ? "last day!" : `${e.daysLeft}d left`} →</span>
+            <span className="ml-auto shrink-0 text-xs text-muted">{e.daysLeft === 0 ? t("events.lastDay") : t("banner.daysLeft", { n: e.daysLeft })} →</span>
           </div>
           <TrackOnView eventId={e.id} metric="impression" />
         </TrackedLink>
@@ -31,6 +35,7 @@ export function EventBanner({ events }: { events: ActiveEvent[] }) {
 }
 
 export function EventCard({ e, note }: { e: { id: string; name: string; icon: string; tagline: string; kind: string; colors: [string, string]; markets?: string[] }; note: string }) {
+  const t = useT();
   return (
     <TrackedLink eventId={e.id} href={`/events/${e.id}`} className="card group overflow-hidden transition hover:border-saffron/60">
       <div className="flex h-20 items-center justify-center text-4xl" style={{ background: `linear-gradient(135deg, ${e.colors[0]}, ${e.colors[1]})` }}>
@@ -39,7 +44,7 @@ export function EventCard({ e, note }: { e: { id: string; name: string; icon: st
       <div className="p-3">
         <div className="flex items-center gap-2 font-bold">
           {e.name}
-          {e.kind === "sponsored" && <span className="rounded bg-raised px-1.5 text-[0.6rem] uppercase tracking-wider text-muted">Sponsored</span>}
+          {e.kind === "sponsored" && <span className="rounded bg-raised px-1.5 text-[0.6rem] uppercase tracking-wider text-muted">{t("banner.sponsored")}</span>}
           {e.markets?.length && !e.markets.includes("GLOBAL") ? <span className="rounded bg-raised px-1.5 text-[0.6rem] text-muted" title="Only shown in these countries">🎯 {e.markets.join(" ")}</span> : null}
         </div>
         <div className="line-clamp-1 text-xs text-muted">{e.tagline}</div>
