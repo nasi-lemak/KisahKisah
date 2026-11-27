@@ -3,6 +3,11 @@ export const en = {
   "common.signInOrJoin": "{signIn} or {join} to {what}.",
   "common.signIn": "Sign in",
   "common.join": "join",
+  "twofa.title": "Two-step sign-in",
+  "twofa.prompt": "Enter the 6-digit code from your authenticator app, or one of your recovery codes.",
+  "twofa.code": "Code",
+  "twofa.verify": "Verify",
+  "twofa.back": "Use a different account",
 
   "film.tvSeries": "TV series",
   "film.seasonsOne": "1 season",

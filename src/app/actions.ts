@@ -9,6 +9,7 @@ import { hashPassword, verifyPassword } from "@/lib/password";
 import { clearAttempts, clientIp, limited, limitedByIp, loginKey, noteAttempt } from "@/lib/security";
 import { minutes, normalizeEmail, passwordProblem, validEmail } from "@/lib/security-core";
 import { sendVerification } from "@/lib/account-mail";
+import { startChallenge, twoFactorEnabled } from "@/lib/twofactor";
 import { award, checkAchievements, grantItem, notify, POINTS, unlock } from "@/lib/rewards";
 import { BUNDLES, ITEM_BY_ID, STARTER_ITEMS, bundlePrice } from "@/lib/shop";
 import { SHOWCASES } from "@/lib/profile";
@@ -93,6 +94,10 @@ export async function login(_: FormState, form: FormData): Promise<FormState> {
     return { error: "Wrong username or password." };
   }
   clearAttempts(userKey);
+  if (twoFactorEnabled(row!.id)) {
+    await startChallenge(row!.id);
+    redirect(`/login/verify?next=${encodeURIComponent(safeNext(str(form, "next")))}`);
+  }
   await createSession(row!.id);
   redirect(safeNext(str(form, "next")));
 }

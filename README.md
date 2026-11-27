@@ -65,6 +65,7 @@ Copy `.env.example` to `.env.local`:
 | `RESEND_API_KEY`, `MAIL_FROM` | Email delivery (verification, password resets, reminders). Without them, mail lands in the dev outbox at **Admin → Outbox**. |
 | `CRON_SECRET` | Turns on `/api/cron`. Call it hourly with `Authorization: Bearer <secret>` (GET or POST) to send release reminders and clean up expired sessions and links. Staff can also press **Run now** on the admin overview. |
 | `BILLING_NAME`, `BILLING_ADDRESS`, `BILLING_TAX_ID`, `BILLING_EMAIL`, `BILLING_BANK` | Your company details and bank instructions, printed on order forms and invoices. |
+| `TOTP_KEY`, `REQUIRE_STAFF_2FA=1` | Encrypts authenticator secrets at rest (set a long random value), and makes two-step sign-in mandatory for staff. |
 | `TRUST_PROXY=1` | Set only behind a proxy you control, so `X-Forwarded-For` can be used for per-IP rate limits. Without it, per-IP limits are skipped and per-account limits still apply. |
 | `ADMIN_USERNAMES` | Comma-separated usernames given admin access (item editor, inquiries). |
 | `UPLOAD_DIR` | Where uploaded artwork is stored (default `./data/uploads`). |
@@ -86,6 +87,7 @@ Translated now: navigation, menus, footer, home, sign-in and sign-up, film and s
 - **Rate limits:** 5 failed sign-ins per account per 15 minutes (and 30 per IP with `TRUST_PROXY=1`), sign-ups and reset requests per IP, reset emails per account. Unknown usernames take as long to reject as wrong passwords, and "forgot password" answers the same whether or not an account exists.
 - **Reset links** last 1 hour, work once, and are stored only as a hash. Resetting signs out every device and clears the lockout. Changing your password in **Settings** signs out other devices and emails you. **Sign out everywhere** is in Settings too.
 - Sign in with username or email.
+- **Two-step sign-in** (Settings): scan a QR code with any authenticator app (RFC 6238 codes, tested against the RFC's vectors), confirm a code, and save 10 single-use recovery codes. Sign-in then asks for a code after the password; codes can't be replayed, wrong codes count toward the account lockout, and a password reset still asks for the code. Secrets are encrypted at rest (AES-256-GCM, `TOTP_KEY`); recovery codes are stored hashed. Turning it on signs out other devices; turning it off needs the password and a code. Set `REQUIRE_STAFF_2FA=1` to make it mandatory for staff before they can use the admin.
 
 ## Real film & TV data (TMDB)
 
@@ -203,7 +205,7 @@ tests/                 node:test unit tests
 
 ## Notes & next steps
 
-- Auth is username or email plus password (scrypt) with httpOnly session cookies, rate limits, email confirmation and resets (see Accounts & security). Server actions get Next's built-in origin checks. Two-factor sign-in isn't built yet.
+- Auth is username or email plus password (scrypt) with httpOnly session cookies, rate limits, email confirmation and resets (see Accounts & security). Server actions get Next's built-in origin checks. Two-step sign-in is optional for members and can be required for staff.
 - SQLite fits a single instance; back it up continuously with Litestream. `docs/DEPLOY.md` covers Docker, object storage, cron, backups, the launch checklist and the Postgres migration path.
 - Rewind hours use TMDB runtimes where linked, else estimates (2h per film, 8h per season).
 - Lunar and Islamic festival dates in code are estimates. Confirm each year's real dates in **Admin → Events → Moving festivals**: confirmed dates replace the estimates everywhere (and can add years the code doesn't have), and the "approx." labels disappear.

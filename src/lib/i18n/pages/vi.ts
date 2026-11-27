@@ -4,6 +4,11 @@ export const vi: Record<PageKey, string> = {
   "common.signInOrJoin": "{signIn} hoặc {join} để {what}.",
   "common.signIn": "Đăng nhập",
   "common.join": "tham gia",
+  "twofa.title": "Đăng nhập hai bước",
+  "twofa.prompt": "Nhập mã 6 chữ số từ ứng dụng xác thực, hoặc một mã khôi phục của bạn.",
+  "twofa.code": "Mã",
+  "twofa.verify": "Xác minh",
+  "twofa.back": "Dùng tài khoản khác",
 
   "film.tvSeries": "Phim bộ",
   "film.seasonsOne": "1 mùa",

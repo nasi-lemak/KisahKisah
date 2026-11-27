@@ -4,6 +4,11 @@ export const tl: Record<PageKey, string> = {
   "common.signInOrJoin": "{signIn} o {join} para {what}.",
   "common.signIn": "Mag-sign in",
   "common.join": "sumali",
+  "twofa.title": "Two-step sign-in",
+  "twofa.prompt": "Ilagay ang 6-digit na code mula sa authenticator app mo, o isa sa mga recovery code mo.",
+  "twofa.code": "Code",
+  "twofa.verify": "I-verify",
+  "twofa.back": "Gumamit ng ibang account",
 
   "film.tvSeries": "TV series",
   "film.seasonsOne": "1 season",

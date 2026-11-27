@@ -34,6 +34,7 @@ Copy `.env.example`. The essentials for production:
 | `GEO_HEADER` | If your CDN's country header isn't one of the defaults. |
 | `BILLING_*` | Your company details on order forms and invoices. |
 | `DISABLE_DEMO_CINEMA=1` | **Required** once real points matter. |
+| `TOTP_KEY`, `REQUIRE_STAFF_2FA=1` | Encrypt two-step secrets; require two-step sign-in for staff. |
 
 Set `HSTS=0` only if you serve production over plain HTTP (you shouldn't).
 
@@ -67,6 +68,7 @@ Test a restore before launch. Uploaded artwork on S3/R2 is already off the serve
 ## 6. Launch checklist
 
 - [ ] `DISABLE_DEMO_CINEMA=1`, real `CINEMA_WEBHOOK_SECRET`, `ADMIN_USERNAMES` set
+- [ ] `TOTP_KEY` set (and kept: changing it invalidates everyone's authenticator setup), `REQUIRE_STAFF_2FA=1`, and every staff member has two-step sign-in on
 - [ ] Demo accounts: start from an empty database (delete the file before first boot, then `ADMIN_USERNAMES` for your staff), or remove the seed in `src/lib/seed.ts`
 - [ ] Email sends (register a test account) and `/admin/outbox` shows "sent"
 - [ ] `/api/health` is green behind your load balancer

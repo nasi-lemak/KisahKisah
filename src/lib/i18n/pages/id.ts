@@ -4,6 +4,11 @@ export const id: Record<PageKey, string> = {
   "common.signInOrJoin": "{signIn} atau {join} untuk {what}.",
   "common.signIn": "Masuk",
   "common.join": "daftar",
+  "twofa.title": "Masuk dua langkah",
+  "twofa.prompt": "Masukkan kode 6 digit dari aplikasi autentikator kamu, atau salah satu kode pemulihanmu.",
+  "twofa.code": "Kode",
+  "twofa.verify": "Verifikasi",
+  "twofa.back": "Pakai akun lain",
 
   "film.tvSeries": "Serial TV",
   "film.seasonsOne": "1 musim",

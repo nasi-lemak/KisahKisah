@@ -41,7 +41,7 @@ export function clearAttempts(key: string) {
   run("DELETE FROM auth_attempts WHERE key = ?", key);
 }
 
-export type TokenPurpose = "verify" | "reset";
+export type TokenPurpose = "verify" | "reset" | "2fa";
 
 /** One live token per user and purpose; issuing a new one cancels the old. */
 export function issueToken(userId: number, purpose: TokenPurpose, email: string, ttlMin: number): string {

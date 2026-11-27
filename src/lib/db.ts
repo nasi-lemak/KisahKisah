@@ -2,7 +2,7 @@ import "server-only";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { SCHEMA, SCHEMA_NOTIFICATIONS, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10 } from "./schema";
+import { SCHEMA, SCHEMA_NOTIFICATIONS, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11 } from "./schema";
 import { syncCustomItems } from "./custom-items";
 import { CATALOG } from "./catalog";
 import { STARTER_ITEMS } from "./shop";
@@ -30,6 +30,7 @@ export function db(): DatabaseSync {
   d.exec(SCHEMA_V8);
   d.exec(SCHEMA_V9);
   d.exec(SCHEMA_V10);
+  d.exec(SCHEMA_V11);
   // Seed exactly once, even if several build workers open the file together.
   let seeded = false;
   d.exec("BEGIN IMMEDIATE");
@@ -94,6 +95,10 @@ function migrate(d: DatabaseSync) {
   addColumn(d, "campaigns", "ticket_bonus_pct", "INTEGER NOT NULL DEFAULT 0");
   addColumn(d, "campaigns", "ticket_item", "TEXT");
   addColumn(d, "users", "locale", "TEXT");
+  addColumn(d, "users", "totp_secret", "TEXT");       // encrypted; set once confirmed
+  addColumn(d, "users", "totp_pending", "TEXT");      // encrypted; during setup
+  addColumn(d, "users", "totp_last_step", "INTEGER NOT NULL DEFAULT -1");
+  addColumn(d, "users", "totp_enabled_at", "TEXT");
   addColumn(d, "campaigns", "quiz_reward", "INTEGER NOT NULL DEFAULT 20");
   addColumn(d, "orgs", "billing_name", "TEXT NOT NULL DEFAULT ''");
   addColumn(d, "orgs", "billing_address", "TEXT NOT NULL DEFAULT ''");

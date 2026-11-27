@@ -4,6 +4,11 @@ export const ko: Record<PageKey, string> = {
   "common.signInOrJoin": "{what}하려면 {signIn}하거나 {join}하세요.",
   "common.signIn": "로그인",
   "common.join": "가입",
+  "twofa.title": "2단계 로그인",
+  "twofa.prompt": "인증 앱의 6자리 코드나 복구 코드 중 하나를 입력하세요.",
+  "twofa.code": "코드",
+  "twofa.verify": "확인",
+  "twofa.back": "다른 계정 사용",
 
   "film.tvSeries": "TV 시리즈",
   "film.seasonsOne": "시즌 1개",

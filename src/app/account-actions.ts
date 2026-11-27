@@ -9,6 +9,7 @@ import { checkCurrentPassword, clearAttempts, clientIp, consumeToken, limited, l
 import { minutes, normalizeEmail, passwordProblem, validEmail } from "@/lib/security-core";
 import { sendPasswordChanged, sendReset, sendVerification } from "@/lib/account-mail";
 import type { FormState } from "./actions";
+import { startChallenge, twoFactorEnabled } from "@/lib/twofactor";
 
 const SENT = "If an account matches, we've emailed a reset link. It works for 1 hour.";
 
@@ -46,6 +47,11 @@ export async function resetPassword(_: FormState, form: FormData): Promise<FormS
   revokeAllSessions(t.user_id);
   clearAttempts(loginKey(t.user_id));
   await sendPasswordChanged(t.email, u0.display_name);
+  // A reset proves access to the inbox, not to the authenticator: still ask for the code.
+  if (twoFactorEnabled(t.user_id)) {
+    await startChallenge(t.user_id);
+    redirect("/login/verify?next=%2Fsettings%3Freset%3D1");
+  }
   await createSession(t.user_id);
   redirect("/settings?reset=1");
 }

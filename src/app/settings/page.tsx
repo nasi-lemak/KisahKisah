@@ -5,13 +5,16 @@ import { SettingsForm } from "@/components/forms";
 import { EmailSettings, PasswordSettings } from "@/components/AccountForms";
 import { signOutEverywhere } from "@/app/account-actions";
 import { LanguagePicker } from "@/components/LanguagePicker";
+import { TwoFactorSettings } from "@/components/TwoFactor";
+import { recoveryCodesLeft, requireStaff2fa } from "@/lib/twofactor";
 import { getLocale, getT } from "@/lib/i18n/server";
 
 export const metadata = { title: "Settings" };
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ reset?: string }> }) {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ reset?: string; need2fa?: string }> }) {
   const user = await requireUser("/settings");
-  const { reset } = await searchParams;
+  const { reset, need2fa } = await searchParams;
+  const staff = user.role === "staff" || user.role === "admin";
   const locale = await getLocale();
   const t = await getT();
   return (
@@ -30,6 +33,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <EmailSettings email={user.email} verified={!!user.email_verified_at} />
         <hr className="border-line" />
         <PasswordSettings />
+        <hr className="border-line" />
+        <div id="two-step" className="scroll-mt-24 space-y-2">
+          <h3 className="font-bold">🔐 Two-step sign-in</h3>
+          {need2fa && <p className="rounded-md border border-saffron/40 bg-saffron/10 px-3 py-2 text-sm">Turn on two-step sign-in to use the admin.</p>}
+          <TwoFactorSettings enabled={!!user.totp_enabled_at} codesLeft={user.totp_enabled_at ? recoveryCodesLeft(user.id) : 0} required={staff && requireStaff2fa()} />
+        </div>
         <hr className="border-line" />
         <form action={signOutEverywhere} className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted">{t("settings.lost")}</p>

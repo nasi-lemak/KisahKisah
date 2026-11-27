@@ -32,9 +32,10 @@ export type User = {
   email: string | null;
   email_verified_at: string | null;
   locale: string | null;
+  totp_enabled_at: string | null;
 };
 
-const USER_COLS = "u.id, u.username, u.display_name, u.bio, u.home_country, u.points, u.avatar_item, u.frame_item, u.banner_item, u.title_item, u.theme_item, u.effect_item, u.namestyle_item, u.accent1, u.accent2, u.showcases, u.pinned_review_id, u.role, u.last_checkin, u.created_at, u.email, u.email_verified_at, u.locale";
+const USER_COLS = "u.id, u.username, u.display_name, u.bio, u.home_country, u.points, u.avatar_item, u.frame_item, u.banner_item, u.title_item, u.theme_item, u.effect_item, u.namestyle_item, u.accent1, u.accent2, u.showcases, u.pinned_review_id, u.role, u.last_checkin, u.created_at, u.email, u.email_verified_at, u.locale, u.totp_enabled_at";
 
 export async function createSession(userId: number) {
   const token = randomBytes(32).toString("base64url");
@@ -87,6 +88,8 @@ export function userByUsername(username: string): User | undefined {
 export async function requireStaff(): Promise<User> {
   const u = await requireUser("/admin");
   if (u.role !== "staff" && u.role !== "admin") redirect("/");
+  // With REQUIRE_STAFF_2FA=1, staff must turn on two-step sign-in before using the admin.
+  if (process.env.REQUIRE_STAFF_2FA === "1" && !u.totp_enabled_at) redirect("/settings?need2fa=1#two-step");
   return u;
 }
 

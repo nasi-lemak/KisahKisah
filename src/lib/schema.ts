@@ -610,3 +610,13 @@ CREATE TABLE IF NOT EXISTS event_dates (
   PRIMARY KEY (event_id, year)
 );
 `;
+
+export const SCHEMA_V11 = `
+-- Two-step sign-in recovery codes (hashed; each works once).
+CREATE TABLE IF NOT EXISTS recovery_codes (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  code_hash TEXT NOT NULL,
+  used_at TEXT,
+  PRIMARY KEY (user_id, code_hash)
+);
+`;

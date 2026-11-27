@@ -4,6 +4,11 @@ export const th: Record<PageKey, string> = {
   "common.signInOrJoin": "{signIn} หรือ {join} เพื่อ{what}",
   "common.signIn": "เข้าสู่ระบบ",
   "common.join": "สมัคร",
+  "twofa.title": "การยืนยันตัวตนสองขั้นตอน",
+  "twofa.prompt": "กรอกรหัส 6 หลักจากแอปยืนยันตัวตน หรือรหัสกู้คืนของคุณ",
+  "twofa.code": "รหัส",
+  "twofa.verify": "ยืนยัน",
+  "twofa.back": "ใช้บัญชีอื่น",
 
   "film.tvSeries": "ซีรีส์",
   "film.seasonsOne": "1 ซีซัน",
