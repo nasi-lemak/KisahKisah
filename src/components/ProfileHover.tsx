@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import type { CardData } from "@/lib/profile";
 import { ProfileCard } from "./ProfileCard";
+import { useLocale, useT } from "./I18n";
 
 const cache = new Map<string, CardData>();
 
@@ -11,6 +12,8 @@ export function ProfileHover({ username, children }: { username: string; childre
   const [card, setCard] = useState<CardData | null>(cache.get(username) ?? null);
   const [open, setOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const t = useT();
+  const locale = useLocale();
 
   const show = () => {
     clearTimeout(timer.current);
@@ -35,7 +38,7 @@ export function ProfileHover({ username, children }: { username: string; childre
       {children}
       {open && card && (
         <span className="toast-in absolute left-0 top-full z-50 mt-2 block w-[300px]" onMouseEnter={show} onMouseLeave={hide}>
-          <ProfileCard p={card} variant="mini" />
+          <ProfileCard p={card} variant="mini" t={t} locale={locale} />
         </span>
       )}
     </span>

@@ -53,7 +53,7 @@ function ShopCard({ item, children, avatar, name, newLabel = "New" }: { item: Sh
 }
 
 export default async function KedaiPage() {
-  const { t, date } = await getI18n();
+  const { t, date, locale } = await getI18n();
   const fmt = (d: string) => date(d, "medium");
   const SECTIONS = SECTION_TYPES.map((x) => ({ ...x, title: t(`kedai.sec.${x.type}`), blurb: t(`kedai.sec.${x.type}Hint`) }));
   const user = await currentUser();
@@ -138,7 +138,7 @@ export default async function KedaiPage() {
             return (
               <article key={b.id} className="overflow-hidden rounded-3xl border border-line" style={{ background: `linear-gradient(160deg, ${b.colors[0]}, ${b.colors[1]}33 60%, var(--color-surface))` }}>
                 <div className="p-4 pb-0">
-                  <ProfileCard p={bundleCard(b)} variant="mini" />
+                  <ProfileCard p={bundleCard(b)} variant="mini" t={t} locale={locale} />
                 </div>
                 <div className="space-y-3 p-5">
                   <div className="flex items-baseline justify-between gap-2">

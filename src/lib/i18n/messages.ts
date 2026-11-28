@@ -6,6 +6,13 @@ import { th as thPages } from "./pages/th.ts";
 import { vi as viPages } from "./pages/vi.ts";
 import { tl as tlPages } from "./pages/tl.ts";
 import { ko as koPages } from "./pages/ko.ts";
+import { en as enMore, type MoreKey } from "./more/en.ts";
+import { ms as msMore } from "./more/ms.ts";
+import { id as idMore } from "./more/id.ts";
+import { th as thMore } from "./more/th.ts";
+import { vi as viMore } from "./more/vi.ts";
+import { tl as tlMore } from "./more/tl.ts";
+import { ko as koMore } from "./more/ko.ts";
 
 /**
  * Site chrome, home, sign-in and sign-up. English is the source of truth; every
@@ -93,7 +100,7 @@ const en = {
 
 type CoreKey = keyof typeof en;
 type CoreMessages = Record<CoreKey, string>;
-export type MsgKey = CoreKey | PageKey;
+export type MsgKey = CoreKey | PageKey | MoreKey;
 export type Messages = Record<MsgKey, string>;
 
 const ms: CoreMessages = {
@@ -571,11 +578,11 @@ const ko: CoreMessages = {
 };
 
 export const MESSAGES: Record<Locale, Messages> = {
-  en: { ...en, ...enPages },
-  ms: { ...ms, ...msPages },
-  id: { ...id, ...idPages },
-  th: { ...th, ...thPages },
-  vi: { ...vi, ...viPages },
-  tl: { ...tl, ...tlPages },
-  ko: { ...ko, ...koPages },
+  en: { ...en, ...enPages, ...enMore },
+  ms: { ...ms, ...msPages, ...msMore },
+  id: { ...id, ...idPages, ...idMore },
+  th: { ...th, ...thPages, ...thMore },
+  vi: { ...vi, ...viPages, ...viMore },
+  tl: { ...tl, ...tlPages, ...tlMore },
+  ko: { ...ko, ...koPages, ...koMore },
 };

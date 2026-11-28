@@ -5,6 +5,7 @@ import { listAccess, listByToken } from "@/lib/queries";
 import { ListView } from "@/components/ListView";
 import { ReportButton } from "@/components/ReportButton";
 import { one } from "@/lib/db";
+import { getT } from "@/lib/i18n/server";
 
 type Params = Promise<{ token: string }>;
 
@@ -26,6 +27,7 @@ export default async function SharedListPage({ params }: { params: Params }) {
   const list = listByToken((await params).token);
   if (!list) notFound();
   const user = await currentUser();
+  const t = await getT();
   if (!listAccess(list, user?.id, true).view) notFound();
   const hidden = one<{ h: string | null }>("SELECT hidden_at h FROM lists WHERE id = ?", list.id)?.h;
   const staff = user?.role === "staff" || user?.role === "admin";
@@ -33,7 +35,7 @@ export default async function SharedListPage({ params }: { params: Params }) {
   return (
     <>
       <ListView list={list} viewer={user} viaToken />
-      {user?.id !== list.user_id && <div className="mt-6 text-right"><ReportButton type="list" id={list.id} signedIn={!!user} label="Report catalogue" /></div>}
+      {user?.id !== list.user_id && <div className="mt-6 text-right"><ReportButton type="list" id={list.id} signedIn={!!user} label={t("lists.report")} /></div>}
     </>
   );
 }

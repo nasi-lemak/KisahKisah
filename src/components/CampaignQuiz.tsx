@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { playCampaignQuiz, type QuizResult } from "@/app/quiz-actions";
+import { useT } from "./I18n";
+import { Rich } from "./Rich";
 
 type Q = { question: string; options: string[] };
 
@@ -11,10 +13,11 @@ export function CampaignQuiz({ campaignId, questions, reward, played }: { campai
   const [result, setResult] = useState<QuizResult | null>(null);
   const [pending, start] = useTransition();
   const router = useRouter();
+  const t = useT();
   const i = answers.length;
 
   if (played && !result) {
-    return <p className="text-sm">You scored <b>{played.correct}/{played.total}</b> and earned <b className="text-saffron">{played.points} KP</b>. One play per fan.</p>;
+    return <p className="text-sm"><Rich text={t("quiz.played")} nodes={{ score: <b>{played.correct}/{played.total}</b>, kp: <b className="text-saffron">{played.points} KP</b> }} /></p>;
   }
   if (result?.error) return <p className="text-sm text-red-300">{result.error}</p>;
   if (result) {
@@ -25,7 +28,7 @@ export function CampaignQuiz({ campaignId, questions, reward, played }: { campai
           {questions.map((q, k) => (
             <li key={k} className="rounded-lg bg-black/20 p-3">
               <div className="font-semibold">{result.review![k].right ? "✅" : "❌"} {q.question}</div>
-              <div className="text-muted">Answer: <span className="text-text">{q.options[result.review![k].answer]}</span>{result.review![k].explanation ? ` · ${result.review![k].explanation}` : ""}</div>
+              <div className="text-muted"><Rich text={t("quiz.answer")} nodes={{ answer: <span className="text-text">{q.options[result.review![k].answer]}</span> }} />{result.review![k].explanation ? ` · ${result.review![k].explanation}` : ""}</div>
             </li>
           ))}
         </ol>
@@ -36,8 +39,8 @@ export function CampaignQuiz({ campaignId, questions, reward, played }: { campai
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between text-xs text-muted">
-        <span>Question {Math.min(i + 1, questions.length)} of {questions.length}</span>
-        <span>Up to {Math.round(reward * 1.25)} KP</span>
+        <span>{t("quiz.question", { n: Math.min(i + 1, questions.length), total: questions.length })}</span>
+        <span>{t("quiz.upTo", { n: Math.round(reward * 1.25) })}</span>
       </div>
       <div className="h-1 overflow-hidden rounded bg-black/30"><div className="h-full bg-saffron transition-all" style={{ width: `${(i / questions.length) * 100}%` }} /></div>
       {q ? (
@@ -51,7 +54,7 @@ export function CampaignQuiz({ campaignId, questions, reward, played }: { campai
         </>
       ) : (
         <button type="button" className="btn btn-primary" disabled={pending} onClick={() => start(async () => { setResult(await playCampaignQuiz(campaignId, answers)); router.refresh(); })}>
-          {pending ? "Checking…" : "See my score"}
+          {pending ? t("quiz.checking") : t("quiz.see")}
         </button>
       )}
     </div>

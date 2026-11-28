@@ -219,6 +219,7 @@ type PickFilm = { id: number; title: string; year: number; country: string; flag
 
 export function ListBuilder({ films, preselect }: { films: PickFilm[]; preselect?: number }) {
   const [state, action, pending] = useKeptAction(createList);
+  const t = useT();
   const [chosen, setChosen] = useState<number[]>(preselect ? [preselect] : []);
   const [q, setQ] = useState("");
   const byId = new Map(films.map((f) => [f.id, f]));
@@ -236,44 +237,44 @@ export function ListBuilder({ films, preselect }: { films: PickFilm[]; preselect
     <form onSubmit={action} className="grid gap-6 lg:grid-cols-[1fr_1fr]">
       <div className="space-y-4">
         <div>
-          <label className="label" htmlFor="title">Name</label>
-          <input id="title" name="title" className="input" placeholder="e.g. Films that taste like teh tarik" required maxLength={120} />
+          <label className="label" htmlFor="title">{t("lists.form.name")}</label>
+          <input id="title" name="title" className="input" placeholder={t("lists.form.namePlaceholder")} required maxLength={120} />
         </div>
         <div>
-          <label className="label" htmlFor="description">Description</label>
+          <label className="label" htmlFor="description">{t("lists.form.description")}</label>
           <textarea id="description" name="description" className="input min-h-24" maxLength={1000} />
         </div>
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="ranked" /> Ranked list (order matters)
+          <input type="checkbox" name="ranked" /> {t("lists.form.ranked")}
         </label>
         <div>
-          <label className="label" htmlFor="visibility">Who can see it</label>
+          <label className="label" htmlFor="visibility">{t("lists.form.visibility")}</label>
           <select id="visibility" name="visibility" className="input" defaultValue="public">
-            <option value="public">🌏 Public: on your profile and in search</option>
-            <option value="unlisted">🔗 Unlisted: only people with the link</option>
-            <option value="private">🔒 Private: just you</option>
+            <option value="public">{t("lists.form.public")}</option>
+            <option value="unlisted">{t("lists.form.unlisted")}</option>
+            <option value="private">{t("lists.form.private")}</option>
           </select>
         </div>
         {chosen.map((id) => (
           <input key={id} type="hidden" name="film" value={id} />
         ))}
         <Notice state={state} />
-        <Submit pending={pending}>Create catalogue (+10 KP)</Submit>
+        <Submit pending={pending}>{t("lists.form.create")}</Submit>
       </div>
       <div className="space-y-3">
-        <label className="label" htmlFor="picker">Add films</label>
-        <input id="picker" className="input" placeholder="Search the catalogue…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <label className="label" htmlFor="picker">{t("lists.form.addFilms")}</label>
+        <input id="picker" className="input" placeholder={t("lists.form.search")} value={q} onChange={(e) => setQ(e.target.value)} />
         <div className="card divide-y divide-line">
           {matches.map((f) => (
             <button type="button" key={f.id} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-raised" onClick={() => setChosen((c) => [...c, f.id])}>
               <span>{f.flag}</span>
               <span className="flex-1">{f.title} <span className="text-muted">({f.year})</span></span>
-              <span className="text-jade">+ add</span>
+              <span className="text-jade">{t("lists.form.add")}</span>
             </button>
           ))}
-          {matches.length === 0 && <div className="px-3 py-2 text-sm text-muted">No matches.</div>}
+          {matches.length === 0 && <div className="px-3 py-2 text-sm text-muted">{t("lists.form.noMatches")}</div>}
         </div>
-        <div className="label mt-4">In this catalogue ({chosen.length})</div>
+        <div className="label mt-4">{t("lists.form.inThis", { n: chosen.length })}</div>
         <ol className="space-y-1">
           {chosen.map((id, i) => {
             const f = byId.get(id)!;
@@ -281,9 +282,9 @@ export function ListBuilder({ films, preselect }: { films: PickFilm[]; preselect
               <li key={id} className="card flex items-center gap-2 px-3 py-1.5 text-sm">
                 <span className="w-5 text-muted">{i + 1}.</span>
                 <span className="flex-1">{f.flag} {f.title}</span>
-                <button type="button" className="text-muted hover:text-text" onClick={() => move(i, -1)} aria-label="Move up">↑</button>
-                <button type="button" className="text-muted hover:text-text" onClick={() => move(i, 1)} aria-label="Move down">↓</button>
-                <button type="button" className="text-chili" onClick={() => setChosen((c) => c.filter((x) => x !== id))} aria-label="Remove">×</button>
+                <button type="button" className="text-muted hover:text-text" onClick={() => move(i, -1)} aria-label={t("lists.moveUp")}>↑</button>
+                <button type="button" className="text-muted hover:text-text" onClick={() => move(i, 1)} aria-label={t("lists.moveDown")}>↓</button>
+                <button type="button" className="text-chili" onClick={() => setChosen((c) => c.filter((x) => x !== id))} aria-label={t("lists.remove")}>×</button>
               </li>
             );
           })}

@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { currentUser, userByUsername } from "@/lib/auth";
 import { computeRewind, rewindYears } from "@/lib/rewind";
 import { RewindStory } from "@/components/RewindStory";
+import { getT } from "@/lib/i18n/server";
 
 type Params = Promise<{ username: string; year: string }>;
 
@@ -20,6 +21,7 @@ export default async function RewindPage({ params }: { params: Params }) {
   const u = userByUsername(username);
   if (!u || !Number.isInteger(year) || year < 1900 || year > 2100) notFound();
   const viewer = await currentUser();
+  const t = await getT();
   const data = computeRewind(u.id, year);
   const years = rewindYears(u.id);
   const h = await headers();
@@ -36,9 +38,9 @@ export default async function RewindPage({ params }: { params: Params }) {
       {data.logs === 0 ? (
         <div className="card mx-auto max-w-md p-10 text-center">
           <div className="text-5xl">🎞️</div>
-          <h1 className="mt-3 font-display text-2xl font-bold">No kisah in {year} yet</h1>
-          <p className="mt-2 text-muted">{isOwner ? "Log some films or series and your Rewind will fill itself in." : `${u.display_name} hasn't logged anything in ${year}.`}</p>
-          {isOwner && <Link href="/films" className="btn btn-primary mt-5">Log something</Link>}
+          <h1 className="mt-3 font-display text-2xl font-bold">{t("rewind.none", { year })}</h1>
+          <p className="mt-2 text-muted">{isOwner ? t("rewind.noneOwner") : t("rewind.noneOther", { name: u.display_name, year })}</p>
+          {isOwner && <Link href="/films" className="btn btn-primary mt-5">{t("rewind.logSomething")}</Link>}
         </div>
       ) : (
         <RewindStory d={data} who={u} isOwner={isOwner} shareUrl={shareUrl} />

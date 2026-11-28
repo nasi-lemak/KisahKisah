@@ -12,6 +12,7 @@ import { Poster, Stars, Empty, KP } from "@/components/ui";
 import { ReviewCard } from "@/components/ReviewCard";
 import { StickerBoard } from "@/components/StickerBoard";
 import { ItemPreview } from "@/components/ItemPreview";
+import { getT } from "@/lib/i18n/server";
 
 type Params = Promise<{ username: string }>;
 
@@ -20,12 +21,12 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return { title: u ? `${u.display_name} (@${u.username})` : "Profile" };
 }
 
-function Showcase({ id, children, action }: { id: ShowcaseId; children: React.ReactNode; action?: React.ReactNode }) {
+function Showcase({ id, label, children, action }: { id: ShowcaseId; label: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <section className="glass overflow-hidden">
       <div className="showcase-head">
         <span>{SHOWCASES[id].icon}</span>
-        {SHOWCASES[id].label}
+        {label}
         <span className="ml-auto text-sm font-normal">{action}</span>
       </div>
       {children}
@@ -37,6 +38,7 @@ export default async function ProfilePage({ params }: { params: Params }) {
   const u = userByUsername((await params).username);
   if (!u) notFound();
   const viewer = await currentUser();
+  const t = await getT();
   const isMe = viewer?.id === u.id;
   const showcases = parseShowcases(u.showcases);
   const recent = diary(u.id, 8);
@@ -49,12 +51,12 @@ export default async function ProfilePage({ params }: { params: Params }) {
       case "favorites": {
         const favs = favorites(u.id);
         return (
-          <Showcase key={id} id={id}>
+          <Showcase key={id} id={id} label={t(`profile.showcase.${id}`)}>
             <div className="grid grid-cols-4 gap-3 p-4">
               {favs.map((f) => <Poster key={f.id} film={f} />)}
               {Array.from({ length: 4 - favs.length }).map((_, i) => (
                 <div key={i} className="poster flex items-center justify-center border border-dashed border-line text-xs text-muted">
-                  {isMe ? <Link href="/films">＋ add</Link> : "—"}
+                  {isMe ? <Link href="/films">{t("profile.addFavorite")}</Link> : "—"}
                 </div>
               ))}
             </div>
@@ -64,7 +66,7 @@ export default async function ProfilePage({ params }: { params: Params }) {
       case "stickers": {
         const owned = isMe ? inventory(u.id).map((i) => ITEM_BY_ID[i]).filter((i) => i?.type === "sticker").map((i) => ({ id: i.id, name: i.name })) : [];
         return (
-          <Showcase key={id} id={id}>
+          <Showcase key={id} id={id} label={t(`profile.showcase.${id}`)}>
             <StickerBoard initial={stickerBoard(u.id).map(({ id: _id, ...s }) => s)} owned={owned} editable={isMe} />
           </Showcase>
         );
@@ -72,7 +74,7 @@ export default async function ProfilePage({ params }: { params: Params }) {
       case "achievements": {
         const rare = rarestAchievements(u.id, 6);
         return (
-          <Showcase key={id} id={id} action={<Link href="/achievements" className="text-muted hover:text-text">All →</Link>}>
+          <Showcase key={id} id={id} label={t(`profile.showcase.${id}`)} action={<Link href="/achievements" className="text-muted hover:text-text">{t("profile.all")}</Link>}>
             {rare.length ? (
               <div className="grid grid-cols-2 gap-2 p-4 sm:grid-cols-3">
                 {rare.map((r) => (
@@ -82,13 +84,13 @@ export default async function ProfilePage({ params }: { params: Params }) {
                     </span>
                     <div className="min-w-0">
                       <div className="truncate text-sm font-bold">{r.a.name}</div>
-                      <div className="text-xs text-muted">{r.pct}% of members</div>
+                      <div className="text-xs text-muted">{t("profile.pctMembers", { pct: r.pct })}</div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="p-4 text-sm text-muted">No achievements yet.</p>
+              <p className="p-4 text-sm text-muted">{t("profile.noAchievements")}</p>
             )}
           </Showcase>
         );
@@ -97,7 +99,7 @@ export default async function ProfilePage({ params }: { params: Params }) {
         const top = collectionHighlights(u.id, 6);
         const count = collectionCount(u.id);
         return (
-          <Showcase key={id} id={id} action={<span className="text-muted">{count.total} items · {count.byRarity.legendary} legendary</span>}>
+          <Showcase key={id} id={id} label={t(`profile.showcase.${id}`)} action={<span className="text-muted">{t("profile.collectionCount", { total: count.total, legendary: count.byRarity.legendary })}</span>}>
             <div className="grid grid-cols-3 gap-2 p-4 sm:grid-cols-6">
               {top.map((it) => (
                 <div key={it.id} className="flex flex-col items-center gap-1 rounded-xl p-2 text-center" style={{ background: `linear-gradient(180deg, ${RARITY_STYLE[it.rarity].color}22, transparent)` }} title={it.description}>
@@ -114,8 +116,8 @@ export default async function ProfilePage({ params }: { params: Params }) {
       case "review": {
         const r = u.pinned_review_id ? reviewById(u.pinned_review_id, viewer?.id ?? 0) : reviewsByUser(u.id, viewer?.id ?? 0).sort((a, b) => b.like_count - a.like_count)[0];
         return (
-          <Showcase key={id} id={id}>
-            <div className="p-3">{r ? <ReviewCard r={r} viewerId={viewer?.id} /> : <p className="p-1 text-sm text-muted">No reviews yet.</p>}</div>
+          <Showcase key={id} id={id} label={t(`profile.showcase.${id}`)}>
+            <div className="p-3">{r ? <ReviewCard r={r} viewerId={viewer?.id} /> : <p className="p-1 text-sm text-muted">{t("profile.noReviews")}</p>}</div>
           </Showcase>
         );
       }
@@ -124,11 +126,11 @@ export default async function ProfilePage({ params }: { params: Params }) {
         const films = kinds.find((k) => k.kind === "film")?.n ?? 0;
         const series = kinds.find((k) => k.kind === "series")?.n ?? 0;
         const tiles: [string, string | number][] = [
-          ["Films", films], ["Series", series], ["≈ Hours", films * EST_HOURS.film + series * EST_HOURS.series],
-          ["Countries", visited.size], ["Regions", regionsVisited.size], ["KP earned", lifetimePoints(u.id).toLocaleString()],
+          [t("profile.stats.films"), films], [t("profile.stats.series"), series], [t("profile.stats.hours"), films * EST_HOURS.film + series * EST_HOURS.series],
+          [t("profile.stats.countries"), visited.size], [t("profile.stats.regions"), regionsVisited.size], [t("profile.stats.kp"), lifetimePoints(u.id).toLocaleString()],
         ];
         return (
-          <Showcase key={id} id={id}>
+          <Showcase key={id} id={id} label={t(`profile.showcase.${id}`)}>
             <div className="grid grid-cols-3 gap-2 p-4 sm:grid-cols-6">
               {tiles.map(([l, v]) => (
                 <div key={l} className="rounded-xl bg-black/20 p-3 text-center">
@@ -146,11 +148,11 @@ export default async function ProfilePage({ params }: { params: Params }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <div className="space-y-6">
-        {showcases.length === 0 && <Empty>No showcases yet.</Empty>}
+        {showcases.length === 0 && <Empty>{t("profile.noShowcases")}</Empty>}
         {showcases.map(render)}
         {isMe && (
           <Link href="/studio#showcases" className="glass block p-4 text-center text-sm text-muted hover:text-text">
-            ＋ Add or reorder showcases in Profile Studio
+            {t("profile.addShowcases")}
           </Link>
         )}
       </div>
@@ -158,8 +160,8 @@ export default async function ProfilePage({ params }: { params: Params }) {
       <aside className="space-y-6">
         <section className="glass p-4">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-display font-bold">Recently watched</h2>
-            <Link href={`/u/${u.username}/diary`} className="text-xs text-muted hover:text-text">Diary →</Link>
+            <h2 className="font-display font-bold">{t("profile.recent")}</h2>
+            <Link href={`/u/${u.username}/diary`} className="text-xs text-muted hover:text-text">{t("profile.diaryLink")}</Link>
           </div>
           {recent.length ? (
             <div className="grid grid-cols-4 gap-2">
@@ -173,24 +175,24 @@ export default async function ProfilePage({ params }: { params: Params }) {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted">Nothing logged yet.</p>
+            <p className="text-sm text-muted">{t("profile.nothingLogged")}</p>
           )}
         </section>
 
         <Link href={`/u/${u.username}/passport`} className="glass block p-4 transition hover:ring-1 hover:ring-saffron/50">
           <div className="flex items-center justify-between">
-            <h2 className="font-display font-bold">🛂 Film Passport</h2>
-            <span className="text-xs text-muted">Open →</span>
+            <h2 className="font-display font-bold">{t("profile.passportCard")}</h2>
+            <span className="text-xs text-muted">{t("profile.open")}</span>
           </div>
-          <p className="mt-1 text-xs text-muted">One stamp for every country {isMe ? "you've" : "they've"} watched a title from, worldwide.</p>
+          <p className="mt-1 text-xs text-muted">{isMe ? t("profile.passportBlurbMe") : t("profile.passportBlurbThem")}</p>
           <div className="mt-3 grid grid-cols-2 gap-2 text-center">
             <div className="rounded-lg bg-black/20 py-2">
               <div className="font-display text-xl font-extrabold">{visited.size}<span className="text-sm text-muted">/{COUNTRIES.length}</span></div>
-              <div className="text-[0.6rem] font-bold uppercase tracking-widest text-muted">Countries</div>
+              <div className="text-[0.6rem] font-bold uppercase tracking-widest text-muted">{t("profile.stats.countries")}</div>
             </div>
             <div className="rounded-lg bg-black/20 py-2">
               <div className="font-display text-xl font-extrabold">{regionsVisited.size}<span className="text-sm text-muted">/{Object.keys(REGIONS).length}</span></div>
-              <div className="text-[0.6rem] font-bold uppercase tracking-widest text-muted">Regions</div>
+              <div className="text-[0.6rem] font-bold uppercase tracking-widest text-muted">{t("profile.stats.regions")}</div>
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-1.5">
@@ -204,7 +206,7 @@ export default async function ProfilePage({ params }: { params: Params }) {
 
         {byCountry.length > 0 && (
           <section className="glass p-4">
-            <h2 className="mb-3 font-display font-bold">Titles by country</h2>
+            <h2 className="mb-3 font-display font-bold">{t("profile.byCountry")}</h2>
             <div className="space-y-1.5">
               {byCountry.slice(0, 8).map((b) => {
                 const c = country(b.country);
@@ -226,10 +228,10 @@ export default async function ProfilePage({ params }: { params: Params }) {
         {isMe && (
           <section className="glass p-4 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-muted">Your balance</span>
+              <span className="text-muted">{t("profile.balance")}</span>
               <KP n={u.points} />
             </div>
-            <Link href="/kedai" className="btn btn-ghost mt-3 w-full justify-center">Visit the Kedai</Link>
+            <Link href="/kedai" className="btn btn-ghost mt-3 w-full justify-center">{t("profile.visitKedai")}</Link>
           </section>
         )}
       </aside>

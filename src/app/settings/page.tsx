@@ -35,8 +35,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <PasswordSettings />
         <hr className="border-line" />
         <div id="two-step" className="scroll-mt-24 space-y-2">
-          <h3 className="font-bold">🔐 Two-step sign-in</h3>
-          {need2fa && <p className="rounded-md border border-saffron/40 bg-saffron/10 px-3 py-2 text-sm">Turn on two-step sign-in to use the admin.</p>}
+          <h3 className="font-bold">{t("twofa.settings.heading")}</h3>
+          {need2fa && <p className="rounded-md border border-saffron/40 bg-saffron/10 px-3 py-2 text-sm">{t("twofa.settings.need")}</p>}
           <TwoFactorSettings enabled={!!user.totp_enabled_at} codesLeft={user.totp_enabled_at ? recoveryCodesLeft(user.id) : 0} required={staff && requireStaff2fa()} />
         </div>
         <hr className="border-line" />
@@ -46,13 +46,13 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         </form>
       </section>
       <section className="card space-y-4 p-6">
-        <h2 className="font-display text-xl font-bold">Your data</h2>
+        <h2 className="font-display text-xl font-bold">{t("data.title")}</h2>
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-          <p className="text-muted">A copy of everything you&apos;ve put into KisahKisah, as a JSON file.</p>
-          <a href="/api/me/export" className="btn btn-ghost" download>⬇ Download my data</a>
+          <p className="text-muted">{t("data.copy")}</p>
+          <a href="/api/me/export" className="btn btn-ghost" download>{t("data.download")}</a>
         </div>
         <details className="rounded-xl border border-chili/30 p-3">
-          <summary className="cursor-pointer text-sm font-semibold text-red-300">Delete my account</summary>
+          <summary className="cursor-pointer text-sm font-semibold text-red-300">{t("data.delete")}</summary>
           <div className="mt-3"><DeleteAccountForm username={user.username} twoFactor={!!user.totp_enabled_at} /></div>
         </details>
       </section>

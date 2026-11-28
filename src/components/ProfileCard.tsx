@@ -3,9 +3,17 @@ import type { CardData } from "@/lib/profile";
 import { ITEM_BY_ID } from "@/lib/shop";
 import { country } from "@/lib/regions";
 import { Avatar, LevelBadge, ProfileEffect, StyledName, bannerStyle } from "./ui";
+import { format, intlTag, type Locale } from "@/lib/i18n/core";
+import { en, type MoreKey } from "@/lib/i18n/more/en";
 
-/** Discord-Nitro-style profile card. Pure & client-safe: used for profiles, previews and hover cards. */
-export function ProfileCard({ p, variant = "full", children }: { p: CardData; variant?: "full" | "mini"; children?: React.ReactNode }) {
+type T = (key: MoreKey, vars?: Record<string, string | number>) => string;
+const english: T = (key, vars) => format(en[key], vars);
+
+/**
+ * Discord-Nitro-style profile card. Pure & client-safe: used for profiles, previews and hover cards.
+ * Callers pass `t` (from getI18n or useT) and `locale` for the viewer's language; English otherwise.
+ */
+export function ProfileCard({ p, variant = "full", children, t = english, locale = "en" }: { p: CardData; variant?: "full" | "mini"; children?: React.ReactNode; t?: T; locale?: Locale }) {
   const banner = p.banner_item ? ITEM_BY_ID[p.banner_item]?.value ?? "" : "";
   const title = p.title_item ? ITEM_BY_ID[p.title_item]?.value : null;
   const c = country(p.home_country);
@@ -29,7 +37,7 @@ export function ProfileCard({ p, variant = "full", children }: { p: CardData; va
               <Avatar item={p.avatar_item} frame={p.frame_item} size={mini ? 64 : 120} />
             </span>
             {!mini && p.badges.length > 0 && (
-              <div className="mb-2 flex flex-wrap gap-1 rounded-xl bg-black/30 p-1 backdrop-blur" aria-label="Badges">
+              <div className="mb-2 flex flex-wrap gap-1 rounded-xl bg-black/30 p-1 backdrop-blur" aria-label={t("profile.card.badges")}>
                 {p.badges.map((b) => (
                   <span key={b.id} className="badge-pill" title={b.label}>
                     {b.icon}
@@ -37,10 +45,10 @@ export function ProfileCard({ p, variant = "full", children }: { p: CardData; va
                 ))}
               </div>
             )}
-            <div className="mb-2 ml-auto flex items-center gap-2" title={`${p.level.into}/${p.level.need} XP to level ${p.level.level + 1}`}>
+            <div className="mb-2 ml-auto flex items-center gap-2" title={t("profile.card.xp", { into: p.level.into, need: p.level.need, next: p.level.level + 1 })}>
               {!mini && (
                 <div className="text-right">
-                  <div className="text-xs uppercase tracking-widest text-muted">Level</div>
+                  <div className="text-xs uppercase tracking-widest text-muted">{t("profile.card.level")}</div>
                   <div className="h-1.5 w-24 overflow-hidden rounded-full bg-black/40">
                     <div className="h-full rounded-full" style={{ width: `${p.level.pct}%`, background: "linear-gradient(90deg, var(--p1), var(--p2))" }} />
                   </div>
@@ -55,7 +63,7 @@ export function ProfileCard({ p, variant = "full", children }: { p: CardData; va
             <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-muted">
               <span>@{p.username}</span>
               {c && <span>· {c.flag} {c.name}</span>}
-              {!mini && <span>· since {new Date(`${p.since}T00:00:00Z`).toLocaleDateString("en-GB", { month: "short", year: "numeric", timeZone: "UTC" })}</span>}
+              {!mini && <span>· {t("profile.card.since", { date: new Date(`${p.since}T00:00:00Z`).toLocaleDateString(intlTag(locale), { month: "short", year: "numeric", timeZone: "UTC" }) })}</span>}
             </div>
           </div>
           {title && (
@@ -72,12 +80,12 @@ export function ProfileCard({ p, variant = "full", children }: { p: CardData; va
           )}
           {p.bio && (
             <div className={`mt-3 rounded-xl bg-black/25 p-3 text-sm ${mini ? "line-clamp-3" : ""}`}>
-              {!mini && <div className="mb-1 text-[0.65rem] font-bold uppercase tracking-widest text-muted">About me</div>}
+              {!mini && <div className="mb-1 text-[0.65rem] font-bold uppercase tracking-widest text-muted">{t("profile.card.about")}</div>}
               {p.bio}
             </div>
           )}
           {mini && (
-            <Link href={`/u/${p.username}`} className="btn btn-ghost mt-3 w-full justify-center py-1.5 text-sm">View profile</Link>
+            <Link href={`/u/${p.username}`} className="btn btn-ghost mt-3 w-full justify-center py-1.5 text-sm">{t("profile.card.view")}</Link>
           )}
           {children}
         </div>
