@@ -80,6 +80,21 @@ The interface comes in English, Bahasa Melayu, Bahasa Indonesia, ไทย, Ti�
 
 Translated now: navigation, menus, footer, home, sign-in and sign-up, film and series pages (including the log and review form), events and event pages, the Kedai, and Settings. Dates on those pages follow the viewer's language. Strings live in `src/lib/i18n/messages.ts` (site chrome) and `src/lib/i18n/pages/<lang>.ts` (pages). Server components use `await getI18n()` (`t`, `locale`, `date`); client components use `useT()` and `useFormatDate()`. A unit test fails if any language is missing a key or a `{placeholder}`. **The translations are first drafts: have native speakers review them before launch.** Still in English: profiles, diary, catalogues, community, Rewind, the campaign Kuiz, the partner and artist portals, and the admin (staff-facing). Titles, event names and sponsor copy are content and stay as written.
 
+## Safety & moderation
+
+- **Report** any review, comment, catalogue or profile (⚑ Report): spam, harassment, hate, unmarked spoilers, sexual or violent content, copyright or piracy links, or something else. One report per member per item; 20 per hour.
+- **Automatic first response:** once 3 different members report an item (`MOD_AUTO_HIDE`), it's hidden pending review. Spoiler reports only blur the review (mark it as a spoiler), never hide it.
+- **Admin → Reports** groups open reports, most-reported first, with the content and the reporters' notes. Staff can **remove**, **restore**, **mark as spoiler**, **dismiss**, or **suspend** the author. Authors are told why their content was removed, and reporters are thanked when action is taken. Every decision goes in a moderation log shown under the queue.
+- **Suspended** members are signed out, can't sign in (they see the reason) or post, and their reviews and comments disappear for everyone else.
+- **Block** from any profile: you stop seeing each other's reviews and comments, they can't comment on your reviews, and follows end both ways.
+- Hidden content stays visible to its author (with a notice) and to staff.
+
+## Your data
+
+Settings → **Your data**:
+- **Download my data** gives a JSON file of the account and every row linked to it (reviews, diary, catalogues, comments, points, items, follows, reminders, quiz plays…). Passwords, sign-in secrets, tokens and the mail outbox are never included. Tables are read from the schema, so new features are covered automatically.
+- **Delete my account** needs the username typed out, the password and (if on) a two-step code. All personal content goes, and the account row is anonymised ("Deleted member", no email, can't sign in, profile 404). The row is kept only so invoices, artist payouts and moderation records still add up. Members on a partner team with a live campaign are asked to hand it over first. A confirmation email is sent.
+
 ## Accounts & security
 
 - **Sign-up** needs an email (never shown publicly). A confirmation link is emailed; confirming unlocks password resets by email and release reminders.

@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { currentUser } from "@/lib/auth";
 import { listAccess, listById } from "@/lib/queries";
 import { ListView } from "@/components/ListView";
+import { ReportButton } from "@/components/ReportButton";
+import { one } from "@/lib/db";
 
 type Params = Promise<{ id: string }>;
 
@@ -23,5 +25,14 @@ export default async function ListPage({ params }: { params: Params }) {
   const user = await currentUser();
   // Unlisted catalogues only open through their share link; private ones only for owner + collaborators.
   if (!listAccess(list, user?.id, false).view) notFound();
-  return <ListView list={list} viewer={user} viaToken={false} />;
+  const hidden = one<{ h: string | null }>("SELECT hidden_at h FROM lists WHERE id = ?", list.id)?.h;
+  const staff = user?.role === "staff" || user?.role === "admin";
+  if (hidden && user?.id !== list.user_id && !staff) notFound();
+  return (
+    <>
+      {hidden && <p className="mb-4 rounded-xl border border-chili/40 bg-chili/10 p-3 text-sm">🛡️ This catalogue is hidden from everyone else by moderators.</p>}
+      <ListView list={list} viewer={user} viaToken={false} />
+      {user?.id !== list.user_id && <div className="mt-6 text-right"><ReportButton type="list" id={list.id} signedIn={!!user} label="Report catalogue" /></div>}
+    </>
+  );
 }

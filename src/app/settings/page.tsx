@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { COUNTRIES } from "@/lib/regions";
 import { SettingsForm } from "@/components/forms";
-import { EmailSettings, PasswordSettings } from "@/components/AccountForms";
+import { DeleteAccountForm, EmailSettings, PasswordSettings } from "@/components/AccountForms";
 import { signOutEverywhere } from "@/app/account-actions";
 import { LanguagePicker } from "@/components/LanguagePicker";
 import { TwoFactorSettings } from "@/components/TwoFactor";
@@ -44,6 +44,17 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           <p className="text-sm text-muted">{t("settings.lost")}</p>
           <button className="btn btn-ghost">{t("settings.signOutAll")}</button>
         </form>
+      </section>
+      <section className="card space-y-4 p-6">
+        <h2 className="font-display text-xl font-bold">Your data</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+          <p className="text-muted">A copy of everything you&apos;ve put into KisahKisah, as a JSON file.</p>
+          <a href="/api/me/export" className="btn btn-ghost" download>⬇ Download my data</a>
+        </div>
+        <details className="rounded-xl border border-chili/30 p-3">
+          <summary className="cursor-pointer text-sm font-semibold text-red-300">Delete my account</summary>
+          <div className="mt-3"><DeleteAccountForm username={user.username} twoFactor={!!user.totp_enabled_at} /></div>
+        </details>
       </section>
       <p className="text-sm text-muted">
         {t("settings.studioNote")} <Link href="/studio" className="text-saffron">{t("settings.studio")}</Link>.

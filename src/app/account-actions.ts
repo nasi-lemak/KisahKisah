@@ -9,6 +9,9 @@ import { checkCurrentPassword, clearAttempts, clientIp, consumeToken, limited, l
 import { minutes, normalizeEmail, passwordProblem, validEmail } from "@/lib/security-core";
 import { sendPasswordChanged, sendReset, sendVerification } from "@/lib/account-mail";
 import type { FormState } from "./actions";
+import { deleteAccount } from "@/lib/account-data";
+import { checkCode, useRecoveryCode } from "@/lib/twofactor";
+import { sendMail } from "@/lib/mail";
 import { startChallenge, twoFactorEnabled } from "@/lib/twofactor";
 
 const SENT = "If an account matches, we've emailed a reset link. It works for 1 hour.";
@@ -114,4 +117,28 @@ export async function confirmEmail(token: string): Promise<FormState> {
   const done = run("UPDATE users SET email_verified_at = datetime('now') WHERE id = ? AND email = ? COLLATE NOCASE", t.user_id, t.email);
   if (Number(done.changes) !== 1) return { error: "Your email has changed since this link was sent. Use the newest link." };
   return { ok: `${t.email} is confirmed. Thanks!` };
+}
+
+export async function deleteMyAccount(_: FormState, form: FormData): Promise<FormState> {
+  const user = await requireUser("/settings");
+  if (String(form.get("confirm") ?? "").trim().toLowerCase() !== user.username.toLowerCase()) return { error: "Type your username to confirm." };
+  const pw = checkCurrentPassword(user.id, String(form.get("password") ?? ""), verifyPassword);
+  if (!pw.ok) return { error: pw.error };
+  if (twoFactorEnabled(user.id)) {
+    const code = String(form.get("code") ?? "");
+    if (!checkCode(user.id, code) && !useRecoveryCode(user.id, code)) return { error: "Enter a code from your authenticator app (or a recovery code)." };
+  }
+  if (one("SELECT 1 x FROM org_members m JOIN campaigns c ON c.org_id = m.org_id WHERE m.user_id = ? AND c.status IN ('submitted', 'scheduled')", user.id)) {
+    return { error: "You're on a partner team with an active campaign. Hand it over to a teammate or ask us to close it first." };
+  }
+  const email = user.email;
+  try {
+    deleteAccount(user.id);
+  } catch (e) {
+    console.error("account deletion failed", user.id, e);
+    return { error: "Something went wrong deleting your account. Nothing was changed; please contact support." };
+  }
+  await destroySession();
+  if (email) await sendMail({ to: email, subject: "Your KisahKisah account was deleted", text: `Your account and its reviews, diary, catalogues and points have been deleted.\nIf you didn't do this, reply to this email straight away.\n\nTerima kasih for your kisah.\nKisahKisah` });
+  redirect("/goodbye");
 }

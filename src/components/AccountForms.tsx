@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { changeEmail, changePassword, confirmEmail, requestPasswordReset, resendVerification, resetPassword } from "@/app/account-actions";
+import { changeEmail, changePassword, confirmEmail, deleteMyAccount, requestPasswordReset, resendVerification, resetPassword } from "@/app/account-actions";
 import type { FormState } from "@/app/actions";
 import { Notice, Submit, useKeptAction } from "./forms";
 
@@ -113,6 +113,22 @@ export function PasswordSettings() {
       </div>
       <Notice state={state} />
       <Submit pending={pending} className="btn btn-ghost">Change password</Submit>
+    </form>
+  );
+}
+
+export function DeleteAccountForm({ username, twoFactor }: { username: string; twoFactor: boolean }) {
+  const [state, action, pending] = useKeptAction(deleteMyAccount);
+  return (
+    <form onSubmit={action} className="space-y-2 text-sm">
+      <p className="text-muted">This deletes your reviews, comments, diary, catalogues, watchlist, points and items, and can&apos;t be undone. Download your data first if you want a copy.</p>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <div><label className="label" htmlFor="del-confirm">Type “{username}”</label><input id="del-confirm" name="confirm" className="input py-1.5" autoComplete="off" required /></div>
+        <div><label className="label" htmlFor="del-pw">Password</label><input id="del-pw" name="password" type="password" className="input py-1.5" autoComplete="current-password" required /></div>
+        {twoFactor && <div><label className="label" htmlFor="del-code">Authenticator code</label><input id="del-code" name="code" className="input py-1.5 font-mono" required /></div>}
+      </div>
+      <Notice state={state} />
+      <Submit pending={pending} className="btn border border-chili/60 text-red-300 hover:bg-chili/20">Delete my account</Submit>
     </form>
   );
 }

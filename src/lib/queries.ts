@@ -81,7 +81,7 @@ export function countryCounts(): Record<string, number> {
 // ── Reviews ─────────────────────────────────────────────────────────
 
 export type Review = {
-  id: number; user_id: number; film_id: number; rating: number | null; body: string; spoiler: number;
+  id: number; user_id: number; film_id: number; rating: number | null; body: string; spoiler: number; hidden_at: string | null; hidden_reason: string | null;
   game_type: string; game_config: string; external_links: string; created_at: string;
   username: string; display_name: string; avatar_item: string; frame_item: string | null; title_item: string | null; namestyle_item: string | null;
   film_slug: string; film_title: string; film_year: number; film_country: string; film_motif: string; film_poster: string | null;
@@ -99,25 +99,29 @@ const REVIEW_SELECT = `
     EXISTS(SELECT 1 FROM review_likes WHERE review_id = r.id AND user_id = ?1) liked
   FROM reviews r JOIN users u ON u.id = r.user_id JOIN films f ON f.id = r.film_id`;
 
+/** Hidden reviews, suspended authors and blocks (either way) are filtered for the viewer (?1). */
+const VISIBLE = `r.hidden_at IS NULL AND u.suspended_at IS NULL AND u.deleted_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = ?1 AND b.blocked_id = r.user_id) OR (b.blocker_id = r.user_id AND b.blocked_id = ?1))`;
+
 export function reviewsForFilm(filmId: number, viewerId = 0): Review[] {
-  return all<Review>(`${REVIEW_SELECT} WHERE r.film_id = ? ORDER BY like_count DESC, r.created_at DESC`, viewerId, filmId);
+  return all<Review>(`${REVIEW_SELECT} WHERE ${VISIBLE} AND r.film_id = ? ORDER BY like_count DESC, r.created_at DESC`, viewerId, filmId);
 }
 
 export function recentReviews(limit = 10, viewerId = 0): Review[] {
-  return all<Review>(`${REVIEW_SELECT} ORDER BY r.created_at DESC LIMIT ?`, viewerId, limit);
+  return all<Review>(`${REVIEW_SELECT} WHERE ${VISIBLE} ORDER BY r.created_at DESC LIMIT ?`, viewerId, limit);
 }
 
 export function popularReviews(limit = 6, viewerId = 0): Review[] {
-  return all<Review>(`${REVIEW_SELECT} ORDER BY like_count DESC, r.created_at DESC LIMIT ?`, viewerId, limit);
+  return all<Review>(`${REVIEW_SELECT} WHERE ${VISIBLE} ORDER BY like_count DESC, r.created_at DESC LIMIT ?`, viewerId, limit);
 }
 
 export function reviewsByUser(userId: number, viewerId = 0): Review[] {
-  return all<Review>(`${REVIEW_SELECT} WHERE r.user_id = ? ORDER BY r.created_at DESC`, viewerId, userId);
+  return all<Review>(`${REVIEW_SELECT} WHERE (${VISIBLE} OR r.user_id = ?1) AND r.user_id = ? ORDER BY r.created_at DESC`, viewerId, userId);
 }
 
 export function feedReviews(viewerId: number, limit = 10): Review[] {
   return all<Review>(
-    `${REVIEW_SELECT} WHERE r.user_id IN (SELECT followee_id FROM follows WHERE follower_id = ?) ORDER BY r.created_at DESC LIMIT ?`,
+    `${REVIEW_SELECT} WHERE ${VISIBLE} AND r.user_id IN (SELECT followee_id FROM follows WHERE follower_id = ?) ORDER BY r.created_at DESC LIMIT ?`,
     viewerId, viewerId, limit,
   );
 }
@@ -128,11 +132,15 @@ export function reviewById(id: number, viewerId = 0): Review | undefined {
 
 export type Comment = { id: number; body: string; created_at: string; user_id: number; username: string; display_name: string; avatar_item: string; frame_item: string | null; namestyle_item: string | null };
 
-export function commentsFor(reviewId: number): Comment[] {
+export function commentsFor(reviewId: number, viewerId = 0): Comment[] {
   return all<Comment>(
     `SELECT c.id, c.body, c.created_at, c.user_id, u.username, u.display_name, u.avatar_item, u.frame_item, u.namestyle_item
-     FROM comments c JOIN users u ON u.id = c.user_id WHERE c.review_id = ? ORDER BY c.created_at`,
-    reviewId,
+     FROM comments c JOIN users u ON u.id = c.user_id
+     WHERE c.review_id = ?2 AND ((c.hidden_at IS NULL AND u.suspended_at IS NULL AND u.deleted_at IS NULL
+       AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = ?1 AND b.blocked_id = c.user_id) OR (b.blocker_id = c.user_id AND b.blocked_id = ?1)))
+       OR c.user_id = ?1)
+     ORDER BY c.created_at`,
+    viewerId, reviewId,
   );
 }
 
@@ -183,16 +191,16 @@ export function listsByUser(userId: number, viewerId = 0): ListSummary[] {
       userId, userId,
     );
   }
-  return all<ListSummary>(`${LIST_SELECT} WHERE l.user_id = ? AND l.visibility = 'public' ORDER BY l.created_at DESC`, userId);
+  return all<ListSummary>(`${LIST_SELECT} WHERE l.user_id = ? AND l.visibility = 'public' AND l.hidden_at IS NULL ORDER BY l.created_at DESC`, userId);
 }
 
 export function recentLists(limit = 6): ListSummary[] {
-  return all<ListSummary>(`${LIST_SELECT} WHERE l.visibility = 'public' ORDER BY save_count DESC, item_count DESC, l.created_at DESC LIMIT ?`, limit);
+  return all<ListSummary>(`${LIST_SELECT} WHERE l.visibility = 'public' AND l.hidden_at IS NULL ORDER BY save_count DESC, item_count DESC, l.created_at DESC LIMIT ?`, limit);
 }
 
 export function listsContainingFilm(filmId: number): ListSummary[] {
   return all<ListSummary>(
-    `${LIST_SELECT} WHERE l.visibility = 'public' AND l.id IN (SELECT list_id FROM list_items WHERE film_id = ?) ORDER BY save_count DESC, item_count DESC LIMIT 4`,
+    `${LIST_SELECT} WHERE l.visibility = 'public' AND l.hidden_at IS NULL AND l.id IN (SELECT list_id FROM list_items WHERE film_id = ?) ORDER BY save_count DESC, item_count DESC LIMIT 4`,
     filmId,
   );
 }

@@ -9,12 +9,21 @@ import { cardData } from "@/lib/profile";
 import { ProfileCard } from "@/components/ProfileCard";
 import { bannerStyle } from "@/components/ui";
 import { toggleFollow } from "@/app/actions";
+import { BlockButton, ReportButton } from "@/components/ReportButton";
+import { hasBlocked } from "@/lib/moderation";
 
 export default async function ProfileLayout({ children, params }: { children: React.ReactNode; params: Promise<{ username: string }> }) {
   const { username } = await params;
   const u = userByUsername(username);
   if (!u) notFound();
   const viewer = await currentUser();
+  const standing = one<{ suspended_at: string | null; deleted_at: string | null }>("SELECT suspended_at, deleted_at FROM users WHERE id = ?", u.id)!;
+  const staffViewer = viewer?.role === "staff" || viewer?.role === "admin";
+  if (standing.deleted_at) notFound();
+  if (standing.suspended_at && !staffViewer && viewer?.id !== u.id) {
+    return <div className="glass mx-auto max-w-lg p-8 text-center"><div className="text-4xl">🛡️</div><p className="mt-2">This account is suspended.</p></div>;
+  }
+  const iBlocked = viewer && viewer.id !== u.id ? hasBlocked(viewer.id, u.id) : false;
   if (viewer?.id === u.id) checkAchievements(u.id); // heal any missed unlocks
 
   const card = cardData(u);
@@ -66,7 +75,14 @@ export default async function ProfileLayout({ children, params }: { children: Re
           )}
           {viewer?.id === u.id && <Link href="/studio" className="btn btn-primary">🎨 Edit profile</Link>}
           <Link href={`/rewind/${u.username}/${year}`} className="btn btn-ghost">⏪ Rewind {year}</Link>
+          {viewer && viewer.id !== u.id && (
+            <span className="ml-auto flex items-center gap-3">
+              <BlockButton userId={u.id} name={u.display_name} initial={iBlocked} />
+              <ReportButton type="user" id={u.id} signedIn label="Report profile" />
+            </span>
+          )}
         </div>
+        {standing.suspended_at && <p className="mt-3 rounded-md border border-chili/40 bg-chili/10 px-3 py-2 text-sm">🛡️ Suspended{viewer?.id === u.id ? ": your reviews and comments are hidden and you can't post." : ""}</p>}
       </ProfileCard>
 
       <nav className="glass flex gap-1 overflow-x-auto px-2">

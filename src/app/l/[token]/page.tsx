@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { currentUser } from "@/lib/auth";
 import { listAccess, listByToken } from "@/lib/queries";
 import { ListView } from "@/components/ListView";
+import { ReportButton } from "@/components/ReportButton";
+import { one } from "@/lib/db";
 
 type Params = Promise<{ token: string }>;
 
@@ -25,5 +27,13 @@ export default async function SharedListPage({ params }: { params: Params }) {
   if (!list) notFound();
   const user = await currentUser();
   if (!listAccess(list, user?.id, true).view) notFound();
-  return <ListView list={list} viewer={user} viaToken />;
+  const hidden = one<{ h: string | null }>("SELECT hidden_at h FROM lists WHERE id = ?", list.id)?.h;
+  const staff = user?.role === "staff" || user?.role === "admin";
+  if (hidden && user?.id !== list.user_id && !staff) notFound();
+  return (
+    <>
+      <ListView list={list} viewer={user} viaToken />
+      {user?.id !== list.user_id && <div className="mt-6 text-right"><ReportButton type="list" id={list.id} signedIn={!!user} label="Report catalogue" /></div>}
+    </>
+  );
 }

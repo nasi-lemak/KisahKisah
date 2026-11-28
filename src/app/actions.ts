@@ -10,6 +10,7 @@ import { clearAttempts, clientIp, limited, limitedByIp, loginKey, noteAttempt } 
 import { minutes, normalizeEmail, passwordProblem, validEmail } from "@/lib/security-core";
 import { sendVerification } from "@/lib/account-mail";
 import { startChallenge, twoFactorEnabled } from "@/lib/twofactor";
+import { blockedBetween, isSuspended } from "@/lib/moderation";
 import { award, checkAchievements, grantItem, notify, POINTS, unlock } from "@/lib/rewards";
 import { BUNDLES, ITEM_BY_ID, STARTER_ITEMS, bundlePrice } from "@/lib/shop";
 import { SHOWCASES } from "@/lib/profile";
@@ -93,6 +94,9 @@ export async function login(_: FormState, form: FormData): Promise<FormState> {
     noteAttempt(userKey, ipKey);
     return { error: "Wrong username or password." };
   }
+  const banned = isSuspended(row!.id);
+  if (banned) return { error: `This account is suspended: ${banned}. Contact support if you think this is a mistake.` };
+  if (one("SELECT 1 x FROM users WHERE id = ? AND deleted_at IS NOT NULL", row!.id)) return { error: "Wrong username or password." };
   clearAttempts(userKey);
   if (twoFactorEnabled(row!.id)) {
     await startChallenge(row!.id);
@@ -119,6 +123,7 @@ function parseLinks(raw: string): string[] {
 
 export async function logFilm(_: FormState, form: FormData): Promise<FormState> {
   const user = await requireUser();
+  if (str(form, "body", 10) && isSuspended(user.id)) return { error: "Your account is suspended, so you can't post reviews right now." };
   const film = filmById(Number(form.get("film_id")));
   if (!film) return { error: "Film not found." };
 
@@ -198,7 +203,10 @@ export async function addComment(_: FormState, form: FormData): Promise<FormStat
   const body = str(form, "body", 1500);
   if (!body) return { error: "Say something first!" };
   const r = reviewById(reviewId);
-  if (!r) return { error: "Review not found." };
+  if (!r || r.hidden_at) return { error: "Review not found." };
+  const banned = isSuspended(user.id);
+  if (banned) return { error: `Your account is suspended (${banned}).` };
+  if (blockedBetween(user.id, r.user_id)) return { error: "You can't comment here." };
   const c = run("INSERT INTO comments (review_id, user_id, body) VALUES (?,?,?)", reviewId, user.id, body);
   const today = new Date().toISOString().slice(0, 10);
   const todays = one<{ n: number }>("SELECT COUNT(*) n FROM points_ledger WHERE user_id = ? AND reason = 'comment' AND created_at >= ?", user.id, today)?.n ?? 0;
@@ -240,7 +248,7 @@ export async function toggleFollow(userId: number) {
   const user = await requireUser();
   if (userId === user.id) return;
   const target = one<{ username: string }>("SELECT username FROM users WHERE id = ?", userId);
-  if (!target) return;
+  if (!target || blockedBetween(user.id, userId)) return;
   if (run("DELETE FROM follows WHERE follower_id = ? AND followee_id = ?", user.id, userId).changes === 0) {
     run("INSERT INTO follows (follower_id, followee_id) VALUES (?,?)", user.id, userId);
     notify(userId, "follow", "👋", `${user.display_name} followed you`);

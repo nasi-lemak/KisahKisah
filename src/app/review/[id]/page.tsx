@@ -12,6 +12,9 @@ import { ExternalLinks, LikeButton } from "@/components/ReviewCard";
 import { GamePanel, SpoilerText } from "@/components/games";
 import { CommentForm, SignInPrompt } from "@/components/forms";
 import { deleteReview } from "@/app/actions";
+import { ReportButton } from "@/components/ReportButton";
+import { blockedBetween } from "@/lib/moderation";
+import { one } from "@/lib/db";
 
 type Params = Promise<{ id: string }>;
 
@@ -25,12 +28,17 @@ export default async function ReviewPage({ params }: { params: Params }) {
   const user = await currentUser();
   const r = Number.isInteger(id) ? reviewById(id, user?.id ?? 0) : undefined;
   if (!r) notFound();
+  const staffViewer = user?.role === "staff" || user?.role === "admin";
+  const author = one<{ suspended_at: string | null; deleted_at: string | null }>("SELECT suspended_at, deleted_at FROM users WHERE id = ?", r.user_id);
+  // Hidden or from a suspended author: only the author and staff can still open it.
+  if ((r.hidden_at || author?.suspended_at || author?.deleted_at) && user?.id !== r.user_id && !staffViewer) notFound();
+  const blocked = user && user.id !== r.user_id ? blockedBetween(user.id, r.user_id) : false;
 
   const game = publicGame(r);
   const played = user ? gamePlay(user.id, r.id) ?? null : null;
   const isAuthor = user?.id === r.user_id;
   const hideRating = r.game_type === "guess_rating" && !isAuthor && !played;
-  const comments = commentsFor(r.id);
+  const comments = commentsFor(r.id, user?.id ?? 0);
   const title = r.title_item ? ITEM_BY_ID[r.title_item]?.value : null;
   const stickerCatalog = Object.fromEntries(ITEMS.filter((i) => i.type === "sticker").map((i) => [i.id, { id: i.id, name: i.name, value: i.value }]));
   const owned = user ? inventory(user.id).filter((id) => stickerCatalog[id]).map((id) => stickerCatalog[id]) : [];
@@ -38,6 +46,10 @@ export default async function ReviewPage({ params }: { params: Params }) {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
+      {r.hidden_at && (
+        <p className="rounded-xl border border-chili/40 bg-chili/10 p-3 text-sm">🛡️ This review is hidden from everyone else: {r.hidden_reason ?? "removed by moderators"}.</p>
+      )}
+      {blocked && <p className="rounded-xl border border-line bg-raised p-3 text-sm">🚫 You and {r.display_name} have blocked each other or one of you blocked the other, so comments are off here.</p>}
       <article className="card p-6">
         <div className="flex gap-5">
           <div className="w-24 shrink-0 sm:w-32">
@@ -70,10 +82,12 @@ export default async function ReviewPage({ params }: { params: Params }) {
           <LikeButton r={r} viewerId={user?.id} />
           <span className="text-sm text-muted">💬 {r.comment_count}</span>
           <ExternalLinks raw={r.external_links} />
-          {isAuthor && (
+          {isAuthor ? (
             <form action={deleteReview.bind(null, r.id)} className="ml-auto">
               <button className="text-xs text-muted hover:text-chili">Delete review</button>
             </form>
+          ) : (
+            <span className="ml-auto"><ReportButton type="review" id={r.id} signedIn={!!user} /></span>
           )}
         </div>
       </article>
@@ -93,7 +107,7 @@ export default async function ReviewPage({ params }: { params: Params }) {
       <section id="comments" className="scroll-mt-24 space-y-4">
         <h2 className="section-title">Comments ({comments.length})</h2>
         {comments.map((c) => (
-          <div key={c.id} className="flex gap-3">
+          <div key={c.id} id={`c${c.id}`} className="flex scroll-mt-24 gap-3">
             <Link href={`/u/${c.username}`}>
               <Avatar item={c.avatar_item} frame={c.frame_item} size={34} />
             </Link>
@@ -101,12 +115,13 @@ export default async function ReviewPage({ params }: { params: Params }) {
               <div className="text-sm">
                 <Link href={`/u/${c.username}`} className="font-semibold hover:brightness-125"><StyledName name={c.display_name} style={c.namestyle_item} /></Link>{" "}
                 <span className="text-xs text-muted">{timeAgo(c.created_at)}</span>
+                {c.user_id !== user?.id && <span className="float-right"><ReportButton type="comment" id={c.id} signedIn={!!user} /></span>}
               </div>
               <p className="mt-0.5 whitespace-pre-line text-sm">{c.body}</p>
             </div>
           </div>
         ))}
-        {user ? <CommentForm reviewId={r.id} /> : <SignInPrompt what="join the conversation" next={`/review/${r.id}`} />}
+        {user ? (blocked ? null : <CommentForm reviewId={r.id} />) : <SignInPrompt what="join the conversation" next={`/review/${r.id}`} />}
       </section>
     </div>
   );

@@ -76,6 +76,8 @@ Test a restore before launch. Uploaded artwork on S3/R2 is already off the serve
 - [ ] Litestream restore tested
 - [ ] TMDB attribution visible in the footer; the TMDB terms accepted for your key
 - [ ] Order-form terms (`DEFAULT_TERMS`) reviewed by counsel; `BILLING_*` filled in
+- [ ] Someone on staff checks **Admin → Reports** daily; community guidelines page and a support address published
+- [ ] Privacy policy covers data export and deletion (Settings → Your data)
 - [ ] Translations reviewed by native speakers (`src/lib/i18n/messages.ts`)
 
 ## 7. When to move to Postgres
